@@ -1,0 +1,104 @@
+/* src/popup/index.css */
+
+/* ====== Root Theme Colors ====== */
+:root {
+  --bg-color: #121212;
+  --text-color: #f0f0f0;
+  --muted-color: #aaaaaa;
+  --accent-color: #2196f3;
+  --accent-hover: #42a5f5;
+  --button-bg: #1e1e1e;
+  --button-hover: #2a2a2a;
+  --border-color: #333;
+  --input-bg: #1b1b1b;
+  --input-border: #444;
+}
+
+/* ====== Reset ====== */
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ====== Popup Container ====== */
+.popup {
+  width: 380px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-sizing: border-box;
+}
+
+/* ====== Heading ====== */
+.popup h2 {
+  margin: 0;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 600;
+  /* color: var(--accent-color); */
+}
+
+/* ====== File Picker ====== */
+.file-picker {
+  display: block;
+  cursor: pointer;
+}
+.file-picker span {
+  display: block;
+  padding: 10px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  text-align: center;
+  color: var(--text-color);
+  transition: background 0.2s ease;
+}
+.file-picker:hover span {
+  background: var(--button-hover);
+}
+
+/* ====== Info Text & Links ====== */
+.popup p {
+  margin: 0;
+  font-size: 0.9rem;
+  text-align: center;
+  color: var(--muted-color);
+}
+.popup a {
+  color: var(--accent-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+.popup a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* ====== Primary Button ====== */
+.popup button {
+  padding: 12px;
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 500;
+  background-color: var(--accent-color);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+.popup button:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+}
+.popup button:disabled {
+  background-color: #3a3a3a;
+  color: #999;
+  cursor: not-allowed;
+}
+

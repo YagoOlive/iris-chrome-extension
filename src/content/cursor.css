@@ -1,0 +1,5 @@
+#virtual-cursor {
+  z-index: 2147483647;      /* above everything */
+  pointer-events: none;     /* ignore clicks */
+  transition: transform 50ms linear; /* later: smooth motion */
+}
