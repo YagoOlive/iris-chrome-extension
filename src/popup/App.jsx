@@ -8,6 +8,8 @@ export default function App() {
   const [stream, setStream] = useState(null);
   const videoRef = useRef(null);
 
+  const [loadingCamera, setLoadingCamera] = useState(false);
+
   // 1. Handle CSV upload
   function handleChoose(e) {
     const file = e.target.files?.[0];
@@ -23,13 +25,13 @@ export default function App() {
     const wantOn = e.target.checked;
 
     if (wantOn) {
-      // Check camera‐permission state
-      let status;
-      status = await navigator.permissions.query({ name: 'camera' });
-      console.log(`STATUS IS ${status.state}`)
-
-      // If prompt or granted, fire getUserMedia
+      setLoadingCamera(true);
       try {
+        // Check camera‐permission state
+        let status;
+        status = await navigator.permissions.query({ name: 'camera' });
+        console.log(`STATUS IS ${status.state}`)
+        // If prompt or granted, fire getUserMedia
         const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
         setStream(mediaStream);
         setCameraEnabled(true);
@@ -37,6 +39,8 @@ export default function App() {
         console.error('getUserMedia failed:', err);
         alert('Unable to access camera. Please check your browser settings.');
         e.target.checked = false;   // reset toggle
+      } finally {
+        setLoadingCamera(false);
       }
 
     } else {
@@ -54,7 +58,7 @@ export default function App() {
     if (stream && videoRef.current) {
       videoRef.current.srcObject = stream;    // Bind MediaStream to <video>
     }
-  }, [stream]);                               // Re-run when stream changes :contentReference[oaicite:4]{index=4}
+  }, [stream]);                               // Re-run when stream changes
 
   // 4. Start head-tracking only if CSV + camera enabled
   async function handleStart() {
@@ -85,13 +89,16 @@ export default function App() {
 
       {/* Camera Toggle */}
       <div className="toggle-container">
-        <label>
+        <label className="switch-label">
           <input
             type="checkbox"
             checked={cameraEnabled}
             onChange={handleToggleCamera}
+            disabled={loadingCamera}
           />
-          <span>Enable Camera</span>
+          <span className="switch-slider"></span>
+          <span className="switch-text">Enable Camera</span>
+          {loadingCamera && <span className="spinner"></span>}
         </label>
       </div>
 
