@@ -8,7 +8,9 @@
   "host_permissions": ["<all_urls>"],
   "web_accessible_resources": [
     {
-      "resources": ["content/*"],
+      "resources": [
+        "content/*"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

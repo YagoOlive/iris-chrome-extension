@@ -1,27 +1,66 @@
-import { useState } from 'react';
-import './index.css'
+import { useState, useRef, useEffect } from 'react';
+import './index.css';
 
 export default function App() {
   const [fileName, setFileName] = useState('');
   const [fileData, setFileData] = useState(null);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [stream, setStream] = useState(null);
+  const videoRef = useRef(null);
 
+  // 1. Handle CSV upload
   function handleChoose(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     setFileName(file.name);
-
     const reader = new FileReader();
     reader.onload = evt => setFileData(evt.target.result);
     reader.readAsText(file);
   }
 
+  // 2. Toggle camera on/off
+  async function handleToggleCamera(e) {
+    const wantOn = e.target.checked;
+
+    if (wantOn) {
+      // Check camera‐permission state
+      let status;
+      status = await navigator.permissions.query({ name: 'camera' });
+      console.log(`STATUS IS ${status.state}`)
+
+      // If prompt or granted, fire getUserMedia
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setStream(mediaStream);
+        setCameraEnabled(true);
+      } catch (err) {
+        console.error('getUserMedia failed:', err);
+        alert('Unable to access camera. Please check your browser settings.');
+        e.target.checked = false;   // reset toggle
+      }
+
+    } else {
+      // 4️⃣ Toggle off: stop & release camera
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      setCameraEnabled(false);
+      setStream(null);
+    }
+  }
+
+  // 3. Attach stream to video element
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;    // Bind MediaStream to <video>
+    }
+  }, [stream]);                               // Re-run when stream changes :contentReference[oaicite:4]{index=4}
+
+  // 4. Start head-tracking only if CSV + camera enabled
   async function handleStart() {
     if (!fileData) return alert('Upload a calibration file first.');
-
-    // persist calibration file for tracker.js
+    if (!cameraEnabled) return alert('Enable camera first.');
     await chrome.storage.local.set({ calibrationCsv: fileData });
-
-    // ask background to inject tracker
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     await chrome.runtime.sendMessage({ cmd: 'INJECT_TRACKER', tabId: tab.id });
     window.close();
@@ -31,6 +70,7 @@ export default function App() {
     <div className="popup">
       <h2>Head-Tracking Cursor</h2>
 
+      {/* CSV Upload */}
       <label className="file-picker">
         <input type="file" accept=".csv" onChange={handleChoose} hidden />
         <span>{fileName || 'Choose calibration CSV…'}</span>
@@ -38,12 +78,42 @@ export default function App() {
 
       <p>
         Don’t have a file?&nbsp;
-        <a href="https://head-control-website.vercel.app" target="_blank">Run calibration site</a>
+        <a href="https://head-control-website.vercel.app" target="_blank" rel="noopener noreferrer">
+          Run calibration site
+        </a>
       </p>
 
-      <button disabled={!fileData} onClick={handleStart}>
+      {/* Camera Toggle */}
+      <div className="toggle-container">
+        <label>
+          <input
+            type="checkbox"
+            checked={cameraEnabled}
+            onChange={handleToggleCamera}
+          />
+          <span>Enable Camera</span>
+        </label>
+      </div>
+
+      {/* Live Preview */}
+      {cameraEnabled && (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="video-preview"
+        />
+      )}
+
+      {/* Start Button */}
+      <button
+        disabled={!fileData || !cameraEnabled}
+        onClick={handleStart}
+      >
         Start head tracking
       </button>
     </div>
   );
 }
+

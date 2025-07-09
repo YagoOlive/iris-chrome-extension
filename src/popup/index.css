@@ -102,3 +102,25 @@ html, body {
   cursor: not-allowed;
 }
 
+/* Camera toggle */
+.toggle-camera {
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+.toggle-camera input {
+  transform: scale(1.1);
+  margin-right: 6px;
+}
+
+/* Video preview */
+.camera-preview {
+  width: 100%;
+  height: auto;
+  max-height: 120px;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  background: #000;
+  object-fit: cover;
+}
+
+

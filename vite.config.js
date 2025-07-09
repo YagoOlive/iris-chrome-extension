@@ -8,7 +8,4 @@ export default defineConfig({
     react(),
     crx({ manifest })   // bundles popup & copies static files :contentReference[oaicite:4]{index=4}
   ],
-  build: {
-    rollupOptions: { input: 'src/popup/index.html' }
-  }
 });
