@@ -63,10 +63,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse(data);
     } 
     else if (msg.cmd === 'START_TRACKING') {
-      await chrome.storage.local.set({
-        isTrackingActive: true,
-        calibrationCsv: msg.calibrationCsv,
-      });
+
+      // This logic now handles both providing a new CSV and restarting with an existing one.
+      const toSet = { isTrackingActive: true };
+      // Only update the calibrationCsv in storage if a new one is provided.
+      if (msg.calibrationCsv) {
+        toSet.calibrationCsv = msg.calibrationCsv;
+      }
+      
+      await chrome.storage.local.set(toSet);
+      
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
         await injectContent(tab.id);
@@ -74,6 +80,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse({ ok: true, message: 'Tracking started.' });
     } 
     else if (msg.cmd === 'STOP_TRACKING') {
+      
+      // We ONLY set isTrackingActive to false. We DO NOT clear calibrationCsv.
       await chrome.storage.local.set({ isTrackingActive: false });
       // Loop through all tabs and remove the content
       const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });

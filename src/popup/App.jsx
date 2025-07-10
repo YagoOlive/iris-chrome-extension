@@ -1,14 +1,25 @@
+// src/popup/App.jsx
+
 import { useState, useRef, useEffect } from 'react';
 import './index.css';
 
 // --- Setup View Component ---
-function SetupView({ onSetupComplete }) {
+function SetupView({ savedData, onSetupComplete }) {
   const [fileName, setFileName] = useState('');
   const [fileData, setFileData] = useState(null);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [stream, setStream] = useState(null);
   const videoRef = useRef(null);
   const [loadingCamera, setLoadingCamera] = useState(false);
+
+  // On initial render, check if there's saved data and pre-populate the state
+  useEffect(() => {
+    if (savedData) {
+      setFileData(savedData);
+      console.log(savedData);
+      setFileName('Using saved calibration file');
+    }
+  }, [savedData]);
 
   // 1. Handle CSV upload
   function handleChoose(e) {
@@ -23,7 +34,6 @@ function SetupView({ onSetupComplete }) {
   // 2. Toggle camera on/off
   async function handleToggleCamera(e) {
     const wantOn = e.target.checked;
-
     if (wantOn) {
       setLoadingCamera(true);
       try {
@@ -33,11 +43,10 @@ function SetupView({ onSetupComplete }) {
       } catch (err) {
         console.error('getUserMedia failed:', err);
         alert('Unable to access camera. Please check your browser settings.');
-        e.target.checked = false; // reset toggle
+        e.target.checked = false;
       } finally {
         setLoadingCamera(false);
       }
-
     } else {
       // Toggle off: stop & release camera
       if (stream) {
@@ -57,17 +66,21 @@ function SetupView({ onSetupComplete }) {
 
   // 4. Start head-tracking only if CSV + camera enabled
   async function handleStart() {
-    if (!fileData) return alert('Upload a calibration file first.');
+    if (!fileData) return alert('Upload or select a calibration file first.');
     if (!cameraEnabled) return alert('Enable camera first.');
     
-    // Send data to background script to save and start tracking
-    await chrome.runtime.sendMessage({
-      cmd: 'START_TRACKING',
-      calibrationCsv: fileData,
-    });
+    // If the user picked a new file, fileData will be different from savedData.
+    // If they didn't, fileData will be the same as savedData.
+    // We only need to send the CSV data if it's new.
+    const message = { cmd: 'START_TRACKING' };
+    if (fileData !== savedData) {
+      message.calibrationCsv = fileData;
+    }
     
-    onSetupComplete(); // Tell the main App component to switch views
-    window.close(); // Close the popup
+    await chrome.runtime.sendMessage(message);
+    
+    onSetupComplete();
+    window.close();
   }
 
   return (
@@ -77,15 +90,12 @@ function SetupView({ onSetupComplete }) {
         <input type="file" accept=".csv" onChange={handleChoose} hidden />
         <span>{fileName || 'Choose calibration CSV…'}</span>
       </label>
-
       <p>
         Don’t have a file?&nbsp;
         <a href="https://head-control-website.vercel.app" target="_blank" rel="noopener noreferrer">
           Run calibration site
         </a>
       </p>
-
-      {/* Camera Toggle */}
       <div className="toggle-container">
         <label className="switch-label">
           <input type="checkbox" checked={cameraEnabled} onChange={handleToggleCamera} disabled={loadingCamera} />
@@ -106,7 +116,7 @@ function SetupView({ onSetupComplete }) {
 function StatusView({ onStop }) {
   async function handleStop() {
     await chrome.runtime.sendMessage({ cmd: 'STOP_TRACKING' });
-    onStop(); // Tell the main App component to switch views
+    onStop();
     window.close();
   }
 
@@ -121,32 +131,46 @@ function StatusView({ onStop }) {
   );
 }
 
-
 // --- Main App Component ---
 export default function App() {
   const [view, setView] = useState('loading'); // 'loading', 'setup', 'status'
+  // State to hold the saved calibration data from storage
+  const [savedCalibrationData, setSavedCalibrationData] = useState(null);
+
+  // This function will be called from both useEffect and the StatusView's onStop handler
+  const checkStatus = async () => {
+    const response = await chrome.runtime.sendMessage({ cmd: 'GET_STATUS' });
+    // Store the calibration data regardless of the tracking state
+    setSavedCalibrationData(response.calibrationCsv);
+
+    if (response.isTrackingActive) {
+      setView('status');
+    } else {
+      // If tracking is not active, always show the setup view.
+      // The setup view will then decide what to display based on whether
+      // it receives saved calibration data.
+      setView('setup');
+    }
+  };
 
   // On component mount, ask the background script for the current state
   useEffect(() => {
-    async function checkStatus() {
-      const response = await chrome.runtime.sendMessage({ cmd: 'GET_STATUS' });
-      // A valid CSV and active tracking means we show the status page
-      if (response.isTrackingActive && response.calibrationCsv) {
-        setView('status');
-      } else {
-        setView('setup');
-      }
-    }
     checkStatus();
   }, []);
 
-  // Render based on the current view
   return (
     <div className="popup">
       {view === 'loading' && <p>Loading...</p>}
-      {view === 'setup' && <SetupView onSetupComplete={() => setView('status')} />}
-      {view === 'status' && <StatusView onStop={() => setView('setup')} />}
+      {view === 'setup' && (
+        <SetupView
+          savedData={savedCalibrationData}
+          onSetupComplete={() => setView('status')}
+        />
+      )}
+      {view === 'status' && (
+        // When stopping, we re-run checkStatus to switch to the correct setup view
+        <StatusView onStop={checkStatus} />
+      )}
     </div>
   );
 }
-
