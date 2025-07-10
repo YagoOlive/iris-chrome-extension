@@ -14,7 +14,7 @@ html, body, * {
   width: 24px;
   height: 24px;
   /* ◯  simple white dot - replace with your own PNG/SVG or data-URI */
-  background: radial-gradient(white 35%, rgba(255,255,255,.4) 60%, transparent 61%);
+  background: radial-gradient(red 35%, rgba(255, 255, 255, 0.918) 60%, transparent 61%);
   border-radius: 50%;
   position: fixed;
   top: 0;
