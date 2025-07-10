@@ -3,16 +3,26 @@
   "name": "Head-Controlled Cursor",
   "version": "0.1.0",
   "description": "Move a virtual cursor with head-pose tracking.",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "action": { "default_popup": "src/popup/index.html" },
   "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background/index.js",
+    "type": "module"
+  },
   "web_accessible_resources": [
     {
       "resources": [
-        "content/*"
+        "content/cursor.css",
+        "content/tracker.js"
       ],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*", "file://*/*"],
+    "js": ["content/tracker.js"],
+    "run_at": "document_idle"
+  }]
 }
 

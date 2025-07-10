@@ -317,7 +317,7 @@ function updateCursorPosition(x, y) {
   cursorWithClipping.style.top = `${boundedY}px`;
 }
 
-// Initialize cursors for tracking (used in database.js)
+// Initialize cursors for tracking
 function initializeCursors() {
   // Create cursor elements if they don't exist
   if (!document.getElementById("head-cursor-raw")) {

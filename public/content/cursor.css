@@ -1,3 +1,9 @@
+#virtual-cursor {
+  z-index: 2147483647;      /* above everything */
+  pointer-events: none;     /* ignore clicks */
+  transition: transform 50ms linear; /* later: smooth motion */
+}
+
 /* Hide the real cursor everywhere */
 html, body, * {
   cursor: none !important;              /* css-level hide */        /* fallback JS is in tracker.js */
@@ -8,13 +14,13 @@ html, body, * {
   width: 24px;
   height: 24px;
   /* ◯  simple white dot - replace with your own PNG/SVG or data-URI */
-  background: radial-gradient(white 35%, rgba(255,255,255,.4) 60%, transparent 1%);
+  background: radial-gradient(white 35%, rgba(255,255,255,.4) 60%, transparent 61%);
   border-radius: 50%;
   position: fixed;
   top: 0;
   left: 0;
   pointer-events: none;                 /* let clicks pass through */             /*turn0search10*/
-  z-index: 2147483647;                  /* browser max, above everything */
+  z-index: 2147483647;                  /* browser max */                          /*turn0search3*/
   transform: translate(-50%, -50%);     /* anchor at center */
   transition: transform 40ms linear;    /* smooth follow */
 }
