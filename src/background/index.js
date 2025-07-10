@@ -2,8 +2,8 @@
 
 // --- HELPERS ---
 
-// Injects the content scripts into a specific tab
-async function injectScripts(tabId) {
+// Injects the content scripts and CSS into a specific tab
+async function injectContent(tabId) {
   try {
     await chrome.scripting.insertCSS({
       target: { tabId: tabId },
@@ -14,23 +14,24 @@ async function injectScripts(tabId) {
       files: ['content/tracker.js'],
     });
   } catch (err) {
-    console.error('Failed to inject scripts:', err);
+    console.error(`Failed to inject content into tab ${tabId}:`, err);
   }
 }
 
-// Removes the cursor from all tabs by sending a message to content scripts
-async function removeCursorFromAllTabs() {
-  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
-  for (const tab of tabs) {
-    try {
-      await chrome.tabs.sendMessage(tab.id, { cmd: 'STOP_TRACKING' });
-    } catch (e) {
-      // This will throw an error if the content script isn't on the page, which is fine.
-      // console.log(`Could not send message to tab ${tab.id}, it might not have the content script.`);
-    }
+// Removes the CSS and tells the content script to clean up
+async function removeContent(tabId) {
+  try {
+    await chrome.scripting.removeCSS({
+      target: { tabId: tabId },
+      files: ['content/cursor.css'],
+    });
+    // The content script might not be there (e.g., on chrome:// pages), so wrap in try/catch
+    await chrome.tabs.sendMessage(tabId, { cmd: 'STOP_TRACKING' });
+  } catch (err) {
+    // This error is expected on pages where the content script is not injected.
+    // console.log(`Could not clean up tab ${tabId}, it might not have the content script.`);
   }
 }
-
 
 // --- LISTENERS ---
 
@@ -45,42 +46,42 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // 2. On Tab Update: The core logic for automatic injection
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Inject only when the page is fully loaded and has a valid URL
   if (changeInfo.status === 'complete' && tab.url && (tab.url.startsWith('http') || tab.url.startsWith('file'))) {
     const { isTrackingActive } = await chrome.storage.local.get('isTrackingActive');
     if (isTrackingActive) {
-      console.log(`Tracking is active. Injecting scripts into tab ${tabId}`);
-      await injectScripts(tabId);
+      console.log(`Tracking is active. Injecting content into tab ${tabId}`);
+      await injectContent(tabId);
     }
   }
 });
 
 // 3. On Message: Handle communication from the popup
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  // Keep the message port open for async operations
   (async () => {
     if (msg.cmd === 'GET_STATUS') {
       const data = await chrome.storage.local.get(['isTrackingActive', 'calibrationCsv']);
       sendResponse(data);
     } 
     else if (msg.cmd === 'START_TRACKING') {
-      // Save the config and activate tracking
       await chrome.storage.local.set({
         isTrackingActive: true,
         calibrationCsv: msg.calibrationCsv,
       });
-      // Inject into the current tab immediately
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
-        await injectScripts(tab.id);
+        await injectContent(tab.id);
       }
       sendResponse({ ok: true, message: 'Tracking started.' });
     } 
     else if (msg.cmd === 'STOP_TRACKING') {
       await chrome.storage.local.set({ isTrackingActive: false });
-      await removeCursorFromAllTabs();
-      sendResponse({ ok: true, message: 'Tracking stopped.' });
+      // Loop through all tabs and remove the content
+      const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+      for (const tab of tabs) {
+        await removeContent(tab.id);
+      }
+      sendResponse({ ok: true, message: 'Tracking stopped and content removed.' });
     }
   })();
-  return true; // Required for async sendResponse
+  return true;
 });

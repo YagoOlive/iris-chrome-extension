@@ -21,7 +21,7 @@
   ],
   "content_scripts": [{
     "matches": ["http://*/*", "https://*/*", "file://*/*"],
-    "js": ["content/tracker.js"],
+    "js": ["public/content/tracker.js"],
     "run_at": "document_idle"
   }]
 }
