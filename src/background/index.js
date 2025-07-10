@@ -1,5 +1,33 @@
 // src/background/index.js
 
+// src/background/index.js
+
+const OFFSCREEN_DOCUMENT_PATH = 'src/offscreen/index.html';
+
+// --- HELPERS ---
+
+// A helper to check if an offscreen document is already active
+async function hasOffscreenDocument() {
+  const matchedClients = await clients.matchAll();
+  return matchedClients.some(
+    (c) => c.url.endsWith(OFFSCREEN_DOCUMENT_PATH)
+  );
+}
+
+// The main function to create the offscreen document
+async function setupOffscreenDocument() {
+  if (await hasOffscreenDocument()) {
+    console.log('Background: Offscreen document already exists.');
+  } else {
+    console.log('Background: Creating offscreen document.');
+    await chrome.offscreen.createDocument({
+      url: OFFSCREEN_DOCUMENT_PATH,
+      reasons: ['USER_MEDIA'],
+      justification: 'Required to access the camera for head-tracking.',
+    });
+  }
+}
+
 // --- HELPERS ---
 
 // Injects the content scripts and CSS into a specific tab
@@ -63,14 +91,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse(data);
     } 
     else if (msg.cmd === 'START_TRACKING') {
+      // 1. Start the persistent camera stream via the offscreen document
+      await setupOffscreenDocument();
+      await chrome.runtime.sendMessage({ cmd: 'START_CAMERA', target: 'offscreen' });
 
-      // This logic now handles both providing a new CSV and restarting with an existing one.
+      // 2. Save state and inject content scripts
       const toSet = { isTrackingActive: true };
-      // Only update the calibrationCsv in storage if a new one is provided.
       if (msg.calibrationCsv) {
         toSet.calibrationCsv = msg.calibrationCsv;
       }
-      
       await chrome.storage.local.set(toSet);
       
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -80,10 +109,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse({ ok: true, message: 'Tracking started.' });
     } 
     else if (msg.cmd === 'STOP_TRACKING') {
-      
-      // We ONLY set isTrackingActive to false. We DO NOT clear calibrationCsv.
+      // 1. Stop the persistent camera stream
+      await chrome.runtime.sendMessage({ cmd: 'STOP_CAMERA', target: 'offscreen' });
+
+      // 2. Update state and remove content scripts
       await chrome.storage.local.set({ isTrackingActive: false });
-      // Loop through all tabs and remove the content
       const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
       for (const tab of tabs) {
         await removeContent(tab.id);
