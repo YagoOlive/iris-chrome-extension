@@ -6,6 +6,6 @@ import manifest from './manifest.json';
 export default defineConfig({
   plugins: [
     react(),
-    crx({ manifest })   // bundles popup & copies static files :contentReference[oaicite:4]{index=4}
+    crx({ manifest })
   ],
 });
