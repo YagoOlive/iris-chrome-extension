@@ -1,8 +1,38 @@
 // src/background/index.js
 
-// src/background/index.js
-
 const OFFSCREEN_DOCUMENT_PATH = 'src/offscreen/index.html';
+
+// A map to hold all active connections from content scripts
+const contentScriptPorts = new Map();
+
+let offscreenPort = null;
+
+// --- PORT MANAGEMENT ---
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === 'pose') {
+    const tabId = port.sender.tab.id;
+    contentScriptPorts.set(tabId, port);
+    console.log(`Background: Port connected from content script in tab ${tabId}`);
+    port.onDisconnect.addListener(() => {
+      contentScriptPorts.delete(tabId);
+      console.log(`Background: Port from tab ${tabId} disconnected.`);
+    });
+  } else if (port.name === 'offscreen') {
+    offscreenPort = port;
+    console.log('Background: Port connected from offscreen document.');
+    offscreenPort.onMessage.addListener((landmarks) => {
+      console.log("THIS NEVER PRINTS -> Landmarks not getting to the background script?");
+      for (const contentPort of contentScriptPorts.values()) {
+        contentPort.postMessage(landmarks);
+      }
+    });
+    port.onDisconnect.addListener(() => {
+      offscreenPort = null;
+      console.log('Background: Offscreen port disconnected.');
+    });
+  }
+});
 
 // --- HELPERS ---
 
@@ -20,12 +50,47 @@ async function setupOffscreenDocument() {
     console.log('Background: Offscreen document already exists.');
   } else {
     console.log('Background: Creating offscreen document.');
-    await chrome.offscreen.createDocument({
-      url: OFFSCREEN_DOCUMENT_PATH,
-      reasons: ['USER_MEDIA'],
-      justification: 'Required to access the camera for head-tracking.',
+    // Use a promise to wait for the document to be fully created
+    await new Promise((resolve, reject) => {
+      chrome.offscreen.createDocument({
+        url: OFFSCREEN_DOCUMENT_PATH,
+        reasons: ['USER_MEDIA'],
+        justification: 'Required to access the camera for head-tracking.',
+      }, (error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
     });
+    console.log('Background: Offscreen document created.');
   }
+}
+
+// --- NEW ROBUST HELPER ---
+async function getOffscreenPort() {
+  // 1. Ensure the document is created
+  await setupOffscreenDocument();
+  
+  // 2. If the port is already connected, return it
+  if (offscreenPort) {
+    return offscreenPort;
+  }
+
+  // 3. If not, wait for it to connect.
+  // This promise will resolve when the onConnect listener in this script
+  // assigns a value to `offscreenPort`.
+  console.log("Background: Waiting for offscreen port to connect...");
+  return new Promise((resolve) => {
+    const listener = (port) => {
+      if (port.name === 'offscreen') {
+        chrome.runtime.onConnect.removeListener(listener); // Clean up listener
+        resolve(port);
+      }
+    };
+    chrome.runtime.onConnect.addListener(listener);
+  });
 }
 
 // --- HELPERS ---
@@ -39,7 +104,7 @@ async function injectContent(tabId) {
     });
     await chrome.scripting.executeScript({
       target: { tabId: tabId },
-      files: ['content/tracker.js'],
+      files: ['content/state.js', 'content/tracker.js'],
     });
   } catch (err) {
     console.error(`Failed to inject content into tab ${tabId}:`, err);
@@ -83,42 +148,40 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
-// 3. On Message: Handle communication from the popup
+// 3. On Message: Handle all communication
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
+    // This listener is now only for one-off messages from the popup
     if (msg.cmd === 'GET_STATUS') {
       const data = await chrome.storage.local.get(['isTrackingActive', 'calibrationCsv']);
       sendResponse(data);
-    } 
+    }
     else if (msg.cmd === 'START_TRACKING') {
-      // 1. Start the persistent camera stream via the offscreen document
-      await setupOffscreenDocument();
-      await chrome.runtime.sendMessage({ cmd: 'START_CAMERA', target: 'offscreen' });
-
-      // 2. Save state and inject content scripts
-      const toSet = { isTrackingActive: true };
-      if (msg.calibrationCsv) {
-        toSet.calibrationCsv = msg.calibrationCsv;
-      }
-      await chrome.storage.local.set(toSet);
+      // 1. Get a guaranteed connection to the offscreen port
+      const port = await getOffscreenPort();
       
+      // 2. Send the command to start the camera
+      port.postMessage({ cmd: 'START_CAMERA' });
+
+      // 3. Save state and inject content scripts
+      const toSet = { isTrackingActive: true };
+      if (msg.calibrationCsv) toSet.calibrationCsv = msg.calibrationCsv;
+      await chrome.storage.local.set(toSet);
+
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) {
-        await injectContent(tab.id);
-      }
+      if (tab) await injectContent(tab.id);
       sendResponse({ ok: true, message: 'Tracking started.' });
-    } 
+    }
     else if (msg.cmd === 'STOP_TRACKING') {
-      // 1. Stop the persistent camera stream
-      await chrome.runtime.sendMessage({ cmd: 'STOP_CAMERA', target: 'offscreen' });
+      // 1. Get the port (it should already exist) and send the stop command
+      const port = await getOffscreenPort();
+      port.postMessage({ cmd: 'STOP_CAMERA' });
 
       // 2. Update state and remove content scripts
       await chrome.storage.local.set({ isTrackingActive: false });
       const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
-      for (const tab of tabs) {
-        await removeContent(tab.id);
-      }
-      sendResponse({ ok: true, message: 'Tracking stopped and content removed.' });
+      for (const tab of tabs) await removeContent(tab.id);
+      sendResponse({ ok: true, message: 'Tracking stopped.' });
     }
   })();
   return true;
