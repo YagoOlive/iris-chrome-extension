@@ -1,6 +1,8 @@
 // state.js
-if (typeof window !== 'undefined' && !window.state) {
-  window.state = {
+
+window.initializeState = function() {
+  if (typeof window !== 'undefined' && !window.state) {
+    window.state = {
       // Camera and tracking elements
       faceMesh: null,
       camera: null,
@@ -17,41 +19,41 @@ if (typeof window !== 'undefined' && !window.state) {
 
       // Grid configuration
       gridConfig: {
-          rows: 8,
-          cols: 5,
-          points: [],
-          randomizedOrder: [],
-          currentIndex: 0,
-          cornerIndices: [],
+        rows: 8,
+        cols: 5,
+        points: [],
+        randomizedOrder: [],
+        currentIndex: 0,
+        cornerIndices: [],
       },
 
       // Data collection
       dataCollection: {
-          calibrationData: [],
-          videoNumber: 1,
-          isRecording: false,
-          startTime: null,
+        calibrationData: [],
+        videoNumber: 1,
+        isRecording: false,
+        startTime: null,
       },
 
       // Application configuration
       config: {
-          coordinateSystem: "2d",
-          landmarkPoints: "3",    // Default to 3 points
-          animationStyle: "with-line",
-          filterType: "exponential"
+        coordinateSystem: "2d",
+        landmarkPoints: "3",    // Default to 3 points
+        animationStyle: "with-line",
+        filterType: "exponential"
       },
 
       // Calibration data for both 3 and 6 point systems
       calibrationData: {
-          landmarkPoints3: [],
-          landmarkPoints6: [],
-          cursorPositions: [],
+        landmarkPoints3: [],
+        landmarkPoints6: [],
+        cursorPositions: [],
       },
 
       // Transformation matrices for both configurations
       transformationMatrices: {
-          threePoint: null,
-          sixPoint: null
+        threePoint: null,
+        sixPoint: null
       },
 
       // Cursor tracking state
@@ -61,14 +63,8 @@ if (typeof window !== 'undefined' && !window.state) {
       cursorY: null,
       lastRawX: null,
       lastRawY: null,
-  };
+    };
+    console.log("running state.js....window.state has been initialized!");
+    console.log(window.state);
+  }
 }
-
-// Drive configuration (if needed)
-const driveConfig = {
-  credentials: null,
-  isInitialized: false,
-};
-
-// Make driveConfig available globally if needed
-window.driveConfig = driveConfig;
