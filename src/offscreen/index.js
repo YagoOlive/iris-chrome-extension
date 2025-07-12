@@ -1,38 +1,108 @@
 // src/offscreen/index.js
 
-let stream;
+import { VERSION, FaceMesh } from '@mediapipe/face_mesh';
+import { Camera } from '@mediapipe/camera_utils';
 
-// Listen for messages from the background script
-chrome.runtime.onMessage.addListener(handleMessages);
+let camera = null;
+let faceMesh = null;
+const videoElement = document.getElementById("offscreen-video");
+
+// --- PORT CONNECTION ---
+const port = chrome.runtime.connect({ name: 'offscreen' });
+port.onMessage.addListener(handleMessages);
 
 async function handleMessages(msg) {
-  if (msg.target !== 'offscreen') {
-    return;
-  }
+  switch (msg.cmd) {
+    case 'START_CAMERA':
+      if (camera) {
+        console.log('Offscreen: Camera is already active.');
+        return;
+      }
+      try {
+        console.log('Offscreen: START_CAMERA command received.');
 
-  if (msg.cmd === 'START_CAMERA') {
-    if (stream) {
-      console.log('Offscreen: Camera stream already active.');
-      return;
-    }
-    try {
-      console.log('Offscreen: Requesting camera stream...');
-      stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      console.log('Offscreen: Camera stream acquired.');
-      // The stream is now active. The camera light should be on.
-      // We don't need to do anything with the stream here; its existence
-      // is what keeps the camera active for the content scripts to use.
-    } catch (err) {
-      console.error('Offscreen: Failed to get user media', err);
-      stream = null;
-    }
-  } else if (msg.cmd === 'STOP_CAMERA') {
-    if (stream) {
-      console.log('Offscreen: Stopping camera stream...');
-      stream.getTracks().forEach(track => track.stop());
-      console.log('Offscreen: Camera stream stopped.');
-      stream = null;
-    }
-    // The offscreen document will automatically close after 30 seconds of inactivity.
+        // 1. Create the FaceMesh instance
+        faceMesh = new FaceMesh({
+          locateFile: (file) => {
+            const path = `vendor/mediapipe/${file}`;
+            const url = chrome.runtime.getURL(path);
+            // This will now print to the offscreen document's console
+            console.log(`Offscreen: Locating MediaPipe asset: ${file} -> ${url}`);
+            return url;
+          },
+        });
+
+        /*
+        face_mesh_solution_packed_assets_loader.js -> https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh_solution_packed_assets_loader.js
+        face_mesh_solution_simd_wasm_bin.js -> https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh_solution_simd_wasm_bin.js
+        face_mesh.binarypb -> https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.binarypb
+        face_mesh_solution_packed_assets.data -> https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh_solution_packed_assets.data
+        face_mesh_solution_simd_wasm_bin.wasm -> https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh_solution_simd_wasm_bin.wasm
+        */
+
+        faceMesh.setOptions({
+          maxNumFaces: 1,
+          refineLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+
+        faceMesh.onResults((results) => {
+          // Debugging: This does not print.
+          console.log("Offscreen: MediaPipe got results!", results.multiFaceLandmarks.length);
+          if (results.multiFaceLandmarks && results.multiFaceLandmarks[0]) {
+            port.postMessage(results.multiFaceLandmarks[0]);
+          }
+        });
+
+        faceMesh.onerror = (error) => {
+          console.error("Offscreen: MediaPipe FaceMesh error:", error);
+        };
+
+        // 2. KEY FIX: Wait for the model to be fully initialized before proceeding.
+        // This solves the race condition.
+        console.log("Offscreen: Initializing FaceMesh model...");
+        await faceMesh.initialize();
+        console.log("Offscreen: FaceMesh model initialized successfully.");
+
+        // 3. Now that the model is ready, get the camera stream.
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoElement.srcObject = stream;
+        await new Promise((resolve) => { videoElement.onloadedmetadata = resolve; });
+
+        // 4. Setup and start the MediaPipe Camera utility.
+        camera = new Camera(videoElement, {
+          onFrame: async () => {
+            await faceMesh.send({ image: videoElement });
+          },
+          width: 1280,
+          height: 720,
+        });
+
+        await camera.start();
+        console.log("Offscreen: Camera started and sending frames to FaceMesh.");
+
+      } catch (err) {
+        console.error('Offscreen: An error occurred during camera/MediaPipe startup.', err);
+        if (camera) {
+          await camera.stop();
+          camera = null;
+        }
+      }
+      break;
+
+    case 'STOP_CAMERA':
+      console.log('Offscreen: STOP_CAMERA command received.');
+      if (camera) {
+        await camera.stop();
+        camera = null;
+        console.log('Offscreen: Camera stopped.');
+      }
+      if (faceMesh) {
+        await faceMesh.close();
+        faceMesh = null;
+        console.log('Offscreen: FaceMesh resources released.');
+      }
+      break;
   }
 }
