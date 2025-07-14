@@ -30,35 +30,138 @@
     window.state.lastLandmarks = landmarks;
 
     console.log("Tracker.js: Landmarks updated!");
-    // console.log(landmarks);
 
-    // 2. TODO: This is where you will process the landmarks
-    //    - Use the calibration data (from the CSV) and the new landmarks
-    //    - Calculate the new (x, y) screen coordinates
-    //    - Apply any filters (like the exponential filter)
-    //    - Update the cursor sprite's position
+    if (!window.state.fileUploadSuccess) {
+      console.log("Not yet ready....");
+      return;
+    }
 
+    // Get current landmark configuration
+    const currentConfig = state.config.landmarkPoints; // default is 3 points, else 6 points
+
+    // Define landmark indices
+    const indices = currentConfig === "3" ? [1, 33, 263] : [1, 61, 291, 152, 33, 263];
+    const quadraticScale = 0.00001;
+
+    let vector = [];
+
+    // 2D mode - only use x and y coordinates
+    for (const index of indices) {
+      const landmark = landmarks[index];
+      if (!landmark) continue;
+
+      const x = landmark.x * window.innerWidth;
+      const y = landmark.y * window.innerHeight;
+
+      vector.push([x]);
+      vector.push([y]);
+      vector.push([x * x * quadraticScale]);
+      vector.push([y * y * quadraticScale]);
+    }
+
+    // Select 2D matrix
+    const matrix = currentConfig === "3" ?
+      state.transformationMatrices.threePoint2d :
+      state.transformationMatrices.sixPoint2d;
+
+    if (!matrix) {
+      console.error("No 2D transformation matrix available!");
+      return;
+    }
+
+    // Verify vector dimensions
+    const expectedLength = currentConfig === "3" ? 12 : 24;
+    if (vector.length !== expectedLength) {
+      console.error(`2D vector has wrong length: ${vector.length}, expected: ${expectedLength}`);
+      return;
+    }
+
+    // Calculate cursor position with 2D matrix
+    const P = math.matrix(vector);
+    const B = math.matrix(matrix);
+    try {
+      const Q = math.multiply(B, P);
+      const position = Q.toArray();
+
+      const headPositionX = position[0][0];
+      const headPositionY = position[1][0];
+
+      // Apply filtering and update cursor position
+      applyFilteringAndUpdateCursor(headPositionX, headPositionY);
+    } catch (error) {
+      console.error("Matrix multiplication error in 2D mode:", error);
+    }
+
+    // Example:
     // For now, let's just log the first landmark to prove it's working
     // and move the cursor based on a simple mapping of the nose tip (landmark 1)
-    if (landmarks && landmarks[1]) {
-      const noseTip = landmarks[1];
-      // A very basic, uncalibrated mapping. Replace with your real logic.
-      const x = window.innerWidth * (1 - noseTip.x); // Invert X
-      const y = window.innerHeight * noseTip.y;
+    // if (landmarks && landmarks[1]) {
+    //   const noseTip = landmarks[1];
+    //   // A very basic, uncalibrated mapping. Replace with your real logic.
+    //   const x = window.innerWidth * (1 - noseTip.x); // Invert X
+    //   const y = window.innerHeight * noseTip.y;
 
-      sprite.style.transform = `translate(${x}px, ${y}px)`;
-    }
+    //   sprite.style.transform = `translate(${x}px, ${y}px)`;
+    // }
   });
 
-  // FOR LATER
-  async function startTracking() {
-    try {
-      // TODO: Use calibration csv to determine tracking
-    } catch (err) {
-      console.error('Content: Could not get camera stream for tracking.', err);
-      // If it fails, clean up this instance.
-      stopHeadCursor();
+  // Helper function for applying filtering and updating cursor position
+  function applyFilteringAndUpdateCursor(headPositionX, headPositionY) {
+    // Exponential smoothing
+    if (state.lastHeadX === null) {
+      window.state.lastHeadX = headPositionX;
+      window.state.cursorX = headPositionX;
+      window.state.rawCursorX = headPositionX;
     }
+    if (state.lastHeadY === null) {
+      window.state.lastHeadY = headPositionY;
+      window.state.cursorY = headPositionY;
+      window.state.rawCursorY = headPositionY;
+    }
+
+    // Get cursor element
+    let cursorWithClipping = document.getElementById("ht-cursor");
+
+    if (!cursorWithClipping) {
+      console.error("Cursor element not found.");
+      return;
+    }
+
+    // Apply direct exponential smoothing without relative movements
+    const smoothing = state.config.exponentialSmoothingFactor || 0.95; // Uses configurable value
+
+    // Apply smoothing directly to cursor position
+    if (state.cursorX === null) {
+      window.state.cursorX = headPositionX;
+      window.state.cursorY = headPositionY;
+    } else {
+      // Direct exponential smoothing
+      window.state.cursorX = state.cursorX + (1 - smoothing) * (headPositionX - state.cursorX);
+      window.state.cursorY = state.cursorY + (1 - smoothing) * (headPositionY - state.cursorY);
+    }
+
+    // Apply bounds
+    const cursorSize = 24;
+    state.cursorX = Math.max(
+      0,
+      Math.min(window.innerWidth - cursorSize, state.cursorX)
+    );
+    state.cursorY = Math.max(
+      0,
+      Math.min(window.innerHeight - cursorSize, state.cursorY)
+    );
+
+    // Round for display
+    const roundedX = Math.round(state.cursorX);
+    const roundedY = Math.round(state.cursorY);
+
+    // Update cursor position
+    cursorWithClipping.style.left = `${roundedX}px`;
+    cursorWithClipping.style.top = `${roundedY}px`;
+
+    // Update last positions
+    state.lastHeadX = headPositionX;
+    state.lastHeadY = headPositionY;
   }
 
   // --- TEARDOWN ---
@@ -69,6 +172,7 @@
     if (sprite) sprite.remove();
 
     delete window.__htCursorInjected;
+    window.state.fileUploadSuccess = false;
     chrome.runtime.onMessage.removeListener(messageListener);
   }
 
@@ -83,11 +187,13 @@
   chrome.runtime.onMessage.addListener(messageListener);
 
   // --- INITIALIZATION ---
-  chrome.storage.local.get('calibrationCsv', ({ calibrationCsv }) => {
-    if (calibrationCsv) {
-      console.log('Calibration data loaded. Ready for tracking...');
-      // IGNORE FOR NOW
-      // startTracking();
+  chrome.storage.local.get(['calibrationCsvContent'], ({ calibrationCsvContent }) => {
+    if (calibrationCsvContent) {
+      const success = handleCalibrationUpload(calibrationCsvContent);
+      if (success) {
+        window.state.fileUploadSuccess = true;
+        console.log('Calibration data loaded. Ready for tracking...');
+      }
     } else {
       console.error('Could not find calibration data in storage. Stopping.');
       stopHeadCursor();

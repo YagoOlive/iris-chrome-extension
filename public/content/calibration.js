@@ -1,8 +1,10 @@
 // Handle user-uploaded calibration (.csv) file
-async function handleCalibrationUpload(file) {
+function handleCalibrationUpload(text) {
   try {
-    console.log("Starting calibration file upload:", file.name);
-    const text = await file.text();
+    console.log("Starting calibration file upload.");
+
+    console.log(typeof(text));
+    console.log(text);
 
     // Extract metadata from first line
     const lines = text.split('\n');

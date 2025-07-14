@@ -167,7 +167,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       // 3. Save state and inject content scripts
       const toSet = { isTrackingActive: true };
-      if (msg.calibrationCsv) toSet.calibrationCsv = msg.calibrationCsv;
+      if (msg.calibrationCsvName) toSet.calibrationCsvName = msg.calibrationCsvName;
+      if (msg.calibrationCsvContent) toSet.calibrationCsvContent = msg.calibrationCsvContent;
       await chrome.storage.local.set(toSet);
 
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
