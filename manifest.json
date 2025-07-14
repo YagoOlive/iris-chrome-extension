@@ -7,7 +7,7 @@
     "scripting",
     "storage",
     "tabs",
-    "offscreen" 
+    "offscreen"
   ],
   "action": {
     "default_popup": "src/popup/index.html"
@@ -24,7 +24,9 @@
       "resources": [
         "content/cursor.css",
         "content/tracker.js",
-        "src/offscreen/index.html"
+        "content/state.js",
+        "vendor/tasks-vision/wasm/*",
+        "vendor/models/face_landmarker.task"
       ],
       "matches": [
         "<all_urls>"
