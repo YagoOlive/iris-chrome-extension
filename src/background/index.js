@@ -22,7 +22,7 @@ chrome.runtime.onConnect.addListener((port) => {
     offscreenPort = port;
     console.log('Background: Port connected from offscreen document.');
     offscreenPort.onMessage.addListener((landmarks) => {
-      console.log("THIS NEVER PRINTS -> Landmarks not getting to the background script?");
+      console.log("Background: Landmarks received by background script.");
       for (const contentPort of contentScriptPorts.values()) {
         contentPort.postMessage(landmarks);
       }

@@ -6,41 +6,54 @@
   if (window.__htCursorInjected) return;
   window.__htCursorInjected = true;
 
-  console.log('Head-tracking content script injected.');
+  // Call the initializer from state.js immediately
+  initializeState();
+
+  console.log('Head-tracking content script injected and state initialized.');
 
   // --- STATE VARIABLES ---
-  let localStream = null; // To hold the stream for this specific tab
   const sprite = document.createElement('div');
   sprite.id = 'ht-cursor';
   document.documentElement.appendChild(sprite);
 
-  // --- CORE LOGIC ---
+  // --- PORT CONNECTION ---
+  // Establish a long-lived connection to the background script
+  const port = chrome.runtime.connect({ name: 'pose' });
+
   const follow = e => {
     sprite.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
   };
 
-  // This function now also handles starting the camera for this tab
-  async function startCameraAndTracking() {
+  // Listen for messages (landmark data) from the background script
+  port.onMessage.addListener((landmarks) => {
+    // 1. Save the new landmarks to our global state object
+    window.state.lastLandmarks = landmarks;
+
+    console.log("Tracker.js: Landmarks updated!");
+    // console.log(landmarks);
+
+    // 2. TODO: This is where you will process the landmarks
+    //    - Use the calibration data (from the CSV) and the new landmarks
+    //    - Calculate the new (x, y) screen coordinates
+    //    - Apply any filters (like the exponential filter)
+    //    - Update the cursor sprite's position
+
+    // For now, let's just log the first landmark to prove it's working
+    // and move the cursor based on a simple mapping of the nose tip (landmark 1)
+    if (landmarks && landmarks[1]) {
+      const noseTip = landmarks[1];
+      // A very basic, uncalibrated mapping. Replace with your real logic.
+      const x = window.innerWidth * (1 - noseTip.x); // Invert X
+      const y = window.innerHeight * noseTip.y;
+
+      sprite.style.transform = `translate(${x}px, ${y}px)`;
+    }
+  });
+
+  // FOR LATER
+  async function startTracking() {
     try {
-      // Because the offscreen document holds an active stream, this call
-      // will not trigger a new user prompt and will share the camera resource.
-      console.log('Content: Requesting local camera stream for processing.');
-      // localStream = await navigator.mediaDevices.getUserMedia({ video: true });
-      console.log('Content: Local stream acquired.');
-
-      // ---
-      // TODO: Initialize your head-tracking algorithm here
-      // Pass the `localStream` or a video element with its srcObject set to it.
-      // Example:
-      // const video = document.createElement('video');
-      // video.srcObject = localStream;
-      // video.play();
-      // yourHeadTracker.init(video);
-      // ---
-
-      // For now, we just start the mouse follower
-      window.addEventListener('mousemove', follow, { passive: true });
-
+      // TODO: Use calibration csv to determine tracking
     } catch (err) {
       console.error('Content: Could not get camera stream for tracking.', err);
       // If it fails, clean up this instance.
@@ -51,15 +64,10 @@
   // --- TEARDOWN ---
   function stopHeadCursor() {
     console.log('Cleaning up tracker script on this page.');
-    window.removeEventListener('mousemove', follow);
+    port.disconnect(); // Close the connection to the background script
+    // window.removeEventListener('mousemove', follow);
     if (sprite) sprite.remove();
 
-    // Stop the local stream for this tab
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-      console.log('Content: Local stream stopped.');
-    }
-    
     delete window.__htCursorInjected;
     chrome.runtime.onMessage.removeListener(messageListener);
   }
@@ -77,8 +85,9 @@
   // --- INITIALIZATION ---
   chrome.storage.local.get('calibrationCsv', ({ calibrationCsv }) => {
     if (calibrationCsv) {
-      console.log('Calibration data loaded. Starting camera and tracking...');
-      startCameraAndTracking(); // Call the new async function
+      console.log('Calibration data loaded. Ready for tracking...');
+      // IGNORE FOR NOW
+      // startTracking();
     } else {
       console.error('Could not find calibration data in storage. Stopping.');
       stopHeadCursor();
