@@ -31,6 +31,9 @@ async function handleMessages(msg) {
           runningMode: "VIDEO",
           numFaces: 1,
           outputFaceBlendshapes: false,
+          refineLandmarks: true,
+          minFaceDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
         });
       }
 

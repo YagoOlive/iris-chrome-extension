@@ -72,7 +72,7 @@ async function setupOffscreenDocument() {
 async function getOffscreenPort() {
   // 1. Ensure the document is created
   await setupOffscreenDocument();
-  
+
   // 2. If the port is already connected, return it
   if (offscreenPort) {
     return offscreenPort;
@@ -104,7 +104,13 @@ async function injectContent(tabId) {
     });
     await chrome.scripting.executeScript({
       target: { tabId: tabId },
-      files: ['content/state.js', 'content/tracker.js'],
+      files: [
+        'content/state.js',
+        'content/math.js',
+        'content/residual.js',
+        'content/calibration.js',
+        'content/tracker.js'
+      ],
     });
   } catch (err) {
     console.error(`Failed to inject content into tab ${tabId}:`, err);
@@ -152,14 +158,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     // This listener is now only for one-off messages from the popup
-    if (msg.cmd === 'GET_STATUS') {
-      const data = await chrome.storage.local.get(['isTrackingActive', 'calibrationCsv']);
-      sendResponse(data);
-    }
-    else if (msg.cmd === 'START_TRACKING') {
+    if (msg.cmd === 'START_TRACKING') {
       // 1. Get a guaranteed connection to the offscreen port
       const port = await getOffscreenPort();
-      
+
       // 2. Send the command to start the camera
       port.postMessage({ cmd: 'START_CAMERA' });
 

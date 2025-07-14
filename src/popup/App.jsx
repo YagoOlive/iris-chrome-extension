@@ -9,26 +9,46 @@ function SetupView({ savedData, onSetupComplete }) {
   const [fileData, setFileData] = useState(null);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [stream, setStream] = useState(null);
-  const videoRef = useRef(null);
   const [loadingCamera, setLoadingCamera] = useState(false);
+
+  const videoRef = useRef(null);
 
   // On initial render, check if there's saved data and pre-populate the state
   useEffect(() => {
     if (savedData) {
+      // savedData is { name, content }
+      setFileName(savedData.name);
       setFileData(savedData);
-      console.log(savedData);
-      setFileName('Using saved calibration file');
     }
   }, [savedData]);
 
   // 1. Handle CSV upload
-  function handleChoose(e) {
+  async function handleChoose(e) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // 1) Read the CSV as text
+    const text = await file.text();
+
+    // 2) Update React state with both name + content
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = evt => setFileData(evt.target.result);
-    reader.readAsText(file);
+    setFileData({ name: file.name, content: text });
+
+    // Prepare object for storage
+    const toSet = {
+      isTrackingActive: false,
+      calibrationCsvContent: text,
+      calibrationCsvName: file.name
+    };
+
+    // Store in chrome.storage.local
+    chrome.storage.local.set(toSet, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Storage error:', chrome.runtime.lastError);
+      } else {
+        console.log('Calibration file saved to storage.');
+      }
+    });
   }
 
   // 2. Toggle camera on/off
@@ -68,17 +88,15 @@ function SetupView({ savedData, onSetupComplete }) {
   async function handleStart() {
     if (!fileData) return alert('Upload or select a calibration file first.');
     if (!cameraEnabled) return alert('Enable camera first.');
-    
-    // If the user picked a new file, fileData will be different from savedData.
-    // If they didn't, fileData will be the same as savedData.
-    // We only need to send the CSV data if it's new.
-    const message = { cmd: 'START_TRACKING' };
-    if (fileData !== savedData) {
-      message.calibrationCsv = fileData;
-    }
-    
+
+    const message = {
+      cmd: 'START_TRACKING',
+      calibrationCsvName: fileData.name,
+      calibrationCsvContent: fileData.content
+    };
+
     await chrome.runtime.sendMessage(message);
-    
+
     onSetupComplete();
     window.close();
   }
@@ -134,23 +152,30 @@ function StatusView({ onStop }) {
 // --- Main App Component ---
 export default function App() {
   const [view, setView] = useState('loading'); // 'loading', 'setup', 'status'
+
   // State to hold the saved calibration data from storage
   const [savedCalibrationData, setSavedCalibrationData] = useState(null);
 
   // This function will be called from both useEffect and the StatusView's onStop handler
   const checkStatus = async () => {
-    const response = await chrome.runtime.sendMessage({ cmd: 'GET_STATUS' });
-    // Store the calibration data regardless of the tracking state
-    setSavedCalibrationData(response.calibrationCsv);
-
-    if (response.isTrackingActive) {
-      setView('status');
-    } else {
-      // If tracking is not active, always show the setup view.
-      // The setup view will then decide what to display based on whether
-      // it receives saved calibration data.
-      setView('setup');
-    }
+    chrome.storage.local.get(
+      ['calibrationCsvContent', 'calibrationCsvName', 'isTrackingActive'],
+      (items) => {
+        if (items.calibrationCsvContent && items.calibrationCsvName) {
+          setSavedCalibrationData({
+            name: items.calibrationCsvName,
+            content: items.calibrationCsvContent
+          });
+        }
+        if (items.isTrackingActive) {
+          setView('status');
+        } else {
+          // If tracking is not active, always show the setup view.
+          // The setup view will then decide what to display based on whether it receives saved calibration data.
+          setView('setup');
+        }
+      }
+    );
   };
 
   // On component mount, ask the background script for the current state
