@@ -1,5 +1,12 @@
 // src/background/index.js
 
+import calibrationScript from '../content/calibration.js?script';
+import mathScript from '../content/math.js?script';
+import residualScript from '../content/residual.js?script';
+import stateScript from '../content/state.js?script';
+import trackerScript from '../content/tracker.js?script';
+
+
 const OFFSCREEN_DOCUMENT_PATH = 'src/offscreen/index.html';
 
 // A map to hold all active connections from content scripts
@@ -105,11 +112,11 @@ async function injectContent(tabId) {
     await chrome.scripting.executeScript({
       target: { tabId: tabId },
       files: [
-        'content/state.js',
-        'content/math.js',
-        'content/residual.js',
-        'content/calibration.js',
-        'content/tracker.js'
+        stateScript,
+        mathScript,
+        residualScript,
+        calibrationScript,
+        trackerScript,
       ],
     });
   } catch (err) {
