@@ -40,6 +40,5 @@ window.initializeState = function() {
       lastRawY: null,
     };
     console.log("running state.js....window.state has been initialized!");
-    console.log(window.state);
   }
 }

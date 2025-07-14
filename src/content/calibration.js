@@ -143,30 +143,6 @@ export default function handleCalibrationUpload(text) {
       // Temporarily switch to 2D mode for calculation
       state.config.coordinateSystem = "2d";
 
-      try {
-        state.transformationMatrices.threePoint2d = calculateTransformationMatrixForConfig(
-          processedData.landmarkPoints3,
-          processedData.cursorPositions,
-          "3"
-        );
-
-        state.transformationMatrices.sixPoint2d = calculateTransformationMatrixForConfig(
-          processedData.landmarkPoints6,
-          processedData.cursorPositions,
-          "6"
-        );
-
-        console.log("Successfully pre-calculated 2D matrices");
-
-      } catch (error) {
-        console.error("Error pre-calculating 2D matrices:", error);
-
-        // Fall back to 3D matrices if calculation fails
-        console.warn("Using 3D matrices for 2D as fallback");
-        state.transformationMatrices.threePoint2d = state.transformationMatrices.threePoint3d;
-        state.transformationMatrices.sixPoint2d = state.transformationMatrices.sixPoint3d;
-      }
-
       if (!window.state.transformationMatrices.threePoint2d || !window.state.transformationMatrices.sixPoint2d) {
         console.warn("Missing required 2D matrices. Attempting to use available matrices as fallback.");
 
@@ -181,7 +157,7 @@ export default function handleCalibrationUpload(text) {
               window.state.transformationMatrices.threePoint2d = window.state.transformationMatrices.threePoint;
               console.log("Using generic three-point matrix for 2D (confirmed 2D dimensions)");
             } else {
-              console.warn("Generic three-point matrix has incompatible dimensions for 2D mode");
+              console.log("Generic three-point matrix has incompatible dimensions for 2D mode");
             }
           } catch (dimError) {
             console.error("Error checking matrix dimensions:", dimError);
@@ -198,7 +174,7 @@ export default function handleCalibrationUpload(text) {
               window.state.transformationMatrices.sixPoint2d = window.state.transformationMatrices.sixPoint;
               console.log("Using generic six-point matrix for 2D (confirmed 2D dimensions)");
             } else {
-              console.warn("Generic six-point matrix has incompatible dimensions for 2D mode!");
+              console.log("Generic six-point matrix has incompatible dimensions for 2D mode!");
             }
           } catch (dimError) {
             console.error("Error checking matrix dimensions:", dimError);
