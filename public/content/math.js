@@ -285,3 +285,6 @@ function calculateTransformationMatrixForConfig(landmarkPoints, cursorPositions,
       return null;
   }
 }
+
+window.convert2DMatrixTo3D = convert2DMatrixTo3D;
+window.calculateTransformationMatrixForConfig = calculateTransformationMatrixForConfig;

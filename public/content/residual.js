@@ -8,7 +8,7 @@ function calculateResidualsDirectly() {
         !state.calibrationData.landmarkPoints6 || 
         !state.calibrationData.cursorPositions ||
         !state.transformationMatrices) {
-      console.warn("Missing calibration data or matrices for direct residual calculation");
+      console.warn("Missing calibration data or matrices for direct residual calculation!");
       return null;
     }
     
@@ -23,7 +23,7 @@ function calculateResidualsDirectly() {
       state.transformationMatrices.sixPoint;
       
     if (!landmarks.length || !matrix) {
-      console.warn("Missing landmarks or transformation matrix");
+      console.warn("Missing landmarks or transformation matrix!");
       return null;
     }
     
@@ -47,7 +47,7 @@ function calculateResidualsDirectly() {
     const numPoints = Math.min(predictedPositions.length, actualPositions.length);
     
     if (numPoints === 0) {
-      console.warn("No valid position pairs for residual calculation");
+      console.warn("No valid position pairs for residual calculation.");
       return null;
     }
     
@@ -277,3 +277,5 @@ function calculateEndPointResiduals() {
     return null;
   }
 }
+
+window.calculateResidualsDirectly = calculateResidualsDirectly;

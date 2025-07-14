@@ -3,15 +3,13 @@
 window.initializeState = function() {
   if (typeof window !== 'undefined' && !window.state) {
     window.state = {
-      // Camera and tracking elements
-      faceMesh: null,
-      camera: null,
-      videoElement: null,
+      // Landmarks data
       lastLandmarks: null,
 
       // Calibration state
       isCalibrating: false,
       isTracking: false,
+      fileUploadSuccess: false,
       currentCalibrationPoint: 0,
       previousPosition: null,
       currentPosition: null,
@@ -27,20 +25,13 @@ window.initializeState = function() {
         cornerIndices: [],
       },
 
-      // Data collection
-      dataCollection: {
-        calibrationData: [],
-        videoNumber: 1,
-        isRecording: false,
-        startTime: null,
-      },
-
       // Application configuration
       config: {
         coordinateSystem: "2d",
-        landmarkPoints: "3",    // Default to 3 points
+        landmarkPoints: "3", // Default to 3 points
         animationStyle: "with-line",
-        filterType: "exponential"
+        filterType: "exponential",
+        exponentialSmoothingFactor: 0.95,
       },
 
       // Calibration data for both 3 and 6 point systems
@@ -48,6 +39,7 @@ window.initializeState = function() {
         landmarkPoints3: [],
         landmarkPoints6: [],
         cursorPositions: [],
+        allPoints: [],
       },
 
       // Transformation matrices for both configurations

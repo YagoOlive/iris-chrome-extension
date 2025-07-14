@@ -1,7 +1,4 @@
-import { determineConfiguration } from './configuration';
-import { convert2DMatrixTo3D, calculateTransformationMatrixForConfig } from './math';
-import { calculateResidualsDirectly } from './residual';
-
+// Handle user-uploaded calibration (.csv) file
 async function handleCalibrationUpload(file) {
   try {
     console.log("Starting calibration file upload:", file.name);
@@ -12,7 +9,7 @@ async function handleCalibrationUpload(file) {
     let metadata = {};
 
     if (!lines || !lines.length) {
-      throw new Error("Empty file");
+      throw new Error("Empty file.");
     }
 
     if (lines[0].startsWith('#')) {
@@ -38,30 +35,19 @@ async function handleCalibrationUpload(file) {
     });
 
     if (!result.data || !result.data.length) {
-      throw new Error("No data found in CSV file");
+      throw new Error("No data found in CSV file.");
     }
 
-    // Determine configuration
-    const headers = Object.keys(result.data[0]);
-    const config = {
-      ...determineConfiguration(headers),
-      filterType: metadata.filterType || "exponential", // Default to exponential if not specified
-      landmarkPoints: "3" // Start with 3 points
-    };
-
-    console.log("Determined configuration:", config);
-
-    // Update state configuration
-    state.config = config;
+    console.log("Current Configuration:", state.config);
 
     // Process the calibration data
-    const processedData = processCalibrationData(result.data, config);
+    const processedData = processCalibrationData(result.data, state.config);
 
     // Update state with processed data
     state.calibrationData = processedData;
 
     // Always calculate all matrices for both coordinate systems and point configurations
-    console.log("Pre-calculating all transformation matrices");
+    console.log("Pre-calculating all transformation matrices...");
 
     // First calculate matrices for the file's native coordinate system
     const nativeCoordinateSystem = config.coordinateSystem;
@@ -87,7 +73,7 @@ async function handleCalibrationUpload(file) {
       state.transformationMatrices.sixPoint2d = state.transformationMatrices.sixPoint;
 
       // Now calculate 3D matrices
-      console.log("Pre-calculating 3D matrices");
+      console.log("Pre-calculating 3D matrices...");
 
       // Temporarily switch to 3D mode for calculation
       config.coordinateSystem = "3d";
@@ -106,7 +92,8 @@ async function handleCalibrationUpload(file) {
           "6"
         );
 
-        console.log("Successfully pre-calculated 3D matrices");
+        console.log("Successfully pre-calculated 3D matrices.");
+
       } catch (error) {
         console.error("Error pre-calculating 3D matrices:", error);
 
@@ -134,7 +121,7 @@ async function handleCalibrationUpload(file) {
       state.transformationMatrices.sixPoint3d = state.transformationMatrices.sixPoint;
 
       // Now calculate 2D matrices
-      console.log("Pre-calculating 2D matrices");
+      console.log("Pre-calculating 2D matrices...");
 
       // Temporarily switch to 2D mode for calculation
       config.coordinateSystem = "2d";
@@ -154,6 +141,7 @@ async function handleCalibrationUpload(file) {
         );
 
         console.log("Successfully pre-calculated 2D matrices");
+
       } catch (error) {
         console.error("Error pre-calculating 2D matrices:", error);
 
@@ -176,9 +164,9 @@ async function handleCalibrationUpload(file) {
     console.log("sixPoint3d matrix available:", !!state.transformationMatrices.sixPoint3d);
 
     // Initialize filters
-    if (config.filterType === "oneEuro") {
-      initializeFilters();
-    }
+    // if (config.filterType === "oneEuro") {
+    //   initializeFilters();
+    // }
 
     // Reset cursor state
     state.lastHeadX = null;
@@ -193,81 +181,17 @@ async function handleCalibrationUpload(file) {
     // Store in state for access by other components
     state.calculatedResiduals = residuals;
 
-    // Patch window.robustCalculateResiduals to use our direct calculation
-    const originalRobustCalculate = window.robustCalculateResiduals;
-    window.robustCalculateResiduals = function () {
-      console.log("Using direct residual calculation");
-      const direct = calculateResidualsDirectly();
-      if (direct) {
-        return direct;
-      }
-      // Fall back to original implementation
-      if (originalRobustCalculate) {
-        return originalRobustCalculate();
-      }
-      return null;
-    };
-
-    // Also patch calculateCalibrationResiduals if it's globally available
-    if (window.calculateCalibrationResiduals) {
-      const originalCalculate = window.calculateCalibrationResiduals;
-      window.calculateCalibrationResiduals = function () {
-        console.log("Using direct residual calculation from patched function");
-        const direct = calculateResidualsDirectly();
-        if (direct) {
-          return direct;
-        }
-        // Fall back to original implementation
-        return originalCalculate();
-      };
-    }
-
     // Update application state
     state.isCalibrating = false;
     state.isTracking = true;
 
-    // Hide configuration screen
-    // document.getElementById("config-screen").classList.add("hidden");
-
-    // Initialize cursors
-    initializeCursors();
-
-    // Mount tracking controls (will show filter and landmark options)
-    const controlsContainer = document.getElementById('tracking-controls-container');
-    if (controlsContainer) {
-      const root = ReactDOM.createRoot(controlsContainer);
-      root.render(React.createElement(window.TrackingControls));
-    }
-
-    // After initializing cursors
     console.log("Final tracking configuration:", {
       coordinateSystem: state.config.coordinateSystem,
       landmarkPoints: state.config.landmarkPoints,
       filterType: state.config.filterType
     });
 
-    // Force 2D mode for testing
-    // state.config.coordinateSystem = "2d";
-    // console.log("Force 2D mode for testing");
-
-    // Start tracking
-    updateCursor();
-
-    // Update status and force metrics display
-    if (residuals) {
-      // Force direct update of DOM elements
-      setTimeout(() => {
-        const rmseElement = document.querySelector('#tracking-controls-container .rmse-value');
-        const meanErrorElement = document.querySelector('#tracking-controls-container .mean-error-value');
-        const maxErrorElement = document.querySelector('#tracking-controls-container .max-error-value');
-
-        if (rmseElement) rmseElement.textContent = `RMSE: ${residuals.rmse.toFixed(2)} px`;
-        if (meanErrorElement) meanErrorElement.textContent = `Mean Error: ${residuals.meanError.toFixed(2)} px`;
-        if (maxErrorElement) maxErrorElement.textContent = `Max Error: ${residuals.maxError.toFixed(2)} px`;
-      }, 500);
-    }
-
-    // After calculating transformation matrices, add this:
+    // After calculating transformation matrices:
     console.log("=== TRANSFORMATION MATRICES STATUS ===");
     console.log("threePoint2d matrix available:", !!state.transformationMatrices.threePoint2d);
     console.log("sixPoint2d matrix available:", !!state.transformationMatrices.sixPoint2d);
@@ -294,9 +218,10 @@ async function handleCalibrationUpload(file) {
     }
 
     return true;
+
   } catch (error) {
     console.error("Error processing calibration file:", error);
-    document.getElementById("status").textContent = "Error loading calibration file: " + error.message;
+    // document.getElementById("status").textContent = "Error loading calibration file: " + error.message;
     return false;
   }
 }
@@ -304,7 +229,7 @@ async function handleCalibrationUpload(file) {
 function processCalibrationData(data, config) {
   if (!data || !Array.isArray(data)) {
     console.error("Invalid data format:", data);
-    throw new Error("Invalid calibration data format");
+    throw new Error("Invalid calibration data format!");
   }
 
   console.log("Processing calibration data with config:", config);
@@ -321,7 +246,7 @@ function processCalibrationData(data, config) {
   data.forEach((row, index) => {
     try {
       if (!row.targetX || !row.targetY) {
-        console.warn(`Missing target coordinates in row ${index}`);
+        console.warn(`Missing target coordinates in row ${index}.`);
         return;
       }
 
@@ -337,7 +262,7 @@ function processCalibrationData(data, config) {
         const z = row[`landmark3_${i}_z`] || 0;
 
         if (typeof x === 'undefined' || typeof y === 'undefined') {
-          console.warn(`Missing data for 3-point landmark ${i}`);
+          console.warn(`Missing data for 3-point landmark ${i}.`);
           validThreePoint = false;
           break;
         }
@@ -363,7 +288,7 @@ function processCalibrationData(data, config) {
         const z = row[`landmark6_${i}_z`] || 0;
 
         if (typeof x === 'undefined' || typeof y === 'undefined') {
-          console.warn(`Missing data for 6-point landmark ${i}`);
+          console.warn(`Missing data for 6-point landmark ${i}.`);
           validSixPoint = false;
           break;
         }
@@ -391,7 +316,6 @@ function processCalibrationData(data, config) {
           landmarks6: sixPointVector.map(v => v[0])     // Flatten for easier access
         });
       }
-
     } catch (error) {
       console.error(`Error processing row ${index}:`, error);
     }
@@ -401,7 +325,7 @@ function processCalibrationData(data, config) {
   if (!processedData.landmarkPoints3.length ||
     !processedData.landmarkPoints6.length ||
     !processedData.cursorPositions.length) {
-    throw new Error("No valid calibration points found in data");
+    throw new Error("No valid calibration points found in data!");
   }
 
   console.log("Processed calibration data:", {
@@ -415,3 +339,4 @@ function processCalibrationData(data, config) {
   return processedData;
 }
 
+window.handleCalibrationUpload = handleCalibrationUpload;
