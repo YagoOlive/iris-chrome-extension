@@ -1,14 +1,12 @@
 import Papa from 'papaparse';
 
-import { calculateTransformationMatrixForConfig } from './math';
+import { calculateTransformationMatrixForConfig, convert2DMatrixTo3D } from './math';
+import { calculateResidualsDirectly } from './residual';
 
 // Handle user-uploaded calibration (.csv) file
 export default function handleCalibrationUpload(text) {
   try {
-    console.log("Starting calibration file upload.");
-
-    console.log(typeof(text));
-    console.log(text);
+    console.log("Starting calibration file upload...");
 
     // Extract metadata from first line
     const lines = text.split('\n');
@@ -44,7 +42,22 @@ export default function handleCalibrationUpload(text) {
       throw new Error("No data found in CSV file.");
     }
 
-    console.log("Current Configuration:", state.config);
+    // Determine configuration
+    const headers = Object.keys(result.data[0]);
+
+    // Improved 3D coordinate detection
+    const has3DCoordinates = headers.some(header =>
+      header.includes("_z") ||
+      header.includes("landmark3_2_z") ||
+      header.includes("landmark6_2_z")
+    );
+
+    if (has3DCoordinates) {
+      state.config.coordinateSystem = "3d";
+      console.log("Detected 3D coordinates in calibration data.");
+    }
+
+    console.log("Current/Determined Configuration:", state.config);
 
     // Process the calibration data
     const processedData = processCalibrationData(result.data, state.config);
@@ -103,15 +116,13 @@ export default function handleCalibrationUpload(text) {
         console.error("Error pre-calculating 3D matrices:", error);
 
         // Fall back to conversion if direct calculation fails
-        if (window.convert2DMatrixTo3D) {
-          console.log("Trying 2D to 3D matrix conversion");
-          state.transformationMatrices.threePoint3d = window.convert2DMatrixTo3D(
-            state.transformationMatrices.threePoint2d, 3
-          );
-          state.transformationMatrices.sixPoint3d = window.convert2DMatrixTo3D(
-            state.transformationMatrices.sixPoint2d, 6
-          );
-        }
+        console.log("Trying 2D to 3D matrix conversion");
+        state.transformationMatrices.threePoint3d = convert2DMatrixTo3D(
+          state.transformationMatrices.threePoint2d, 3
+        );
+        state.transformationMatrices.sixPoint3d = convert2DMatrixTo3D(
+          state.transformationMatrices.sixPoint2d, 6
+        );
 
         // Final fallback - copy 2D matrices if all else fails
         if (!state.transformationMatrices.threePoint3d) {
@@ -183,10 +194,6 @@ export default function handleCalibrationUpload(text) {
 
     // Store in state for access by other components
     state.calculatedResiduals = residuals;
-
-    // Update application state
-    state.isCalibrating = false;
-    state.isTracking = true;
 
     console.log("Final tracking configuration:", {
       coordinateSystem: state.config.coordinateSystem,

@@ -122,7 +122,7 @@ function transformCoordinates(landmarks) {
 }
 
 // Function to create a compatible 3D transformation matrix from 2D data
-function convert2DMatrixTo3D(matrix2D, landmarkCount) {
+export function convert2DMatrixTo3D(matrix2D, landmarkCount) {
   try {
     console.log("Converting 2D matrix to 3D format");
     

@@ -1,5 +1,7 @@
+import * as math from 'mathjs';
+
 // Own implementation of residual calculation
-function calculateResidualsDirectly() {
+export function calculateResidualsDirectly() {
   try {
     console.log("Calculating residuals directly from calibration data...");
     

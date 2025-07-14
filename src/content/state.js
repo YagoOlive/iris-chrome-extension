@@ -7,29 +7,12 @@ window.initializeState = function() {
       lastLandmarks: null,
 
       // Calibration state
-      isCalibrating: false,
-      isTracking: false,
-      fileUploadSuccess: false,
-      currentCalibrationPoint: 0,
-      previousPosition: null,
-      currentPosition: null,
-      isLineAnimating: false,
-
-      // Grid configuration
-      gridConfig: {
-        rows: 8,
-        cols: 5,
-        points: [],
-        randomizedOrder: [],
-        currentIndex: 0,
-        cornerIndices: [],
-      },
+      readyToTrack: false,
 
       // Application configuration
       config: {
         coordinateSystem: "2d",
         landmarkPoints: "3", // Default to 3 points
-        animationStyle: "with-line",
         filterType: "exponential",
         exponentialSmoothingFactor: 0.95,
       },

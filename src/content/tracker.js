@@ -33,7 +33,7 @@ import handleCalibrationUpload from "./calibration";
 
     console.log("Tracker.js: Landmarks updated!");
 
-    if (!window.state.fileUploadSuccess) {
+    if (!window.state.readyToTrack) {
       console.log("Not yet ready....");
       return;
     }
@@ -174,7 +174,7 @@ import handleCalibrationUpload from "./calibration";
     if (sprite) sprite.remove();
 
     delete window.__htCursorInjected;
-    window.state.fileUploadSuccess = false;
+    window.state.readyToTrack = false;
     chrome.runtime.onMessage.removeListener(messageListener);
   }
 
@@ -193,7 +193,7 @@ import handleCalibrationUpload from "./calibration";
     if (calibrationCsvContent) {
       const success = handleCalibrationUpload(calibrationCsvContent);
       if (success) {
-        window.state.fileUploadSuccess = true;
+        window.state.readyToTrack = true;
         console.log('Calibration data loaded. Ready for tracking...');
       }
     } else {
