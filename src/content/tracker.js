@@ -1,5 +1,7 @@
 // public/content/tracker.js
 
+import * as math from 'mathjs';
+
 import handleCalibrationUpload from "./calibration";
 
 // Use an IIFE to avoid polluting the global scope and run immediately

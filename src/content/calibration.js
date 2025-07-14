@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import * as math from 'mathjs';
 
 import { calculateTransformationMatrixForConfig, convert2DMatrixTo3D } from './math';
 import { calculateResidualsDirectly } from './residual';
@@ -165,10 +166,95 @@ export default function handleCalibrationUpload(text) {
         state.transformationMatrices.threePoint2d = state.transformationMatrices.threePoint3d;
         state.transformationMatrices.sixPoint2d = state.transformationMatrices.sixPoint3d;
       }
-    }
 
-    // Restore original coordinate system
-    state.config.coordinateSystem = nativeCoordinateSystem;
+      if (!window.state.transformationMatrices.threePoint2d || !window.state.transformationMatrices.sixPoint2d) {
+        console.warn("Missing required 2D matrices. Attempting to use available matrices as fallback.");
+
+        // Use the generic matrices as fallback
+        if (window.state.transformationMatrices.threePoint && !window.state.transformationMatrices.threePoint2d) {
+          // Check dimensions to ensure it's actually a 2D matrix
+          try {
+            const matrixDim = math.size(math.matrix(window.state.transformationMatrices.threePoint));
+            const isTwoDimensional = (matrixDim[1] === 12); // 2D three-point matrix should have 12 columns
+
+            if (isTwoDimensional) {
+              window.state.transformationMatrices.threePoint2d = window.state.transformationMatrices.threePoint;
+              console.log("Using generic three-point matrix for 2D (confirmed 2D dimensions)");
+            } else {
+              console.warn("Generic three-point matrix has incompatible dimensions for 2D mode");
+            }
+          } catch (dimError) {
+            console.error("Error checking matrix dimensions:", dimError);
+          }
+        }
+
+        if (window.state.transformationMatrices.sixPoint && !window.state.transformationMatrices.sixPoint2d) {
+          // Check dimensions to ensure it's actually a 2D matrix
+          try {
+            const matrixDim = math.size(math.matrix(window.state.transformationMatrices.sixPoint));
+            const isTwoDimensional = (matrixDim[1] === 24); // 2D six-point matrix should have 24 columns
+
+            if (isTwoDimensional) {
+              window.state.transformationMatrices.sixPoint2d = window.state.transformationMatrices.sixPoint;
+              console.log("Using generic six-point matrix for 2D (confirmed 2D dimensions)");
+            } else {
+              console.warn("Generic six-point matrix has incompatible dimensions for 2D mode!");
+            }
+          } catch (dimError) {
+            console.error("Error checking matrix dimensions:", dimError);
+          }
+        }
+
+        // DO NOT use 3D matrices as fallbacks for 2D since dimensions won't match
+        // Instead, try to recalculate proper 2D matrices if we have calibration data
+        if ((!window.state.transformationMatrices.threePoint2d || !window.state.transformationMatrices.sixPoint2d) &&
+          window.state.calibrationData && window.state.calibrationData.landmarkPoints3 &&
+          window.state.calibrationData.cursorPositions && typeof calculateTransformationMatrixForConfig === 'function') {
+
+          console.log("Attempting to calculate proper 2D matrices from calibration data...");
+
+          // Temporarily set state to 2D for matrix calculation
+          const oldCoordSystem = window.state.config.coordinateSystem;
+          window.state.config.coordinateSystem = "2d";
+
+          try {
+            // Convert 3D landmark data to 2D format
+            const landmarks3_2D = convert3DLandmarksTo2D(window.state.calibrationData.landmarkPoints3);
+            const landmarks6_2D = convert3DLandmarksTo2D(window.state.calibrationData.landmarkPoints6);
+
+            if (landmarks3_2D && !window.state.transformationMatrices.threePoint2d) {
+              window.state.transformationMatrices.threePoint2d = calculateTransformationMatrixForConfig(
+                landmarks3_2D, // Use converted 2D data
+                window.state.calibrationData.cursorPositions,
+                "3"
+              );
+              console.log("Successfully calculated 2D three-point matrix");
+            }
+
+            if (landmarks6_2D && !window.state.transformationMatrices.sixPoint2d) {
+              window.state.transformationMatrices.sixPoint2d = calculateTransformationMatrixForConfig(
+                landmarks6_2D, // Use converted 2D data
+                window.state.calibrationData.cursorPositions,
+                "6"
+              );
+              console.log("Successfully calculated 2D six-point matrix");
+            }
+          } catch (err) {
+            console.error("Error calculating 2D matrices:", err);
+          } finally {
+            // Restore original coordinate system
+            window.state.config.coordinateSystem = oldCoordSystem;
+          }
+        }
+
+        // Check again after all fallback attempts
+        if (!window.state.transformationMatrices.threePoint2d || !window.state.transformationMatrices.sixPoint2d) {
+          console.error("Still missing required 2D matrices with correct dimensions. Cannot switch to 2D mode.");
+          // setError("Missing proper 2D transformation matrices. Please reload calibration file.");
+          return;
+        }
+      }
+    }
 
     // Verify all matrices exist
     console.log("=== TRANSFORMATION MATRICES STATUS ===");
@@ -347,6 +433,46 @@ function processCalibrationData(data, config) {
   });
 
   return processedData;
+}
+
+// Convert 3D landmarks to 2D format
+function convert3DLandmarksTo2D(landmarks3D) {
+  if (!landmarks3D || !landmarks3D.length) return null;
+
+  try {
+    // Create a new array for 2D formatted landmarks
+    const landmarks2D = [];
+
+    // For each calibration point
+    for (let i = 0; i < landmarks3D.length; i++) {
+      const point3D = landmarks3D[i];
+      const point2D = [];
+
+      // For each landmark in a 3D point (which has 6 values per landmark: x,y,z,x²,y²,z²)
+      // we convert to 2D format (which has 4 values per landmark: x,y,x²,y²)
+      const totalLandmarks = point3D.length / 6; // Calculate number of landmarks
+
+      // Process each landmark
+      for (let j = 0; j < totalLandmarks; j++) {
+        const baseIdx3D = j * 6; // Each landmark has 6 values in 3D
+
+        // Extract just x and y values (skip z)
+        point2D.push([point3D[baseIdx3D][0]]);     // x
+        point2D.push([point3D[baseIdx3D + 1][0]]); // y
+
+        // Extract just x² and y² values (skip z²)
+        point2D.push([point3D[baseIdx3D + 3][0]]); // x²
+        point2D.push([point3D[baseIdx3D + 4][0]]); // y²
+      }
+
+      landmarks2D.push(point2D);
+    }
+
+    return landmarks2D;
+  } catch (error) {
+    console.error("Error converting 3D landmarks to 2D format:", error);
+    return null;
+  }
 }
 
 window.handleCalibrationUpload = handleCalibrationUpload;
