@@ -27,7 +27,7 @@ import handleCalibrationUpload from "./calibration";
   function connectPort() {
     if (port) return;
     port = chrome.runtime.connect({ name: 'pose' });
-    port.onMessage.addListener(handleLandmarks);
+    port.onMessage.addListener(handlePacket);
     port.onDisconnect.addListener(() => (port = null));
   }
 
@@ -44,9 +44,11 @@ import handleCalibrationUpload from "./calibration";
   createSprite();
   connectPort();
 
-  function handleLandmarks(landmarks) {
+  function handlePacket({ landmarks, smile = 0 }) {
     // 1. Save the new landmarks to our global state object
     window.state.lastLandmarks = landmarks;
+
+    maybeClick(smile);
 
     console.log("Tracker.js: Landmarks updated!");
 
@@ -117,6 +119,29 @@ import handleCalibrationUpload from "./calibration";
     } catch (error) {
       console.error("Matrix multiplication error in 2D mode:", error);
     }
+  }
+
+  // ----- Smile-to-click ----------------------------------------------------
+  const CLICK_THRESHOLD = 0.6;          // min average score to count as a smile
+  const CLICK_COOLDOWN = 350;          // ms between allowed clicks
+  let lastClickTime = 0;
+
+  function maybeClick(smileScore) {
+    const now = Date.now();
+    if (smileScore < CLICK_THRESHOLD) return;
+    if (now - lastClickTime < CLICK_COOLDOWN) return;
+
+    // ① find element under the virtual cursor
+    const el = document.elementFromPoint(state.cursorX, state.cursorY);
+    if (!el) return;
+
+    // ② synthetic click
+    el.click();
+    // optional visual feedback:
+    sprite.classList.add('ht-click');   // e.g. scale sprite for 100 ms
+    setTimeout(() => sprite.classList.remove('ht-click'), 100);
+
+    lastClickTime = now;
   }
 
   // Helper function for applying filtering and updating cursor position

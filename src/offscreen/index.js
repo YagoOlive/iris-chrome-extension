@@ -30,7 +30,7 @@ async function handleMessages(msg) {
           },
           runningMode: "VIDEO",
           numFaces: 1,
-          outputFaceBlendshapes: false,
+          outputFaceBlendshapes: true,
           refineLandmarks: true,
           minFaceDetectionConfidence: 0.5,
           minTrackingConfidence: 0.5,
@@ -52,7 +52,19 @@ async function handleMessages(msg) {
         }
         const now = performance.now();
         const res = faceLandmarker.detectForVideo(videoElement, now);
-        if (res?.faceLandmarks?.length) port.postMessage(res.faceLandmarks[0]);
+        if (res?.faceLandmarks?.length) {
+          // --- extract smile blend-shapes ---
+          const blends = res.faceBlendshapes?.[0]?.categories ?? [];
+          const smileL = blends[44]?.score ?? 0;   // 44 = mouthSmileLeft 
+          const smileR = blends[45]?.score ?? 0;   // 45 = mouthSmileRight 
+
+          port.postMessage({
+            landmarks: res.faceLandmarks[0],
+            smile: (smileL + smileR) / 2
+          });
+
+          // port.postMessage(res.faceLandmarks[0]);
+        }
       }, 33);   // ~30 fps; even under “background-tab” throttling Chrome guarantees
 
       break;

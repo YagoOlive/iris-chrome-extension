@@ -28,10 +28,11 @@ chrome.runtime.onConnect.addListener((port) => {
   } else if (port.name === 'offscreen') {
     offscreenPort = port;
     console.log('Background: Port connected from offscreen document.');
-    offscreenPort.onMessage.addListener((landmarks) => {
-      console.log("Background: Landmarks received by background script.");
+    offscreenPort.onMessage.addListener((packet) => {
+      // packet = { landmarks, smile }
+      console.log("Background: Landmarks and facial expressions received by background script.");
       for (const contentPort of contentScriptPorts.values()) {
-        contentPort.postMessage(landmarks);
+        contentPort.postMessage(packet);
       }
     });
     port.onDisconnect.addListener(() => {
