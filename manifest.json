@@ -23,8 +23,6 @@
     {
       "resources": [
         "content/cursor.css",
-        "content/tracker.js",
-        "content/state.js",
         "vendor/tasks-vision/wasm/*",
         "vendor/models/face_landmarker.task"
       ],
