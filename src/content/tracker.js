@@ -187,6 +187,14 @@ import handleCalibrationUpload from "./calibration";
     sprite?.remove();
     sprite = null;
     window.__htCursorInjected = false;
+    const style = document.createElement('style');
+    style.textContent = `
+      html, body, * {
+        cursor: default !important;
+      }
+    `;
+    // Append it into <head> (or document.documentElement for document_start)
+    (document.head || document.documentElement).appendChild(style);
   }
 
   // --- MESSAGE LISTENER ---
@@ -196,7 +204,14 @@ import handleCalibrationUpload from "./calibration";
         return sendResponse({ ok: true }); // lets background know we’re injected
       case 'START_TRACKING':
         startTracking(msg.calibrationCsvContent);
-        console.log("I BETTER BE HERE!!!");
+        const style = document.createElement('style');
+        style.textContent = `
+          html, body, * {
+            cursor: none !important;
+          }
+        `;
+        // Append it into <head> (or document.documentElement for document_start)
+        (document.head || document.documentElement).appendChild(style);
         return sendResponse({ ok: true });
       case 'STOP_TRACKING':
         stopHeadCursor();
