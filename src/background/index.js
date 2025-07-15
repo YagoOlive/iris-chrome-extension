@@ -124,13 +124,19 @@ async function injectContent(tabId) {
   }
 }
 
+// utility: ensure the script is present *once* and return true if it was already there
+async function ensureContent(tabId) {
+  try {
+    const res = await chrome.tabs.sendMessage(tabId, { cmd: 'PING' });
+    if (res?.ok) return true; // already injected
+  } catch { /* no listener */ }
+  await injectContent(tabId); // first time for this frame
+  return false;
+}
+
 // Removes the CSS and tells the content script to clean up
 async function removeContent(tabId) {
   try {
-    await chrome.scripting.removeCSS({
-      target: { tabId: tabId },
-      files: ['content/cursor.css'],
-    });
     // The content script might not be there (e.g., on chrome:// pages), so wrap in try/catch
     await chrome.tabs.sendMessage(tabId, { cmd: 'STOP_TRACKING' });
   } catch (err) {
@@ -179,7 +185,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       await chrome.storage.local.set(toSet);
 
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) await injectContent(tab.id);
+      if (tab) {
+        const check = await ensureContent(tab.id); // inject only once
+        if (check) {
+          await chrome.tabs.sendMessage(tab.id, {
+            cmd: 'START_TRACKING',
+            calibrationCsvContent: msg.calibrationCsvContent,
+          });
+        }
+      }
       sendResponse({ ok: true, message: 'Tracking started.' });
     }
     else if (msg.cmd === 'STOP_TRACKING') {

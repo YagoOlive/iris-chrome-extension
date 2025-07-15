@@ -13,23 +13,38 @@ import handleCalibrationUpload from "./calibration";
   // Call the initializer from state.js immediately
   initializeState();
 
+  let sprite = null;
+  let port = null;
+
+  function createSprite() {
+    if (sprite) return;
+    sprite = document.createElement('div');
+    sprite.id = 'ht-cursor';
+    document.documentElement.appendChild(sprite);
+  }
+
+  /* Life-cycle helpers */
+  function connectPort() {
+    if (port) return;
+    port = chrome.runtime.connect({ name: 'pose' });
+    port.onMessage.addListener(handleLandmarks);
+    port.onDisconnect.addListener(() => (port = null));
+  }
+
+  function startTracking(fileContent) {
+    console.log(`WHAT IS SPRITE? ${sprite} WHAT ABOUT PORT? ${port}`);
+    createSprite();
+    connectPort();
+    if (fileContent) handleCalibrationUpload(fileContent);
+    window.state.readyToTrack = true;
+  }
+
   console.log('Head-tracking content script injected and state initialized.');
 
-  // --- STATE VARIABLES ---
-  const sprite = document.createElement('div');
-  sprite.id = 'ht-cursor';
-  document.documentElement.appendChild(sprite);
+  createSprite();
+  connectPort();
 
-  // --- PORT CONNECTION ---
-  // Establish a long-lived connection to the background script
-  const port = chrome.runtime.connect({ name: 'pose' });
-
-  const follow = e => {
-    sprite.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-  };
-
-  // Listen for messages (landmark data) from the background script
-  port.onMessage.addListener((landmarks) => {
+  function handleLandmarks(landmarks) {
     // 1. Save the new landmarks to our global state object
     window.state.lastLandmarks = landmarks;
 
@@ -37,6 +52,13 @@ import handleCalibrationUpload from "./calibration";
 
     if (!window.state.readyToTrack) {
       console.log("Not yet ready....");
+      if (landmarks && landmarks[1]) {
+        const noseTip = landmarks[1];
+        // A very basic, uncalibrated mapping.
+        const x = window.innerWidth * (1 - noseTip.x); // Invert X
+        const y = window.innerHeight * noseTip.y;
+        sprite.style.transform = `translate(${x}px, ${y}px)`;
+      }
       return;
     }
 
@@ -95,19 +117,7 @@ import handleCalibrationUpload from "./calibration";
     } catch (error) {
       console.error("Matrix multiplication error in 2D mode:", error);
     }
-
-    // Example:
-    // For now, let's just log the first landmark to prove it's working
-    // and move the cursor based on a simple mapping of the nose tip (landmark 1)
-    // if (landmarks && landmarks[1]) {
-    //   const noseTip = landmarks[1];
-    //   // A very basic, uncalibrated mapping. Replace with your real logic.
-    //   const x = window.innerWidth * (1 - noseTip.x); // Invert X
-    //   const y = window.innerHeight * noseTip.y;
-
-    //   sprite.style.transform = `translate(${x}px, ${y}px)`;
-    // }
-  });
+  }
 
   // Helper function for applying filtering and updating cursor position
   function applyFilteringAndUpdateCursor(headPositionX, headPositionY) {
@@ -171,23 +181,29 @@ import handleCalibrationUpload from "./calibration";
   // --- TEARDOWN ---
   function stopHeadCursor() {
     console.log('Cleaning up tracker script on this page.');
-    port.disconnect(); // Close the connection to the background script
-    // window.removeEventListener('mousemove', follow);
-    if (sprite) sprite.remove();
-
-    delete window.__htCursorInjected;
     window.state.readyToTrack = false;
-    chrome.runtime.onMessage.removeListener(messageListener);
+    port?.disconnect(); // Close the connection to the background script
+    port = null;
+    sprite?.remove();
+    sprite = null;
+    window.__htCursorInjected = false;
   }
 
   // --- MESSAGE LISTENER ---
   const messageListener = (msg, sender, sendResponse) => {
-    if (msg.cmd === 'STOP_TRACKING') {
-      stopHeadCursor();
-      sendResponse({ ok: true });
+    switch (msg.cmd) {
+      case 'PING':
+        return sendResponse({ ok: true }); // lets background know we’re injected
+      case 'START_TRACKING':
+        startTracking(msg.calibrationCsvContent);
+        console.log("I BETTER BE HERE!!!");
+        return sendResponse({ ok: true });
+      case 'STOP_TRACKING':
+        stopHeadCursor();
+        return sendResponse({ ok: true });
     }
-    return true;
   };
+
   chrome.runtime.onMessage.addListener(messageListener);
 
   // --- INITIALIZATION ---

@@ -1,5 +1,4 @@
 // state.js
-
 window.initializeState = function() {
   if (typeof window !== 'undefined' && !window.state) {
     window.state = {
@@ -14,7 +13,7 @@ window.initializeState = function() {
         coordinateSystem: "2d",
         landmarkPoints: "3", // Default to 3 points
         filterType: "exponential",
-        exponentialSmoothingFactor: 0.95,
+        exponentialSmoothingFactor: 0.90,
       },
 
       // Calibration data for both 3 and 6 point systems
@@ -36,8 +35,6 @@ window.initializeState = function() {
       lastHeadY: null,
       cursorX: null,
       cursorY: null,
-      lastRawX: null,
-      lastRawY: null,
     };
     console.log("running state.js....window.state has been initialized!");
   }
