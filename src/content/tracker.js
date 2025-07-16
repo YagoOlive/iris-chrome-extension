@@ -18,6 +18,11 @@ import handleCalibrationUpload from "./calibration";
   let inner = null;
   let notch = null;
 
+  // Edge-scrolling state
+  let boundaryTimer = null;
+  let scrollInterval = null;
+  let lastBoundary = null;  // "top" | "bottom" | null
+
   function createSprite() {
     if (sprite) return;
     sprite = document.createElement('div');
@@ -152,6 +157,27 @@ import handleCalibrationUpload from "./calibration";
     lastClickTime = now;
   }
 
+  function startScroll(direction) {
+    const { speedUp, speedDown, intervalMs } = state.config.scrolling;
+    const speed = direction === 'top' ? speedUp : -speedDown;
+    scrollInterval = setInterval(() => {
+      window.scrollBy(0, speed);
+    }, intervalMs);
+  }
+
+  function stopScroll() {
+    if (scrollInterval) {
+      clearInterval(scrollInterval);
+      scrollInterval = null;
+    }
+    if (boundaryTimer) {
+      clearTimeout(boundaryTimer);
+      boundaryTimer = null;
+    }
+    lastBoundary = null;
+  }
+
+
   // Helper function for applying filtering and updating cursor position
   function applyFilteringAndUpdateCursor(headPositionX, headPositionY) {
     // Exponential smoothing
@@ -205,6 +231,25 @@ import handleCalibrationUpload from "./calibration";
     // Update cursor position
     cursorWithClipping.style.left = `${roundedX}px`;
     cursorWithClipping.style.top = `${roundedY}px`;
+
+    // EDGE-SCROLLING LOGIC
+    const { thresholdMs } = state.config.scrolling;
+    const atBottom = state.cursorY <= 0;
+    const atTop = state.cursorY >= window.innerHeight - cursorSize;
+    const boundary = atTop ? 'top' : atBottom ? 'bottom' : null;
+
+    if (boundary && (lastBoundary !== boundary)) {
+      // just entered a new boundary
+      lastBoundary = boundary;
+      // start dwell timer
+      boundaryTimer = setTimeout(() => {
+        startScroll(boundary);
+      }, thresholdMs);
+    } else if (lastBoundary && !boundary) {
+      // left the boundary: stop everything
+      stopScroll();
+    }
+
 
     // Update last positions
     state.lastHeadX = headPositionX;

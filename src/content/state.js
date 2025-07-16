@@ -1,5 +1,5 @@
 // state.js
-window.initializeState = function() {
+window.initializeState = function () {
   if (typeof window !== 'undefined' && !window.state) {
     window.state = {
       // Landmarks data
@@ -14,6 +14,12 @@ window.initializeState = function() {
         landmarkPoints: "3", // Default to 3 points
         filterType: "exponential",
         exponentialSmoothingFactor: 0.90,
+        scrolling: {
+          thresholdMs: 1000, // ms dwell before scrolling
+          speedUp: 10, // px per interval when at top
+          speedDown: 10, // px per interval when at bottom
+          intervalMs: 16, // ~60fps scroll interval
+        },
       },
 
       // Calibration data for both 3 and 6 point systems
