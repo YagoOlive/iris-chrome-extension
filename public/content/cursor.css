@@ -3,19 +3,81 @@ html, body, * {
   cursor: none !important;              /* css-level hide */        /* fallback JS is in tracker.js */
 }
 
-/* Virtual sprite */
-#ht-cursor {
+/* Alternative Virtual sprite */
+/* #ht-cursor {
   width: 24px;
   height: 24px;
-  /* ◯  simple white dot - replace with your own PNG/SVG or data-URI */
   background: radial-gradient(red 35%, rgba(255, 255, 255, 0.918) 60%, transparent 61%);
   border-radius: 50%;
   position: fixed;
   top: 0;
   left: 0;
-  pointer-events: none;                 /* let clicks pass through */
-  z-index: 2147483647;                  /* browser max */
-  transform: translate(-50%, -50%);     /* anchor at center */
-  transition: transform 40ms linear;    /* smooth follow */
+  pointer-events: none;                 
+  z-index: 2147483647;
+  transform: translate(-50%, -50%);
+  transition: transform 40ms linear;
+} */
+
+/* Main Virtual sprite */
+#ht-cursor {
+  position: fixed;
+  width: 22px;
+  height: 32px;
+  pointer-events: none;
+  z-index: 9999;
 }
 
+#ht-cursor .cursor-inner {
+  width: 60%;
+  height: 60%;
+  background: black;
+  clip-path: polygon(
+    0% 0%, 
+    0% 100%, 
+    20% 80%, 
+    0% 100%, 
+    40% 75%, 
+    100% 75%, 
+    0% 0%
+  );
+  position: absolute;
+  top: 0;
+  left: 0;
+  filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));
+}
+
+#ht-cursor .cursor-inner::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 1px;
+  width: calc(100% - 2px);
+  height: calc(100% - 4px);
+  background: white;
+  clip-path: inherit; /* reuse the same shape */
+}
+
+/* Notch — separate and positioned relative to #ht-cursor */
+#ht-cursor .cursor-notch {
+  position: absolute;
+  left: 3.5px;   /* adjust to snugly meet arrowhead */
+  top: 14px;   /* adjust based on height of arrowhead */
+  width: 3px;
+  height: 6px;
+  background: black;
+  /* box-shadow: 1px 1px 1px rgba(0,0,0,0.2); */
+  transform: rotate(-26deg); /* ← Adjust this angle as needed */
+  transform-origin: top left; /* Pivot point for natural attachment */
+
+}
+
+/* Optional white fill */
+#ht-cursor .cursor-notch::after {
+  content: "";
+  position: absolute;
+  top: 0.25px;
+  left: 0.5px;
+  width: calc(100% - 0.5px);
+  height: calc(100% - 1px);
+  background: white;
+}

@@ -15,12 +15,20 @@ import handleCalibrationUpload from "./calibration";
 
   let sprite = null;
   let port = null;
+  let inner = null;
+  let notch = null;
 
   function createSprite() {
     if (sprite) return;
     sprite = document.createElement('div');
+    inner = document.createElement('div');
+    notch = document.createElement('div');
     sprite.id = 'ht-cursor';
+    inner.classList.add('cursor-inner');
+    notch.classList.add('cursor-notch');
     document.documentElement.appendChild(sprite);
+    sprite.appendChild(inner);
+    sprite.appendChild(notch);
   }
 
   /* Life-cycle helpers */
@@ -122,7 +130,7 @@ import handleCalibrationUpload from "./calibration";
   }
 
   // ----- Smile-to-click ----------------------------------------------------
-  const CLICK_THRESHOLD = 0.6;          // min average score to count as a smile
+  const CLICK_THRESHOLD = 1.0;          // min average score to count as a smile
   const CLICK_COOLDOWN = 350;          // ms between allowed clicks
   let lastClickTime = 0;
 
@@ -209,8 +217,12 @@ import handleCalibrationUpload from "./calibration";
     window.state.readyToTrack = false;
     port?.disconnect(); // Close the connection to the background script
     port = null;
+    notch?.remove();
+    inner?.remove();
     sprite?.remove();
     sprite = null;
+    inner = null;
+    notch = null;
     window.__htCursorInjected = false;
     const style = document.createElement('style');
     style.textContent = `
