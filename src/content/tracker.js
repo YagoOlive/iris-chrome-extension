@@ -145,16 +145,38 @@ import handleCalibrationUpload from "./calibration";
     if (now - lastClickTime < CLICK_COOLDOWN) return;
 
     // ① find element under the virtual cursor
-    const el = document.elementFromPoint(state.cursorX, state.cursorY);
+    const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
+    const el = nearestInteractive(candidate);
     if (!el) return;
 
     // ② synthetic click
     el.click();
     // optional visual feedback:
-    sprite.classList.add('ht-click');   // e.g. scale sprite for 100 ms
-    setTimeout(() => sprite.classList.remove('ht-click'), 100);
+    // sprite.classList.add('ht-click');   // e.g. scale sprite for 100 ms
+    // setTimeout(() => sprite.classList.remove('ht-click'), 100);
 
     lastClickTime = now;
+  }
+
+  const INTERACTIVE_SEL =
+    'a[href], button, input, select, textarea, label, [role="button"], [onclick]';
+
+  function nearestInteractive(el) {
+    return el?.closest(INTERACTIVE_SEL) || el;   // falls back to the raw element
+  }
+
+  // ----- Hover-Effect ----------------------------------------------------
+  let lastHoverEl = null;
+  function updateHover() {
+    const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
+    const el = nearestInteractive(candidate);
+    if (el !== lastHoverEl) {
+      lastHoverEl?.classList.remove('ht-hover');
+      if (el) { 
+        el.classList.add('ht-hover');
+      }
+      lastHoverEl = el;
+    }
   }
 
   function startScroll(direction) {
@@ -232,6 +254,8 @@ import handleCalibrationUpload from "./calibration";
     cursorWithClipping.style.left = `${roundedX}px`;
     cursorWithClipping.style.top = `${roundedY}px`;
 
+    updateHover();
+
     // EDGE-SCROLLING LOGIC
     const { thresholdMs } = state.config.scrolling;
     const atBottom = state.cursorY <= 0;
@@ -272,7 +296,7 @@ import handleCalibrationUpload from "./calibration";
     const style = document.createElement('style');
     style.textContent = `
       html, body, * {
-        cursor: default !important;
+        cursor: auto !important;
       }
     `;
     // Append it into <head> (or document.documentElement for document_start)

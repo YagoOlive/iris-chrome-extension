@@ -24,7 +24,7 @@ html, body, * {
   width: 22px;
   height: 32px;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 2147483647;
 }
 
 #ht-cursor .cursor-inner {
@@ -81,3 +81,16 @@ html, body, * {
   height: calc(100% - 1px);
   background: white;
 }
+
+/* Only draw the effect when the class lands on an <a> */
+a.ht-hover {
+  text-decoration: underline;
+  /* color: var(--link-hover, #06c); */
+  cursor: pointer; /* lets you read `getComputedStyle(el).cursor` later */
+}
+
+/* Optional: give other interactive elements a subtle ring instead of underline */
+/* .ht-hover:not(a) {
+  outline: 2px solid var(--link-hover, #06c);
+  outline-offset: 2px;
+} */
