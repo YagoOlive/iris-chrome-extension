@@ -13,6 +13,7 @@ const OFFSCREEN_DOCUMENT_PATH = 'src/offscreen/index.html';
 const contentScriptPorts = new Map();
 
 let offscreenPort = null;
+let activeTabId = null;
 
 // --- PORT MANAGEMENT ---
 
@@ -20,6 +21,7 @@ chrome.runtime.onConnect.addListener((port) => {
   if (port.name === 'pose') {
     const tabId = port.sender.tab.id;
     contentScriptPorts.set(tabId, port);
+    if (!activeTabId) activeTabId = tabId;
     console.log(`Background: Port connected from content script in tab ${tabId}`);
     port.onDisconnect.addListener(() => {
       contentScriptPorts.delete(tabId);
@@ -28,11 +30,22 @@ chrome.runtime.onConnect.addListener((port) => {
   } else if (port.name === 'offscreen') {
     offscreenPort = port;
     console.log('Background: Port connected from offscreen document.');
-    offscreenPort.onMessage.addListener((packet) => {
-      // packet = { landmarks, smile }
+    offscreenPort.onMessage.addListener((packet) => { // packet = { landmarks, smile }
+
       console.log("Background: Landmarks and facial expressions received by background script.");
+  
+      // send only to the currently-active tab
+      if (!activeTabId) return; // Nothing is focused
+
+      // try to get an existing port
+      let targetPort = contentScriptPorts.get(activeTabId);
+
       for (const contentPort of contentScriptPorts.values()) {
-        contentPort.postMessage(packet);
+        if (contentPort === targetPort) {
+          contentPort.postMessage(packet);
+          continue;
+        }
+        contentPort.postMessage({ landmarks: packet.landmarks });
       }
     });
     port.onDisconnect.addListener(() => {
@@ -166,6 +179,26 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       await injectContent(tabId);
     }
   }
+});
+
+// 3. Active Tab Tracking: automatic injection on active tabs
+chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+  activeTabId = tabId;
+  const { isTrackingActive } = await chrome.storage.local.get('isTrackingActive');
+  if (isTrackingActive && !contentScriptPorts.has(tabId)) {
+    console.log(`Tracking is active. Injecting content into active tab ${tabId}`);
+    await injectContent(tabId);
+  }
+});
+
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  if (windowId === chrome.windows.WINDOW_ID_NONE) {
+    activeTabId = null; // browser lost focus
+    return;
+  }
+  chrome.tabs.query({ active: true, windowId }, (tabs) => {
+    if (tabs.length) activeTabId = tabs[0].id;
+  });
 });
 
 // 3. On Message: Handle all communication
