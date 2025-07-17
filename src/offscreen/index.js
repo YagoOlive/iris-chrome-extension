@@ -27,6 +27,7 @@ async function handleMessages(msg) {
             modelAssetPath: chrome.runtime.getURL(
               "vendor/models/face_landmarker.task"
             ),
+            delegate: "GPU",
           },
           runningMode: "VIDEO",
           numFaces: 1,

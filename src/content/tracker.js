@@ -136,7 +136,7 @@ import handleCalibrationUpload from "./calibration";
 
   // ----- Smile-to-click ----------------------------------------------------
   const CLICK_THRESHOLD = 0.8;          // min average score to count as a smile
-  const CLICK_COOLDOWN = 350;          // ms between allowed clicks
+  const CLICK_COOLDOWN = 1000;          // ms between allowed clicks
   let lastClickTime = 0;
 
   function maybeClick(smileScore) {
