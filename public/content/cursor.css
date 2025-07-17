@@ -82,6 +82,15 @@ html, body, * {
   background: white;
 }
 
+#ht-cursor .cursor-inner::after,
+#ht-cursor .cursor-notch::after {
+  background: var(--cursor-fill, white);
+}
+
+#ht-cursor.hovering-link {
+  --cursor-fill: limegreen;   /* or whatever green you like */
+}
+
 /* Only draw the effect when the class lands on an <a> */
 a.ht-hover {
   text-decoration: underline;

@@ -170,13 +170,14 @@ import handleCalibrationUpload from "./calibration";
   function updateHover() {
     const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
     const el = nearestInteractive(candidate);
+    const isLink = el && el.tagName.toLowerCase() === 'a';
     if (el !== lastHoverEl) {
       lastHoverEl?.classList.remove('ht-hover');
-      if (el) { 
-        el.classList.add('ht-hover');
-      }
+      if (el) el.classList.add('ht-hover');
       lastHoverEl = el;
     }
+    const sprite = document.getElementById('ht-cursor');
+    sprite.classList.toggle('hovering-link', isLink);
   }
 
   function startScroll(direction) {
