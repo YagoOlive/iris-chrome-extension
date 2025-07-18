@@ -22,7 +22,7 @@ window.initializeState = function () {
         },
         actions: {
           click: "browUp", // "smile" | "browUp" | "jawOpen"
-          clickThreshold: 0.9,
+          clickThreshold: 0.8,
         }
       },
 

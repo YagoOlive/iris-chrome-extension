@@ -7,7 +7,7 @@ import stateScript from '../content/state.js?script';
 import trackerScript from '../content/tracker.js?script';
 
 
-const OFFSCREEN_DOCUMENT_PATH = 'src/offscreen/index.html';
+const OFFSCREEN_DOCUMENT_PATH = chrome.runtime.getURL('src/offscreen/index.html');
 
 // A map to hold all active connections from content scripts
 const contentScriptPorts = new Map();
@@ -33,7 +33,7 @@ chrome.runtime.onConnect.addListener((port) => {
     offscreenPort.onMessage.addListener((packet) => { // packet = { landmarks, blends }
 
       console.log("Background: Landmarks and facial expressions received by background script.");
-  
+
       // send only to the currently-active tab
       if (!activeTabId) return; // Nothing is focused
 
@@ -232,8 +232,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     else if (msg.cmd === 'STOP_TRACKING') {
       // 1. Get the port (it should already exist) and send the stop command
-      const port = await getOffscreenPort();
-      port.postMessage({ cmd: 'STOP_CAMERA' });
+      if (offscreenPort) offscreenPort.postMessage({ cmd: 'STOP_CAMERA' });
+      try {
+        await chrome.offscreen.closeDocument();
+      }
+      catch (e) { 
+        console.warn('Offscreen document already closed.', e); 
+      }
+      offscreenPort = null;
 
       // 2. Update state and remove content scripts
       await chrome.storage.local.set({ isTrackingActive: false });
