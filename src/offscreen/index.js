@@ -56,12 +56,10 @@ async function handleMessages(msg) {
         if (res?.faceLandmarks?.length) {
           // --- extract smile blend-shapes ---
           const blends = res.faceBlendshapes?.[0]?.categories ?? [];
-          const smileL = blends[44]?.score ?? 0;   // 44 = mouthSmileLeft 
-          const smileR = blends[45]?.score ?? 0;   // 45 = mouthSmileRight 
 
           port.postMessage({
             landmarks: res.faceLandmarks[0],
-            smile: (smileL + smileR) / 2
+            blends: blends
           });
 
           // port.postMessage(res.faceLandmarks[0]);

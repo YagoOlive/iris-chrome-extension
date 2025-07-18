@@ -20,6 +20,10 @@ window.initializeState = function () {
           speedDown: 10, // px per interval when at bottom
           intervalMs: 16, // ~60fps scroll interval
         },
+        actions: {
+          click: "browUp", // "smile" | "browUp" | "jawOpen"
+          clickThreshold: 0.9,
+        }
       },
 
       // Calibration data for both 3 and 6 point systems

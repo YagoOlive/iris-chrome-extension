@@ -45,7 +45,6 @@ import handleCalibrationUpload from "./calibration";
   }
 
   function startTracking(fileContent) {
-    console.log(`WHAT IS SPRITE? ${sprite} WHAT ABOUT PORT? ${port}`);
     createSprite();
     connectPort();
     if (fileContent) handleCalibrationUpload(fileContent);
@@ -57,11 +56,39 @@ import handleCalibrationUpload from "./calibration";
   createSprite();
   connectPort();
 
-  function handlePacket({ landmarks, smile = 0 }) {
+  function getClickScore(blends) {
+    const clickAction = state.config.actions.click;
+    if (clickAction === "smile") {
+
+      const smileL = blends[44]?.score ?? 0;   // 44 = mouthSmileLeft 
+      const smileR = blends[45]?.score ?? 0;   // 45 = mouthSmileRight
+
+      return (smileL + smileR) / 2;
+
+    } else if (clickAction === "browUp") {
+
+      const browUpL = blends[4]?.score ?? 0;   // 4 = browOuterUpLeft 
+      const browUpR = blends[5]?.score ?? 0;   // 5 = browOuterUpRight
+      
+      return (browUpL + browUpR) / 2;
+
+    } else if (clickAction === "jawOpen") {
+
+      const jawOpen = blends[25]?.score ?? 0; // 25 = jawOpen
+
+      return jawOpen;
+
+    } else {
+      console.warn(`Click action setting "${clickAction}" is not available.`);
+      return 0;
+    }
+  }
+
+  function handlePacket({ landmarks, blends }) {
     // 1. Save the new landmarks to our global state object
     window.state.lastLandmarks = landmarks;
 
-    maybeClick(smile);
+    maybeClick(getClickScore(blends));
 
     console.log("Tracker.js: Landmarks updated!");
 
@@ -135,13 +162,13 @@ import handleCalibrationUpload from "./calibration";
   }
 
   // ----- Smile-to-click ----------------------------------------------------
-  const CLICK_THRESHOLD = 0.8;          // min average score to count as a smile
+  const CLICK_THRESHOLD = state.config.actions.clickThreshold; // min average score to count as a smile
   const CLICK_COOLDOWN = 1000;          // ms between allowed clicks
   let lastClickTime = 0;
 
-  function maybeClick(smileScore) {
+  function maybeClick(score) {
     const now = Date.now();
-    if (smileScore < CLICK_THRESHOLD) return;
+    if (score < CLICK_THRESHOLD) return;
     if (now - lastClickTime < CLICK_COOLDOWN) return;
 
     // ① find element under the virtual cursor
