@@ -250,9 +250,10 @@ import handleCalibrationUpload from "./calibration";
       return;
     }
 
+    const k = 2;
     // Apply direct exponential smoothing without relative movements
-    const smoothing = state.config.exponentialSmoothingFactor || 0.95; // Uses configurable value
-
+    let smoothing = (state.config.exponentialSmoothingFactor ** k) || 0.95; // Uses configurable value
+    
     // Apply smoothing directly to cursor position
     if (state.cursorX === null) {
       window.state.cursorX = headPositionX;
