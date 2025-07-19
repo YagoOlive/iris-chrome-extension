@@ -5,6 +5,9 @@ import { FilesetResolver, FaceLandmarker } from "@mediapipe/tasks-vision";
 let faceLandmarker = null;
 let stopRequested = false;
 
+let fps = 60;
+let refreshMs = Math.round((1000 / fps) * 100) / 100;
+
 // --- PORT CONNECTION ---
 const port = chrome.runtime.connect({ name: 'offscreen' });
 port.onMessage.addListener(handleMessages);
@@ -64,7 +67,7 @@ async function handleMessages(msg) {
 
           // port.postMessage(res.faceLandmarks[0]);
         }
-      }, 33);   // ~30 fps; even under “background-tab” throttling Chrome guarantees
+      }, refreshMs);   // ~60 fps; even under “background-tab” throttling Chrome guarantees
 
       break;
     }
