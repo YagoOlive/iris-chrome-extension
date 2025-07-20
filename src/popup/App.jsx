@@ -132,6 +132,35 @@ function SetupView({ savedData, onSetupComplete }) {
 
 // --- Status View Component ---
 function StatusView({ onStop }) {
+
+  const [factor, setFactor] = useState(0.95);
+
+  /* pull current value on mount */
+  useEffect(() => {
+    chrome.storage.local.get('exponentialSmoothingFactor', ({ exponentialSmoothingFactor }) => {
+      if (typeof exponentialSmoothingFactor === 'number') setFactor(exponentialSmoothingFactor);
+    });
+  }, []);
+
+  // On slider move, update local state only
+  const handleSlider = (e) => {
+    setFactor(Number(e.target.value));
+  };
+
+  // Debounce: after factor stops changing for some ms, persist & broadcast
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      chrome.storage.local.set({ exponentialSmoothingFactor: factor });
+      console.log(`Sending new smoothing value of ${factor} to background script.`)
+      chrome.runtime.sendMessage({
+        cmd: 'UPDATE_SETTINGS',
+        exponentialSmoothingFactor: factor
+      });
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [factor]);
+
   async function handleStop() {
     await chrome.runtime.sendMessage({ cmd: 'STOP_TRACKING' });
     onStop();
@@ -142,6 +171,23 @@ function StatusView({ onStop }) {
     <>
       <h2>Head-Tracking is Active</h2>
       <p>The custom cursor is now active on your web pages.</p>
+
+      {/* SETTINGS */}
+      <section className="settings">
+        <h3>Settings</h3>
+        <label className="slider-label">
+          <span>Exponential smoothing ({factor.toFixed(2)})</span>
+          <input
+            type="range"
+            min="0.5"
+            max="0.99"
+            step="0.01"
+            value={factor}
+            onChange={handleSlider}
+          />
+        </label>
+      </section>
+
       <button onClick={handleStop} className="stop-button">
         Stop Head Tracking
       </button>

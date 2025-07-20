@@ -69,7 +69,7 @@ import handleCalibrationUpload from "./calibration";
 
       const browUpL = blends[4]?.score ?? 0;   // 4 = browOuterUpLeft 
       const browUpR = blends[5]?.score ?? 0;   // 5 = browOuterUpRight
-      
+
       return (browUpL + browUpR) / 2;
 
     } else if (clickAction === "jawOpen") {
@@ -90,7 +90,7 @@ import handleCalibrationUpload from "./calibration";
 
     maybeClick(getClickScore(blends));
 
-    console.log("Tracker.js: Landmarks updated!");
+    // console.log("Tracker.js: Landmarks updated!");
 
     if (!window.state.readyToTrack) {
       console.log("Not yet ready....");
@@ -253,7 +253,7 @@ import handleCalibrationUpload from "./calibration";
     const k = 2;
     // Apply direct exponential smoothing without relative movements
     let smoothing = (state.config.exponentialSmoothingFactor ** k) || 0.95; // Uses configurable value
-    
+
     // Apply smoothing directly to cursor position
     if (state.cursorX === null) {
       window.state.cursorX = headPositionX;
@@ -351,6 +351,12 @@ import handleCalibrationUpload from "./calibration";
       case 'STOP_TRACKING':
         stopHeadCursor();
         return sendResponse({ ok: true });
+      case 'UPDATE_SETTINGS':
+        if (typeof msg.exponentialSmoothingFactor === 'number') {
+          window.state.config.exponentialSmoothingFactor = msg.exponentialSmoothingFactor;
+          console.log('Smoothing factor set to: ', msg.exponentialSmoothingFactor);
+        }
+        return sendResponse({ ok: true });
     }
   };
 
@@ -367,6 +373,14 @@ import handleCalibrationUpload from "./calibration";
     } else {
       console.error('Could not find calibration data in storage. Stopping.');
       stopHeadCursor();
+    }
+  });
+
+  //  --- SETTINGS ---
+  chrome.storage.local.get(['exponentialSmoothingFactor'], ({ exponentialSmoothingFactor }) => {
+    if (typeof exponentialSmoothingFactor === 'number') {
+      window.state.config.exponentialSmoothingFactor = exponentialSmoothingFactor;
+      console.log('Loaded smoothing factor:', exponentialSmoothingFactor);
     }
   });
 

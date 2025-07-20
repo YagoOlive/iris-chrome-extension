@@ -236,8 +236,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       try {
         await chrome.offscreen.closeDocument();
       }
-      catch (e) { 
-        console.warn('Offscreen document already closed.', e); 
+      catch (e) {
+        console.warn('Offscreen document already closed.', e);
       }
       offscreenPort = null;
 
@@ -247,6 +247,33 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       for (const tab of tabs) await removeContent(tab.id);
       sendResponse({ ok: true, message: 'Tracking stopped.' });
     }
+    else if (msg.cmd === 'UPDATE_SETTINGS') {
+      console.log('Updating Settings...');
+
+      // 1. Persist for future tabs
+      await chrome.storage.local.set({
+        exponentialSmoothingFactor: msg.exponentialSmoothingFactor
+      });
+
+      // 2. Broadcast via chrome.tabs.sendMessage
+      const tabs = await chrome.tabs.query({
+        url: ['http://*/*', 'https://*/*']
+      });
+
+      for (const tab of tabs) {
+        try {
+          await chrome.tabs.sendMessage(tab.id, {
+            cmd: 'UPDATE_SETTINGS',
+            exponentialSmoothingFactor: msg.exponentialSmoothingFactor
+          });
+        } catch (e) {
+          // Tab has no listener or is non-scriptable; ignore
+        }
+      }
+
+      return sendResponse({ ok: true, message: 'Settings updated.' });
+    }
+
   })();
   return true;
 });
