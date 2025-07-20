@@ -174,9 +174,15 @@ function StatusView({ onStop }) {
 
       {/* SETTINGS */}
       <section className="settings">
-        <h3>Settings</h3>
-        <label className="slider-label">
-          <span>Exponential smoothing ({factor.toFixed(2)})</span>
+        <h3 className="settings-heading">Settings</h3>
+
+        <div className="setting-block">
+          <div className="setting-label">
+            Smoothing Filter <span className="factor-value">({factor.toFixed(2)})</span>
+          </div>
+          <div className="setting-description">
+            Lower values respond faster. Higher values feel smoother.
+          </div>
           <input
             type="range"
             min="0.5"
@@ -184,8 +190,9 @@ function StatusView({ onStop }) {
             step="0.01"
             value={factor}
             onChange={handleSlider}
+            className="slider"
           />
-        </label>
+        </div>
       </section>
 
       <button onClick={handleStop} className="stop-button">

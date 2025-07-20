@@ -15,7 +15,8 @@
 }
 
 /* ====== Reset ====== */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   background-color: var(--bg-color);
@@ -49,6 +50,7 @@ html, body {
   display: block;
   cursor: pointer;
 }
+
 .file-picker span {
   display: block;
   padding: 10px 12px;
@@ -59,6 +61,7 @@ html, body {
   color: var(--text-color);
   transition: background 0.2s ease;
 }
+
 .file-picker:hover span {
   background: var(--button-hover);
 }
@@ -70,11 +73,13 @@ html, body {
   text-align: center;
   color: var(--muted-color);
 }
+
 .popup a {
   color: var(--accent-color);
   text-decoration: none;
   font-weight: 500;
 }
+
 .popup a:hover {
   color: var(--accent-hover);
   text-decoration: underline;
@@ -93,9 +98,11 @@ html, body {
   cursor: pointer;
   transition: background-color 0.25s ease;
 }
+
 .popup button:hover:not(:disabled) {
   background-color: var(--accent-hover);
 }
+
 .popup button:disabled {
   background-color: #3a3a3a;
   color: #999;
@@ -135,7 +142,7 @@ html, body {
   border: 1px solid var(--border-color);
   border-radius: 999px;
   transition: background-color 0.3s ease;
-  box-shadow: inset 0 0 2px rgba(0,0,0,0.4);
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.4);
 }
 
 .switch-slider::before {
@@ -151,11 +158,11 @@ html, body {
 }
 
 /* Checked state */
-.switch-label input:checked + .switch-slider {
+.switch-label input:checked+.switch-slider {
   background-color: var(--accent-color);
 }
 
-.switch-label input:checked + .switch-slider::before {
+.switch-label input:checked+.switch-slider::before {
   transform: translateX(18px);
 }
 
@@ -177,5 +184,67 @@ html, body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ====== Settings Section ====== */
+.settings {
+  padding: 16px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-heading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+  color: var(--text-color);
+  text-align: center;
+}
+
+/* Each individual setting block */
+.setting-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.setting-label {
+  color: var(--text-color);
+  text-align: center;
+}
+
+.setting-description {
+  font-size: 0.80rem;
+  color: var(--muted-color);
+  text-align: center;
+  margin-top: -8px;
+  margin-bottom: -4px;
+  font-style: italic;
+}
+
+/* Live numeric value styling */
+.factor-value {
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+/* Slider styling */
+.slider {
+  width: 100%;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  outline: none;
+  transition: background 0.3s;
+}
+
+.slider:hover {
+  background: var(--accent-hover);
 }
