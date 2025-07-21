@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Grant camera access</title>
+<script type="module">
+  (async () => {
+    try {
+      // Trigger Chrome’s permission bubble in a normal tab
+      await navigator.mediaDevices.getUserMedia({ video: true });
+      chrome.runtime.sendMessage({ cmd: 'CAMERA_GRANTED' });
+    } catch (e) {
+      chrome.runtime.sendMessage({ cmd: 'CAMERA_DENIED', error: e.name });
+    } finally {
+      window.close(); // close the tab to return to the popup
+    }
+  })();
+</script>

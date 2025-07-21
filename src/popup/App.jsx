@@ -51,18 +51,51 @@ function SetupView({ savedData, onSetupComplete }) {
     });
   }
 
+  async function ensureCameraPermission() {
+    const { state } = await navigator.permissions.query({ name: 'camera' });
+    if (state === 'granted') return true;
+
+    if (state === 'prompt') { // user has the setting on "Ask (Default)"
+      // Open the options page (runs getUserMedia & closes itself)
+      await chrome.runtime.openOptionsPage();
+      // Wait for its result
+      return new Promise(resolve => {
+        const listener = (msg) => {
+          if (msg.cmd === 'CAMERA_GRANTED') {
+            resolve(true);
+          }
+          if (msg.cmd === 'CAMERA_DENIED') {
+            resolve(false);
+          }
+          chrome.runtime.onMessage.removeListener(listener);
+        };
+        chrome.runtime.onMessage.addListener(listener);
+      });
+    }
+
+    // state === 'denied'
+    return false;
+  }
+
   // 2. Toggle camera on/off
   async function handleToggleCamera(e) {
     const wantOn = e.target.checked;
     if (wantOn) {
       setLoadingCamera(true);
+      const ok = await ensureCameraPermission();
+      if (!ok) {
+        alert('Camera permission is blocked. Click “Details ▶ Site settings” in the extension page and set Camera → Allow, then try again.');
+        e.target.checked = false;
+        setLoadingCamera(false);
+        return;
+      }
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
         setStream(mediaStream);
         setCameraEnabled(true);
       } catch (err) {
         console.error('getUserMedia failed:', err);
-        alert('Unable to access camera. Please check your browser settings.');
+        alert('Unable to access camera. Please check your browser or OS-level privacy settings.');
         e.target.checked = false;
       } finally {
         setLoadingCamera(false);
