@@ -25,7 +25,7 @@ window.initializeState = function () {
           clickThreshold: 0.8,
         },
         clickAssist: true,
-        clickAssistRadius : 150
+        clickAssistRadius : 100
       },
 
       // Calibration data for both 3 and 6 point systems
