@@ -249,6 +249,7 @@ function StatusView({ onStop }) {
       <section className="settings">
         <h3 className="settings-heading">Settings</h3>
 
+        {/* Smoothing Filter Slider */}
         <div className="setting-block">
           <div className="setting-label">
             Smoothing Filter <span className="factor-value">({factor.toFixed(2)})</span>
@@ -266,16 +267,16 @@ function StatusView({ onStop }) {
             className="slider"
           />
         </div>
-        <div className="setting-block">
-          {/* <div className="setting-label">
-            Enable Click Assist
-          </div> */}
-          <label className="switch-label">
+
+        {/* Click Assist Toggle */}
+        <div className="setting-block toggle-setting">
+          <span className="setting-toggle-label">Enable Click Assist</span>
+          <label className="switch-label switch-right">
             <input type="checkbox" checked={clickAssist} onChange={handleToggleClickAssist} />
             <span className="switch-slider"></span>
-            <span className="switch-text">Enable Click Assist</span>
           </label>
         </div>
+
       </section>
 
       <button onClick={handleStop} className="stop-button">

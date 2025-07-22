@@ -248,3 +248,26 @@ body {
 .slider:hover {
   background: var(--accent-hover);
 }
+
+/* ====== Toggle Setting (horizontal) ====== */
+.toggle-setting {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+}
+
+.setting-toggle-label {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+/* Optional: reduce spacing for this style block */
+.toggle-setting .switch-label {
+  margin-left: auto;
+}
+
+/* Align switch tight to the right */
+.switch-right {
+  margin-left: auto;
+}
