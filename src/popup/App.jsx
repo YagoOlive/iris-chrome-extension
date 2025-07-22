@@ -206,10 +206,13 @@ function StatusView({ onStop }) {
 
   /* pull current value on mount */
   useEffect(() => {
-    chrome.storage.local.get(['exponentialSmoothingFactor', 'clickAssist'], ({ exponentialSmoothingFactor, clickAssist }) => {
-      if (typeof exponentialSmoothingFactor === 'number') setFactor(exponentialSmoothingFactor);
-      if (clickAssist) setClickAssist(true);
-    });
+    chrome.storage.local.get(
+      ['exponentialSmoothingFactor', 'clickAction', 'clickAssist'],
+      ({ exponentialSmoothingFactor, clickAssist, clickAction }) => {
+        if (typeof exponentialSmoothingFactor === 'number') setFactor(exponentialSmoothingFactor);
+        if (typeof clickAction === 'string') setClickAction(clickAction);
+        if (clickAssist) setClickAssist(true);
+      });
   }, []);
 
   // On slider move, update local state only
@@ -221,31 +224,43 @@ function StatusView({ onStop }) {
     const wantOn = e.target.checked;
     if (wantOn) {
       setClickAssist(true);
+      chrome.storage.local.set({ clickAssist: true });
+      chrome.runtime.sendMessage({
+        cmd: 'UPDATE_SETTINGS',
+        clickAssist: true
+      });
     } else {
       setClickAssist(false);
+      chrome.storage.local.set({ clickAssist: false });
+      chrome.runtime.sendMessage({
+        cmd: 'UPDATE_SETTINGS',
+        clickAssist: false
+      });
     }
   }
 
   const handleClickActionChange = (e) => {
     const val = e.target.value;
     setClickAction(val);
+    chrome.storage.local.set({ clickAction: val });
+    chrome.runtime.sendMessage({
+      cmd: 'UPDATE_SETTINGS',
+      clickAction: val
+    });
   }
 
   // Debounce: after factor stops changing for some ms, persist & broadcast
   useEffect(() => {
     const timeout = setTimeout(() => {
-      chrome.storage.local.set({ exponentialSmoothingFactor: factor, clickAssist: clickAssist });
-      console.log(`Sending new smoothing value of ${factor} to background script.`)
-      console.log(`Click Assist: ${clickAssist}`)
+      chrome.storage.local.set({ exponentialSmoothingFactor: factor });
       chrome.runtime.sendMessage({
         cmd: 'UPDATE_SETTINGS',
-        exponentialSmoothingFactor: factor,
-        clickAssist: clickAssist
+        exponentialSmoothingFactor: factor
       });
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [factor, clickAssist]);
+  }, [factor]);
 
   async function handleStop() {
     await chrome.runtime.sendMessage({ cmd: 'STOP_TRACKING' });
@@ -294,7 +309,7 @@ function StatusView({ onStop }) {
           >
             <option value="">None</option>
             <option value="smile">Smile</option>
-            <option value="raiseEyebrows">Raise Eyebrows</option>
+            <option value="browUp">Raise Eyebrows</option>
             <option value="jawOpen">Open Jaw</option>
           </select>
         </div>

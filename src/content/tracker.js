@@ -394,12 +394,20 @@ import handleCalibrationUpload from "./calibration";
         stopHeadCursor();
         return sendResponse({ ok: true });
       case 'UPDATE_SETTINGS':
-        if (typeof msg.exponentialSmoothingFactor === 'number') {
-          window.state.config.exponentialSmoothingFactor = msg.exponentialSmoothingFactor;
-          console.log('Smoothing factor set to: ', msg.exponentialSmoothingFactor);
+        for (const setting in msg) {
+          if (setting === 'cmd') {
+            continue;
+          } else if (setting === 'exponentialSmoothingFactor' && typeof msg.exponentialSmoothingFactor === 'number') {
+            window.state.config.exponentialSmoothingFactor = msg.exponentialSmoothingFactor;
+            console.log('Smoothing factor set to: ', msg.exponentialSmoothingFactor);
+          } else if (setting === 'clickAction' && typeof msg.clickAction === 'string') {
+            window.state.config.actions.click = msg.clickAction;
+            console.log('Click action set to:', msg.clickAction);
+          } else if (setting === 'clickAssist') {
+            window.state.config.clickAssist = msg.clickAssist ? true : false;
+            console.log(`Click Assist set to: ${clickAssist ? 'ON' : 'OFF'}`);
+          }
         }
-        window.state.config.clickAssist = msg.clickAssist;
-        console.log(`Updated Click Assist: ${msg.clickAssist ? 'ON' : 'OFF'}`);
         return sendResponse({ ok: true });
     }
   };
@@ -421,13 +429,19 @@ import handleCalibrationUpload from "./calibration";
   });
 
   //  --- SETTINGS ---
-  chrome.storage.local.get(['exponentialSmoothingFactor', 'clickAssist'], ({ exponentialSmoothingFactor, clickAssist }) => {
-    if (typeof exponentialSmoothingFactor === 'number') {
-      window.state.config.exponentialSmoothingFactor = exponentialSmoothingFactor;
-      console.log('Loaded smoothing factor:', exponentialSmoothingFactor);
-    }
-    window.state.config.clickAssist = clickAssist;
-    console.log(`Click Assist: ${clickAssist ? 'ON' : 'OFF'}`);
-  });
+  chrome.storage.local.get(
+    ['exponentialSmoothingFactor', 'clickAction', 'clickAssist'],
+    ({ exponentialSmoothingFactor, clickAction, clickAssist }) => {
+      if (typeof exponentialSmoothingFactor === 'number') {
+        window.state.config.exponentialSmoothingFactor = exponentialSmoothingFactor;
+        console.log('Loaded smoothing factor:', exponentialSmoothingFactor);
+      }
+      if (typeof clickAction === 'string') {
+        window.state.config.actions.click = clickAction;
+        console.log('Loaded click action:', clickAction);
+      }
+      window.state.config.clickAssist = clickAssist ? true : false;
+      console.log(`Click Assist: ${clickAssist ? 'ON' : 'OFF'}`);
+    });
 
 })();

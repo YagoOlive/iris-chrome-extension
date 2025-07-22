@@ -250,26 +250,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     else if (msg.cmd === 'UPDATE_SETTINGS') {
       console.log('Updating Settings...');
 
-      // 1. Persist for future tabs
-      await chrome.storage.local.set({
-        exponentialSmoothingFactor: msg.exponentialSmoothingFactor,
-        clickAssist: msg.clickAssist
-      });
+      for (const setting in msg) {
+        if (setting === 'cmd') {
+          continue;
+        }
+        // 1. Persist for future tabs
+        await chrome.storage.local.set({
+          [setting]: msg[setting],
+        });
 
-      // 2. Broadcast via chrome.tabs.sendMessage
-      const tabs = await chrome.tabs.query({
-        url: ['http://*/*', 'https://*/*']
-      });
+        // 2. Broadcast via chrome.tabs.sendMessage
+        const tabs = await chrome.tabs.query({
+          url: ['http://*/*', 'https://*/*']
+        });
 
-      for (const tab of tabs) {
-        try {
-          await chrome.tabs.sendMessage(tab.id, {
-            cmd: 'UPDATE_SETTINGS',
-            exponentialSmoothingFactor: msg.exponentialSmoothingFactor,
-            clickAssist: msg.clickAssist
-          });
-        } catch (e) {
-          // Tab has no listener or is non-scriptable; ignore
+        for (const tab of tabs) {
+          try {
+            await chrome.tabs.sendMessage(tab.id, {
+              cmd: 'UPDATE_SETTINGS',
+              [setting]: msg[setting],
+            });
+          } catch (e) {
+            // Tab has no listener or is non-scriptable; ignore
+          }
         }
       }
 
