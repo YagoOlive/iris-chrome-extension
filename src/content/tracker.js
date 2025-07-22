@@ -328,22 +328,22 @@ import handleCalibrationUpload from "./calibration";
     updateHover();
 
     // EDGE-SCROLLING LOGIC
-    // const { thresholdMs } = state.config.scrolling;
-    // const atBottom = state.cursorY <= 0;
-    // const atTop = state.cursorY >= window.innerHeight - cursorSize;
-    // const boundary = atTop ? 'top' : atBottom ? 'bottom' : null;
+    const { thresholdMs } = state.config.scrolling;
+    const atBottom = state.cursorY <= 0;
+    const atTop = state.cursorY >= window.innerHeight - cursorSize;
+    const boundary = atTop ? 'top' : atBottom ? 'bottom' : null;
 
-    // if (boundary && (lastBoundary !== boundary)) {
-    //   // just entered a new boundary
-    //   lastBoundary = boundary;
-    //   // start dwell timer
-    //   boundaryTimer = setTimeout(() => {
-    //     startScroll(boundary);
-    //   }, thresholdMs);
-    // } else if (lastBoundary && !boundary) {
-    //   // left the boundary: stop everything
-    //   stopScroll();
-    // }
+    if (boundary && (lastBoundary !== boundary)) {
+      // just entered a new boundary
+      lastBoundary = boundary;
+      // start dwell timer
+      boundaryTimer = setTimeout(() => {
+        startScroll(boundary);
+      }, thresholdMs);
+    } else if (lastBoundary && !boundary) {
+      // left the boundary: stop everything
+      stopScroll();
+    }
 
 
     // Update last positions
