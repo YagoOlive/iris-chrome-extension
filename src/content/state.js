@@ -23,7 +23,9 @@ window.initializeState = function () {
         actions: {
           click: "browUp", // "smile" | "browUp" | "jawOpen"
           clickThreshold: 0.8,
-        }
+        },
+        clickAssist: true,
+        clickAssistRadius : 150
       },
 
       // Calibration data for both 3 and 6 point systems

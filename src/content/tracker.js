@@ -23,6 +23,13 @@ import handleCalibrationUpload from "./calibration";
   let scrollInterval = null;
   let lastBoundary = null;  // "top" | "bottom" | null
 
+  // Hover-effect state
+  let lastHoverEl = null;
+  let activeInteractiveEl = null;
+  let anchorX = null;
+  let anchorY = null;
+  const CLICK_ASSIST_RADIUS = state.config.clickAssistRadius;
+
   function createSprite() {
     if (sprite) return;
     sprite = document.createElement('div');
@@ -161,9 +168,9 @@ import handleCalibrationUpload from "./calibration";
     }
   }
 
-  // ----- Smile-to-click ----------------------------------------------------
+  // ----- Click on facial expression ----------------------------------------------------
   const CLICK_THRESHOLD = state.config.actions.clickThreshold; // min average score to count as a smile
-  const CLICK_COOLDOWN = 1000;          // ms between allowed clicks
+  const CLICK_COOLDOWN = 1000; // ms between allowed clicks
   let lastClickTime = 0;
 
   function maybeClick(score) {
@@ -173,11 +180,20 @@ import handleCalibrationUpload from "./calibration";
 
     // ① find element under the virtual cursor
     const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
-    const el = nearestInteractive(candidate);
+    let el = nearestInteractive(candidate);
+
+    if (state.config.clickAssist && activeInteractiveEl) {
+      const dx = state.cursorX - anchorX;
+      const dy = state.cursorY - anchorY;
+      if (Math.hypot(dx, dy) <= CLICK_ASSIST_RADIUS) {
+        el = activeInteractiveEl; // honor the lock
+      }
+    }
+
     if (!el) return;
 
-    // ② synthetic click
     el.click();
+
     // optional visual feedback:
     // sprite.classList.add('ht-click');   // e.g. scale sprite for 100 ms
     // setTimeout(() => sprite.classList.remove('ht-click'), 100);
@@ -193,18 +209,44 @@ import handleCalibrationUpload from "./calibration";
   }
 
   // ----- Hover-Effect ----------------------------------------------------
-  let lastHoverEl = null;
   function updateHover() {
     const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
-    const el = nearestInteractive(candidate);
-    const isLink = el && el.tagName.toLowerCase() === 'a';
+    const candidateInteractive = nearestInteractive(candidate);
+    let el = candidateInteractive;
+
+    const isInteractive = !!el && el.matches(INTERACTIVE_SEL);
+
+    if (state.config.clickAssist) {
+      /* -------- ➊ maintain existing lock -------- */
+      if (activeInteractiveEl) {
+        const dx = state.cursorX - anchorX;
+        const dy = state.cursorY - anchorY;
+        if (Math.hypot(dx, dy) <= CLICK_ASSIST_RADIUS) {
+          el = activeInteractiveEl; // stay locked
+        } else {
+          activeInteractiveEl = null; // radius broken ⇒ unlock
+        }
+      }
+
+      /* -------- ➋ acquire new lock -------- */
+      if (!activeInteractiveEl && candidateInteractive && isInteractive) {
+        activeInteractiveEl = candidateInteractive;
+        anchorX = state.cursorX;
+        anchorY = state.cursorY;
+        el = activeInteractiveEl;
+      }
+    }
+
     if (el !== lastHoverEl) {
       lastHoverEl?.classList.remove('ht-hover');
       if (el) el.classList.add('ht-hover');
       lastHoverEl = el;
     }
-    const sprite = document.getElementById('ht-cursor');
-    sprite.classList.toggle('hovering-link', isLink);
+    if (state.config.clickAssist) {
+      sprite.classList.toggle('hovering-link', !!activeInteractiveEl);
+    } else {
+      sprite.classList.toggle('hovering-link', isInteractive);
+    }
   }
 
   function startScroll(direction) {
