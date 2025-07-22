@@ -398,6 +398,8 @@ import handleCalibrationUpload from "./calibration";
           window.state.config.exponentialSmoothingFactor = msg.exponentialSmoothingFactor;
           console.log('Smoothing factor set to: ', msg.exponentialSmoothingFactor);
         }
+        window.state.config.clickAssist = msg.clickAssist;
+        console.log(`Updated Click Assist: ${msg.clickAssist ? 'ON' : 'OFF'}`);
         return sendResponse({ ok: true });
     }
   };
@@ -419,11 +421,13 @@ import handleCalibrationUpload from "./calibration";
   });
 
   //  --- SETTINGS ---
-  chrome.storage.local.get(['exponentialSmoothingFactor'], ({ exponentialSmoothingFactor }) => {
+  chrome.storage.local.get(['exponentialSmoothingFactor', 'clickAssist'], ({ exponentialSmoothingFactor, clickAssist }) => {
     if (typeof exponentialSmoothingFactor === 'number') {
       window.state.config.exponentialSmoothingFactor = exponentialSmoothingFactor;
       console.log('Loaded smoothing factor:', exponentialSmoothingFactor);
     }
+    window.state.config.clickAssist = clickAssist;
+    console.log(`Click Assist: ${clickAssist ? 'ON' : 'OFF'}`);
   });
 
 })();

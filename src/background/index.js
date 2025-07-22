@@ -252,7 +252,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       // 1. Persist for future tabs
       await chrome.storage.local.set({
-        exponentialSmoothingFactor: msg.exponentialSmoothingFactor
+        exponentialSmoothingFactor: msg.exponentialSmoothingFactor,
+        clickAssist: msg.clickAssist
       });
 
       // 2. Broadcast via chrome.tabs.sendMessage
@@ -264,7 +265,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         try {
           await chrome.tabs.sendMessage(tab.id, {
             cmd: 'UPDATE_SETTINGS',
-            exponentialSmoothingFactor: msg.exponentialSmoothingFactor
+            exponentialSmoothingFactor: msg.exponentialSmoothingFactor,
+            clickAssist: msg.clickAssist
           });
         } catch (e) {
           // Tab has no listener or is non-scriptable; ignore

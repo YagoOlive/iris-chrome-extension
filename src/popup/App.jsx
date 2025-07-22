@@ -194,11 +194,13 @@ function SetupView({ savedData, onSetupComplete }) {
 function StatusView({ onStop }) {
 
   const [factor, setFactor] = useState(0.95);
+  const [clickAssist, setClickAssist] = useState(false);
 
   /* pull current value on mount */
   useEffect(() => {
-    chrome.storage.local.get('exponentialSmoothingFactor', ({ exponentialSmoothingFactor }) => {
+    chrome.storage.local.get(['exponentialSmoothingFactor', 'clickAssist'], ({ exponentialSmoothingFactor, clickAssist }) => {
       if (typeof exponentialSmoothingFactor === 'number') setFactor(exponentialSmoothingFactor);
+      if (clickAssist) setClickAssist(true);
     });
   }, []);
 
@@ -207,19 +209,30 @@ function StatusView({ onStop }) {
     setFactor(Number(e.target.value));
   };
 
+  const handleToggleClickAssist = (e) => {
+    const wantOn = e.target.checked;
+    if (wantOn) {
+      setClickAssist(true);
+    } else {
+      setClickAssist(false);
+    }
+  }
+
   // Debounce: after factor stops changing for some ms, persist & broadcast
   useEffect(() => {
     const timeout = setTimeout(() => {
-      chrome.storage.local.set({ exponentialSmoothingFactor: factor });
+      chrome.storage.local.set({ exponentialSmoothingFactor: factor, clickAssist: clickAssist });
       console.log(`Sending new smoothing value of ${factor} to background script.`)
+      console.log(`Click Assist: ${clickAssist}`)
       chrome.runtime.sendMessage({
         cmd: 'UPDATE_SETTINGS',
-        exponentialSmoothingFactor: factor
+        exponentialSmoothingFactor: factor,
+        clickAssist: clickAssist
       });
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [factor]);
+  }, [factor, clickAssist]);
 
   async function handleStop() {
     await chrome.runtime.sendMessage({ cmd: 'STOP_TRACKING' });
@@ -252,6 +265,16 @@ function StatusView({ onStop }) {
             onChange={handleSlider}
             className="slider"
           />
+        </div>
+        <div className="setting-block">
+          {/* <div className="setting-label">
+            Enable Click Assist
+          </div> */}
+          <label className="switch-label">
+            <input type="checkbox" checked={clickAssist} onChange={handleToggleClickAssist} />
+            <span className="switch-slider"></span>
+            <span className="switch-text">Enable Click Assist</span>
+          </label>
         </div>
       </section>
 
