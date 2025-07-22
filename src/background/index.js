@@ -273,6 +273,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       return sendResponse({ ok: true, message: 'Settings updated.' });
     }
+    else if (msg.cmd === 'CAMERA_RESULT') {
+      // 1. Dismiss the permission page first
+      if (sender.tab?.id) await chrome.tabs.remove(sender.tab.id);
+
+      const { state } = await navigator.permissions.query({ name: 'camera' });
+
+      if (state !== 'granted') {
+        // 2. Remember the outcome
+        await chrome.storage.local.set({ autoEnableCamera: state });
+      }
+
+      // 3. Re-open the popup while the user-gesture is still valid
+      await chrome.action.openPopup();
+    }
 
   })();
   return true;

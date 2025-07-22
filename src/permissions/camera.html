@@ -3,13 +3,12 @@
 <script type="module">
   (async () => {
     try {
-      // Trigger Chrome’s permission bubble in a normal tab
-      await navigator.mediaDevices.getUserMedia({ video: true });
-      chrome.runtime.sendMessage({ cmd: 'CAMERA_GRANTED' });
-    } catch (e) {
-      chrome.runtime.sendMessage({ cmd: 'CAMERA_DENIED', error: e.name });
+      await navigator.mediaDevices.getUserMedia({ video: true }); // shows Chrome prompt
+    } catch {
+      /* do nothing if there are errors */
     } finally {
-      window.close(); // close the tab to return to the popup
+      // Tell the service-worker; sender.tab will let it close us
+      chrome.runtime.sendMessage({ cmd: 'CAMERA_RESULT' });
     }
   })();
 </script>

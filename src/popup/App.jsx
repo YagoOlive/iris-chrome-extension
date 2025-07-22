@@ -22,6 +22,32 @@ function SetupView({ savedData, onSetupComplete }) {
     }
   }, [savedData]);
 
+  // run once when the popup (re)opens
+  useEffect(() => {
+    (async () => {
+      const { state } = await navigator.permissions.query({ name: 'camera' });
+      if (state === "granted") {
+        setLoadingCamera(true);
+        const s = await navigator.mediaDevices.getUserMedia({ video: true });
+        setStream(s);
+        setCameraEnabled(true);
+        setLoadingCamera(false);
+        return;
+      }
+      const { autoEnableCamera } = await chrome.storage.local.get('autoEnableCamera');
+      if (autoEnableCamera === 'denied') {
+        // reset the flag so it doesn't loop forever
+        chrome.storage.local.remove('autoEnableCamera');
+        alert('Camera permission is blocked. Click “Details → Site settings” in the extension page and set Camera → Allow, then try again.');
+      } else if (autoEnableCamera === 'prompt') {
+        // reset the flag so it doesn't loop forever
+        chrome.storage.local.remove('autoEnableCamera');
+        alert('Head-tracking needs permanent access. When Chrome asks, choose “Allow while visiting this site”, not “Allow this time”.');
+      }
+    })();
+  }, []);
+
+
   // 1. Handle CSV upload
   async function handleChoose(e) {
     const file = e.target.files?.[0];
@@ -58,13 +84,14 @@ function SetupView({ savedData, onSetupComplete }) {
     if (state === 'prompt') { // user has the setting on "Ask (Default)"
       // Open the options page (runs getUserMedia & closes itself)
       await chrome.runtime.openOptionsPage();
+
       // Wait for its result
       return new Promise(resolve => {
         const listener = (msg) => {
           if (msg.cmd === 'CAMERA_GRANTED') {
             resolve(true);
           }
-          if (msg.cmd === 'CAMERA_DENIED') {
+          else if (msg.cmd === 'CAMERA_PROMPT') {
             resolve(false);
           }
           chrome.runtime.onMessage.removeListener(listener);
@@ -84,7 +111,7 @@ function SetupView({ savedData, onSetupComplete }) {
       setLoadingCamera(true);
       const ok = await ensureCameraPermission();
       if (!ok) {
-        alert('Camera permission is blocked. Click “Details ▶ Site settings” in the extension page and set Camera → Allow, then try again.');
+        alert('Camera permission is blocked. Click “Details → Site settings” in the extension page and set Camera → Allow, then try again.');
         e.target.checked = false;
         setLoadingCamera(false);
         return;
