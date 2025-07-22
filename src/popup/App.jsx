@@ -190,11 +190,19 @@ function SetupView({ savedData, onSetupComplete }) {
   );
 }
 
+const clickActionDescriptions = {
+  "": "Select a facial gesture to trigger a left-click.",
+  smile: "Smile to perform a left-click.",
+  raiseEyebrows: "Raise your eyebrows to click.",
+  jawOpen: "Open your mouth wide to click.",
+};
+
 // --- Status View Component ---
 function StatusView({ onStop }) {
 
   const [factor, setFactor] = useState(0.95);
   const [clickAssist, setClickAssist] = useState(false);
+  const [clickAction, setClickAction] = useState('');
 
   /* pull current value on mount */
   useEffect(() => {
@@ -216,6 +224,11 @@ function StatusView({ onStop }) {
     } else {
       setClickAssist(false);
     }
+  }
+
+  const handleClickActionChange = (e) => {
+    const val = e.target.value;
+    setClickAction(val);
   }
 
   // Debounce: after factor stops changing for some ms, persist & broadcast
@@ -266,6 +279,24 @@ function StatusView({ onStop }) {
             onChange={handleSlider}
             className="slider"
           />
+        </div>
+
+        {/* Click Action Selection */}
+        <div className="setting-block">
+          <div className="setting-label">Click Action</div>
+          <div className="setting-description">
+            {clickActionDescriptions[clickAction] || clickActionDescriptions[""]}
+          </div>
+          <select
+            value={clickAction}
+            onChange={handleClickActionChange}
+            className="dropdown"
+          >
+            <option value="">None</option>
+            <option value="smile">Smile</option>
+            <option value="raiseEyebrows">Raise Eyebrows</option>
+            <option value="jawOpen">Open Jaw</option>
+          </select>
         </div>
 
         {/* Click Assist Toggle */}
