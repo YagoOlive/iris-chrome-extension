@@ -186,8 +186,15 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   activeTabId = tabId;
   const { isTrackingActive } = await chrome.storage.local.get('isTrackingActive');
   if (isTrackingActive && !contentScriptPorts.has(tabId)) {
-    console.log(`Tracking is active. Injecting content into active tab ${tabId}`);
-    await injectContent(tabId);
+    console.error(`Tracking is active. Injecting content into active tab ${tabId}`);
+    const check = await ensureContent(tabId); // inject only once
+    if (check) {
+      const { calibrationCsvContent } = await chrome.storage.local.get('calibrationCsvContent')
+      await chrome.tabs.sendMessage(tabId, {
+        cmd: 'START_TRACKING',
+        calibrationCsvContent: calibrationCsvContent,
+      });
+    }
   }
 });
 
