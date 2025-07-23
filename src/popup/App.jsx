@@ -193,7 +193,7 @@ function SetupView({ savedData, onSetupComplete }) {
 const clickActionDescriptions = {
   "": "Select a facial gesture to trigger a left-click.",
   smile: "Smile to perform a left-click.",
-  raiseEyebrows: "Raise your eyebrows to click.",
+  browUp: "Raise your eyebrows to click.",
   jawOpen: "Open your mouth wide to click.",
 };
 
