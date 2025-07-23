@@ -354,6 +354,7 @@ import handleCalibrationUpload from "./calibration";
   // --- TEARDOWN ---
   function stopHeadCursor() {
     console.log('Cleaning up tracker script on this page.');
+    stopScroll();
     window.state.readyToTrack = false;
     port?.disconnect(); // Close the connection to the background script
     port = null;
