@@ -41,6 +41,14 @@ import handleCalibrationUpload from "./calibration";
     document.documentElement.appendChild(sprite);
     sprite.appendChild(inner);
     sprite.appendChild(notch);
+  
+    // Round for display
+    const roundedX = Math.round(window.innerWidth / 2);
+    const roundedY = Math.round(window.innerHeight / 2);
+
+    // Initialize cursor at the center of the screen
+    sprite.style.left = `${roundedX}px`;
+    sprite.style.top = `${roundedY}px`;
   }
 
   /* Life-cycle helpers */
