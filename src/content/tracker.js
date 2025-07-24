@@ -101,13 +101,6 @@ import handleCalibrationUpload from "./calibration";
 
     if (!window.state.readyToTrack) {
       console.log("Not yet ready....");
-      if (landmarks && landmarks[1]) {
-        const noseTip = landmarks[1];
-        // A very basic, uncalibrated mapping.
-        const x = window.innerWidth * (1 - noseTip.x); // Invert X
-        const y = window.innerHeight * noseTip.y;
-        sprite.style.transform = `translate(${x}px, ${y}px)`;
-      }
       return;
     }
 
