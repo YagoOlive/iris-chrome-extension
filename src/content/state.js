@@ -34,6 +34,8 @@ window.initializeState = function () {
         landmarkPoints6: [],
         cursorPositions: [],
         allPoints: [],
+        calibrationWidth: null,
+        calibrationHeight: null, 
       },
 
       // Transformation matrices for both configurations

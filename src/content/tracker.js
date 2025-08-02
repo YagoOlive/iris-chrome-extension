@@ -41,7 +41,7 @@ import handleCalibrationUpload from "./calibration";
     document.documentElement.appendChild(sprite);
     sprite.appendChild(inner);
     sprite.appendChild(notch);
-  
+
     // Round for display
     const roundedX = Math.round(window.innerWidth / 2);
     const roundedY = Math.round(window.innerHeight / 2);
@@ -126,8 +126,12 @@ import handleCalibrationUpload from "./calibration";
       const landmark = landmarks[index];
       if (!landmark) continue;
 
-      const x = landmark.x * window.innerWidth;
-      const y = landmark.y * window.innerHeight;
+      // Use calibration dimensions to maintain consistency
+      const calibrationWidth = state.calibrationData.calibrationWidth || window.innerWidth;
+      const calibrationHeight = state.calibrationData.calibrationHeight || window.innerHeight;
+
+      const x = landmark.x * calibrationWidth;
+      const y = landmark.y * calibrationHeight;
 
       vector.push([x]);
       vector.push([y]);
@@ -163,7 +167,10 @@ import handleCalibrationUpload from "./calibration";
       const headPositionY = position[1][0];
 
       // Apply filtering and update cursor position
-      applyFilteringAndUpdateCursor(headPositionX, headPositionY);
+      applyFilteringAndUpdateCursor(
+        headPositionX * (window.innerWidth / state.calibrationData.calibrationWidth),
+        headPositionY * (window.innerHeight / state.calibrationData.calibrationHeight)
+      );
     } catch (error) {
       console.error("Matrix multiplication error in 2D mode:", error);
     }

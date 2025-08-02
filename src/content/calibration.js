@@ -66,6 +66,21 @@ export default function handleCalibrationUpload(text) {
     // Update state with processed data
     state.calibrationData = processedData;
 
+    // Restore calibration dimensions from metadata if available
+    if (metadata.calibrationWidth && metadata.calibrationHeight) {
+      state.calibrationData.calibrationWidth = metadata.calibrationWidth;
+      state.calibrationData.calibrationHeight = metadata.calibrationHeight;
+      console.log("Restored calibration dimensions:", {
+        width: metadata.calibrationWidth,
+        height: metadata.calibrationHeight
+      });
+    } else {
+      console.warn("No calibration dimensions found. Fallback to current window dimensions...");
+      console.warn(`Viewport Width: ${window.innerWidth}, Viewport Height: ${window.innerHeight}`);
+      state.calibrationData.calibrationWidth = window.innerWidth;
+      state.calibrationData.calibrationHeight = window.innerHeight;
+    }
+
     // Always calculate all matrices for both coordinate systems and point configurations
     console.log("Pre-calculating all transformation matrices...");
 
@@ -293,7 +308,6 @@ export default function handleCalibrationUpload(text) {
 
   } catch (error) {
     console.error("Error processing calibration file:", error);
-    // document.getElementById("status").textContent = "Error loading calibration file: " + error.message;
     return false;
   }
 }
@@ -310,7 +324,9 @@ function processCalibrationData(data, config) {
     landmarkPoints3: [],
     landmarkPoints6: [],
     cursorPositions: [],
-    allPoints: []
+    allPoints: [],
+    calibrationWidth: null,
+    calibrationHeight: null,
   };
 
   const is3D = config.coordinateSystem === "3d";
