@@ -427,6 +427,11 @@ import handleCalibrationUpload from "./calibration";
     state.lastHeadY = headPositionY;
   }
 
+  // Create element to remove/restore the default cursor
+  const style = document.createElement('style');
+  // Append it into <head> (or document.documentElement for document_start)
+  (document.head || document.documentElement).appendChild(style);
+
   // --- TEARDOWN ---
   function stopHeadCursor() {
     console.log('Cleaning up tracker script on this page.');
@@ -441,14 +446,11 @@ import handleCalibrationUpload from "./calibration";
     inner = null;
     notch = null;
     window.__htCursorInjected = false;
-    const style = document.createElement('style');
     style.textContent = `
       html, body, * {
         cursor: auto !important;
       }
     `;
-    // Append it into <head> (or document.documentElement for document_start)
-    (document.head || document.documentElement).appendChild(style);
   }
 
   // --- MESSAGE LISTENER ---
@@ -458,14 +460,11 @@ import handleCalibrationUpload from "./calibration";
         return sendResponse({ ok: true }); // lets background know we’re injected
       case 'START_TRACKING':
         startTracking(msg.calibrationCsvContent);
-        const style = document.createElement('style');
         style.textContent = `
           html, body, * {
             cursor: none !important;
           }
         `;
-        // Append it into <head> (or document.documentElement for document_start)
-        (document.head || document.documentElement).appendChild(style);
         return sendResponse({ ok: true });
       case 'STOP_TRACKING':
         stopHeadCursor();
@@ -490,10 +489,10 @@ import handleCalibrationUpload from "./calibration";
             console.log(`Dwell Click set to: ${msg.dwellClick ? 'ON' : 'OFF'}`);
           } else if (setting === 'dwellTime' && typeof msg.dwellTime === 'number') {
             window.state.config.dwellTime = msg.dwellTime;
-            console.log(`Dwell Time set to: ${dwellTime}ms`);
+            console.log(`Dwell Time set to: ${msg.dwellTime}ms`);
           } else if (setting === 'dwellArea' && typeof msg.dwellArea === 'number') {
             window.state.config.dwellArea = msg.dwellArea;
-            console.log(`Dwell Area set to: ${dwellArea}px`);
+            console.log(`Dwell Area set to: ${msg.dwellArea}px`);
           }
         }
         return sendResponse({ ok: true });

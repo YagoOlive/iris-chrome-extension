@@ -19,6 +19,9 @@ export default defineConfig([
       globals: {
         ...globals.browser,
         chrome: 'readonly', // declare `chrome` as a global
+        state: 'readonly',
+        initializeState: 'readonly',
+        clients: 'readonly',
       },
       parserOptions: {
         ecmaFeatures: { jsx: true },

@@ -153,7 +153,7 @@ async function removeContent(tabId) {
   try {
     // The content script might not be there (e.g., on chrome:// pages), so wrap in try/catch
     await chrome.tabs.sendMessage(tabId, { cmd: 'STOP_TRACKING' });
-  } catch (err) {
+  } catch {
     // This error is expected on pages where the content script is not injected.
     // console.log(`Could not clean up tab ${tabId}, it might not have the content script.`);
   }
@@ -277,7 +277,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
               cmd: 'UPDATE_SETTINGS',
               [setting]: msg[setting],
             });
-          } catch (e) {
+          } catch {
             // Tab has no listener or is non-scriptable; ignore
           }
         }
