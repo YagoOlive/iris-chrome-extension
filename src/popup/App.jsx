@@ -239,40 +239,22 @@ function StatusView({ onStop }) {
 
   const handleToggleClickAssist = (e) => {
     const wantOn = e.target.checked;
-    if (wantOn) {
-      setClickAssist(true);
-      chrome.storage.local.set({ clickAssist: true });
-      chrome.runtime.sendMessage({
-        cmd: 'UPDATE_SETTINGS',
-        clickAssist: true
-      });
-    } else {
-      setClickAssist(false);
-      chrome.storage.local.set({ clickAssist: false });
-      chrome.runtime.sendMessage({
-        cmd: 'UPDATE_SETTINGS',
-        clickAssist: false
-      });
-    }
+    setClickAssist(wantOn);
+    chrome.storage.local.set({ clickAssist: wantOn });
+    chrome.runtime.sendMessage({
+      cmd: 'UPDATE_SETTINGS',
+      clickAssist: wantOn
+    });
   }
 
   const handleToggleDwellClick = (e) => {
     const wantOn = e.target.checked;
-    if (wantOn) {
-      setDwellClick(true);
-      chrome.storage.local.set({ dwellClick: true });
-      chrome.runtime.sendMessage({
-        cmd: 'UPDATE_SETTINGS',
-        dwellClick: true
-      });
-    } else {
-      setDwellClick(false);
-      chrome.storage.local.set({ dwellClick: false });
-      chrome.runtime.sendMessage({
-        cmd: 'UPDATE_SETTINGS',
-        dwellClick: false
-      });
-    }
+    setDwellClick(wantOn);
+    chrome.storage.local.set({ dwellClick: wantOn });
+    chrome.runtime.sendMessage({
+      cmd: 'UPDATE_SETTINGS',
+      dwellClick: wantOn
+    });
   }
 
   const handleClickActionChange = (e) => {
