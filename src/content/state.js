@@ -24,11 +24,11 @@ window.initializeState = function () {
           click: "browUp", // "smile" | "browUp" | "jawOpen"
           clickThreshold: 0.8,
         },
-        clickAssist: true,
+        clickAssist: false,
         clickAssistRadius : 100,
-        dwellClick: true,
+        dwellClick: false,
         dwellTime: 1000, // ms dwell before clicking
-        dwellArea: 10 // px dwell movement threshold
+        dwellArea: 15 // px dwell movement threshold
       },
 
       // Calibration data for both 3 and 6 point systems

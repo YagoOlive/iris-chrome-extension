@@ -203,15 +203,17 @@ function StatusView({ onStop }) {
   const [factor, setFactor] = useState(0.95);
   const [clickAssist, setClickAssist] = useState(false);
   const [clickAction, setClickAction] = useState('');
+  const [dwellClick, setDwellClick] = useState(false);
 
   /* pull current value on mount */
   useEffect(() => {
     chrome.storage.local.get(
-      ['exponentialSmoothingFactor', 'clickAction', 'clickAssist'],
-      ({ exponentialSmoothingFactor, clickAssist, clickAction }) => {
+      ['exponentialSmoothingFactor', 'clickAction', 'clickAssist', 'dwellClick'],
+      ({ exponentialSmoothingFactor, clickAssist, clickAction, dwellClick }) => {
         if (typeof exponentialSmoothingFactor === 'number') setFactor(exponentialSmoothingFactor);
         if (typeof clickAction === 'string') setClickAction(clickAction);
         if (clickAssist) setClickAssist(true);
+        if (dwellClick) setDwellClick(true);
       });
   }, []);
 
@@ -235,6 +237,25 @@ function StatusView({ onStop }) {
       chrome.runtime.sendMessage({
         cmd: 'UPDATE_SETTINGS',
         clickAssist: false
+      });
+    }
+  }
+
+  const handleToggleDwellClick = (e) => {
+    const wantOn = e.target.checked;
+    if (wantOn) {
+      setDwellClick(true);
+      chrome.storage.local.set({ dwellClick: true });
+      chrome.runtime.sendMessage({
+        cmd: 'UPDATE_SETTINGS',
+        dwellClick: true
+      });
+    } else {
+      setDwellClick(false);
+      chrome.storage.local.set({ dwellClick: false });
+      chrome.runtime.sendMessage({
+        cmd: 'UPDATE_SETTINGS',
+        dwellClick: false
       });
     }
   }
@@ -319,6 +340,15 @@ function StatusView({ onStop }) {
           <span className="setting-toggle-label">Enable Click Assist</span>
           <label className="switch-label switch-right">
             <input type="checkbox" checked={clickAssist} onChange={handleToggleClickAssist} />
+            <span className="switch-slider"></span>
+          </label>
+        </div>
+
+        {/* Dwell Click Toggle */}
+        <div className="setting-block toggle-setting">
+          <span className="setting-toggle-label">Enable Dwell Click</span>
+          <label className="switch-label switch-right">
+            <input type="checkbox" checked={dwellClick} onChange={handleToggleDwellClick} />
             <span className="switch-slider"></span>
           </label>
         </div>

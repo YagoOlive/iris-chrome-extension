@@ -484,7 +484,10 @@ import handleCalibrationUpload from "./calibration";
             console.log('Click action threshold set to:', state.config.actions.clickThreshold);
           } else if (setting === 'clickAssist') {
             window.state.config.clickAssist = msg.clickAssist ? true : false;
-            console.log(`Click Assist set to: ${clickAssist ? 'ON' : 'OFF'}`);
+            console.log(`Click Assist set to: ${msg.clickAssist ? 'ON' : 'OFF'}`);
+          } else if (setting === 'dwellClick') {
+            window.state.config.dwellClick = msg.dwellClick ? true : false;
+            console.log(`Dwell Click set to: ${msg.dwellClick ? 'ON' : 'OFF'}`);
           }
         }
         return sendResponse({ ok: true });
@@ -509,8 +512,8 @@ import handleCalibrationUpload from "./calibration";
 
   //  --- SETTINGS ---
   chrome.storage.local.get(
-    ['exponentialSmoothingFactor', 'clickAction', 'clickAssist'],
-    ({ exponentialSmoothingFactor, clickAction, clickAssist }) => {
+    ['exponentialSmoothingFactor', 'clickAction', 'clickAssist', 'dwellClick'],
+    ({ exponentialSmoothingFactor, clickAction, clickAssist, dwellClick }) => {
       if (typeof exponentialSmoothingFactor === 'number') {
         window.state.config.exponentialSmoothingFactor = exponentialSmoothingFactor;
         console.log('Loaded smoothing factor:', exponentialSmoothingFactor);
@@ -523,6 +526,8 @@ import handleCalibrationUpload from "./calibration";
       }
       window.state.config.clickAssist = clickAssist ? true : false;
       console.log(`Click Assist: ${clickAssist ? 'ON' : 'OFF'}`);
+      window.state.config.dwellClick = dwellClick ? true : false;
+      console.log(`Dwell Click: ${dwellClick ? 'ON' : 'OFF'}`);
     });
 
 })();
