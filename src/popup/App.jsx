@@ -207,6 +207,8 @@ function StatusView({ onStop }) {
   const [dwellClick, setDwellClick] = useState(false);
   const [dwellTime, setDwellTime] = useState(1000); // default: 1s
   const [dwellArea, setDwellArea] = useState(20); // default: 20px
+  const [dwellTimeError, setDwellTimeError] = useState(false);
+  const [dwellAreaError, setDwellAreaError] = useState(false);
 
 
   /* pull current value on mount */
@@ -225,6 +227,8 @@ function StatusView({ onStop }) {
         if (dwellClick) setDwellClick(true);
         if (typeof dwellTime === 'number') setDwellTime(dwellTime);
         if (typeof dwellArea === 'number') setDwellArea(dwellArea);
+        if (dwellTime < 300 || dwellTime > 5000) setDwellTimeError(true);
+        if (dwellArea < 3 || dwellArea > 100) setDwellAreaError(true);
       });
   }, []);
 
@@ -284,19 +288,23 @@ function StatusView({ onStop }) {
   const handleDwellTimeChange = (e) => {
     if (e.target.value === "") {
       setDwellTime("");
+      setDwellTimeError(true);
       return;
     }
     const val = Number(e.target.value);
     setDwellTime(val);
+    setDwellTimeError(!(val >= 300 && val <= 5000));
   };
 
   const handleDwellAreaChange = (e) => {
     if (e.target.value === "") {
-      setDwellTime("");
+      setDwellArea("");
+      setDwellAreaError(true);
       return;
     }
     const val = Number(e.target.value);
     setDwellArea(val);
+    setDwellAreaError(!(val >= 3 && val <= 100));
   };
 
   // Debounce: after factor stops changing for some ms, persist & broadcast
@@ -416,7 +424,9 @@ function StatusView({ onStop }) {
           <div className="toggle-settings-group animate-in">
 
             <div className="toggle-setting-block">
-              <label className="toggle-sub-setting-label">Dwell Time (ms)</label>
+              <label className={`toggle-sub-setting-label ${dwellTimeError ? "error-label" : ""}`}>
+                Dwell Time (ms)
+              </label>
               <input
                 type="number"
                 min="300"
@@ -424,13 +434,20 @@ function StatusView({ onStop }) {
                 step="100"
                 value={dwellTime}
                 onChange={handleDwellTimeChange}
-                className="number-input slim-input"
+                className={`number-input slim-input ${dwellTimeError ? "input-error" : ""}`}
               />
             </div>
             <div className="toggle-sub-setting-description">Time to dwell before clicking.</div>
+            {dwellTimeError && (
+              <div className="validation-message">
+                Value must be between 300 and 5000 ms.
+              </div>
+            )}
 
             <div className="toggle-setting-block">
-              <label className="toggle-sub-setting-label">Dwell Area (px)</label>
+              <label className={`toggle-sub-setting-label ${dwellAreaError ? "error-label" : ""}`}>
+                Dwell Area (px)
+              </label>
               <input
                 type="number"
                 min="3"
@@ -438,11 +455,15 @@ function StatusView({ onStop }) {
                 step="1"
                 value={dwellArea}
                 onChange={handleDwellAreaChange}
-                className="number-input slim-input"
+                className={`number-input slim-input ${dwellAreaError ? "input-error" : ""}`}
               />
             </div>
             <div className="toggle-sub-setting-description">Pointer movement allowed while dwelling.</div>
-
+            {dwellAreaError && (
+              <div className="validation-message">
+                Value must be between 3 and 100 px.
+              </div>
+            )}
           </div>
         )}
 

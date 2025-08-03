@@ -342,6 +342,26 @@ body {
   flex-shrink: 0;
 }
 
+/* Error styling */
+.input-error {
+  border: 1px solid #e53935 !important;
+  background-color: #2c1a1a;
+}
+
+.error-label {
+  color: #ff6b6b !important;
+}
+
+/* Validation message */
+.validation-message {
+  color: #ff6b6b;
+  font-size: 0.75rem;
+  font-style: italic;
+  margin-top: -8px;
+  margin-bottom: 4px;
+}
+
+
 /* ====== Animate Dwell Settings In ====== */
 .animate-in {
   animation: fadeSlideIn 300ms ease-out;
