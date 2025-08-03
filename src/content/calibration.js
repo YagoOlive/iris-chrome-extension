@@ -2,7 +2,6 @@ import Papa from 'papaparse';
 import * as math from 'mathjs';
 
 import { calculateTransformationMatrixForConfig, convert2DMatrixTo3D } from './math';
-import { calculateResidualsDirectly } from './residual';
 
 // Handle user-uploaded calibration (.csv) file
 export default function handleCalibrationUpload(text) {
@@ -266,11 +265,11 @@ export default function handleCalibrationUpload(text) {
     state.cursorY = null;
 
     // Calculate residuals directly
-    const residuals = calculateResidualsDirectly();
-    console.log("Calculated residuals directly:", residuals);
+    // const residuals = calculateResidualsDirectly();
+    // console.log("Calculated residuals directly:", residuals);
 
     // Store in state for access by other components
-    state.calculatedResiduals = residuals;
+    // state.calculatedResiduals = residuals;
 
     console.log("Final tracking configuration:", {
       coordinateSystem: state.config.coordinateSystem,
@@ -466,5 +465,3 @@ function convert3DLandmarksTo2D(landmarks3D) {
     return null;
   }
 }
-
-window.handleCalibrationUpload = handleCalibrationUpload;

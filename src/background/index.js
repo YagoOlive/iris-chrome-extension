@@ -2,7 +2,6 @@
 
 import calibrationScript from '../content/calibration.js?script';
 import mathScript from '../content/math.js?script';
-import residualScript from '../content/residual.js?script';
 import stateScript from '../content/state.js?script';
 import trackerScript from '../content/tracker.js?script';
 
@@ -128,7 +127,6 @@ async function injectContent(tabId) {
       files: [
         stateScript,
         mathScript,
-        residualScript,
         calibrationScript,
         trackerScript,
       ],
