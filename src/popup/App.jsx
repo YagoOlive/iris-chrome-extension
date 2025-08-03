@@ -282,21 +282,21 @@ function StatusView({ onStop }) {
   }
 
   const handleDwellTimeChange = (e) => {
+    if (e.target.value === "") {
+      setDwellTime("");
+      return;
+    }
     const val = Number(e.target.value);
     setDwellTime(val);
-    if (val >= 300 && val <= 5000) {
-      chrome.storage.local.set({ dwellTime: val });
-      chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellTime: val });
-    }
   };
 
   const handleDwellAreaChange = (e) => {
+    if (e.target.value === "") {
+      setDwellTime("");
+      return;
+    }
     const val = Number(e.target.value);
     setDwellArea(val);
-    if (val >= 3 && val <= 100) {
-      chrome.storage.local.set({ dwellArea: val });
-      chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellArea: val });
-    }
   };
 
   // Debounce: after factor stops changing for some ms, persist & broadcast
@@ -311,6 +311,36 @@ function StatusView({ onStop }) {
 
     return () => clearTimeout(timeout);
   }, [factor]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+
+      if (dwellTime >= 300 && dwellTime <= 5000) {
+        chrome.storage.local.set({ dwellTime: dwellTime });
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellTime: dwellTime });
+      } else {
+        chrome.storage.local.set({ dwellTime: 1000 }); // set to default dwell time of 1s
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellTime: 1000 });
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [dwellTime]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+
+      if (dwellArea >= 3 && dwellArea <= 100) {
+        chrome.storage.local.set({ dwellArea: dwellArea });
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellArea: dwellArea });
+      } else {
+        chrome.storage.local.set({ dwellArea: 0 }); // disable dwell click (by setting dwell area to 0px) until user puts valid value
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellArea: 0 });
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [dwellArea]);
 
   async function handleStop() {
     await chrome.runtime.sendMessage({ cmd: 'STOP_TRACKING' });
