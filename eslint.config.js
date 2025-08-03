@@ -15,18 +15,18 @@ export default defineConfig([
     ],
     languageOptions: {
       ecmaVersion: 'latest',
+      sourceType: 'module',
       globals: {
         ...globals.browser,
-        chrome: 'readonly', // decalre `chrome` as a global
+        chrome: 'readonly', // declare `chrome` as a global
       },
       parserOptions: {
-        ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },
-        sourceType: 'module',
       },
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
+    ignores: ["public/**", "**/*.config.js"],
   },
 ])
