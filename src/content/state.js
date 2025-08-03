@@ -41,7 +41,11 @@ window.initializeState = function () {
       // Transformation matrices for both configurations
       transformationMatrices: {
         threePoint: null,
-        sixPoint: null
+        sixPoint: null,
+        threePoint2d: null,
+        sixPoint2d: null,
+        threePoint3d: null,
+        sixPoint3d: null,
       },
 
       // Cursor tracking state
@@ -49,6 +53,10 @@ window.initializeState = function () {
       lastHeadY: null,
       cursorX: null,
       cursorY: null,
+
+      // Calculated residuals
+      calculatedResiduals: null,
+
     };
     console.log("running state.js....window.state has been initialized!");
   }
