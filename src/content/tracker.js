@@ -30,6 +30,13 @@ import handleCalibrationUpload from "./calibration";
   let anchorY = null;
   const CLICK_ASSIST_RADIUS = state.config.clickAssistRadius;
 
+  // Click threshold value for each click action
+  const clickThresholdAction = {
+    smile: 0.8,
+    browUp: 0.8,
+    jawOpen: 0.6,
+  }
+
   function createSprite() {
     if (sprite) return;
     sprite = document.createElement('div');
@@ -412,6 +419,8 @@ import handleCalibrationUpload from "./calibration";
           } else if (setting === 'clickAction' && typeof msg.clickAction === 'string') {
             window.state.config.actions.click = msg.clickAction;
             console.log('Click action set to:', msg.clickAction);
+            window.state.config.actions.clickThreshold = clickThresholdAction[msg.clickAction] || 1.0;
+            console.log('Click action threshold set to:', state.config.actions.clickThreshold);
           } else if (setting === 'clickAssist') {
             window.state.config.clickAssist = msg.clickAssist ? true : false;
             console.log(`Click Assist set to: ${clickAssist ? 'ON' : 'OFF'}`);
@@ -448,6 +457,8 @@ import handleCalibrationUpload from "./calibration";
       if (typeof clickAction === 'string') {
         window.state.config.actions.click = clickAction;
         console.log('Loaded click action:', clickAction);
+        window.state.config.actions.clickThreshold = clickThresholdAction[clickAction] || 1.0;
+        console.log('Click action threshold:', state.config.actions.clickThreshold);
       }
       window.state.config.clickAssist = clickAssist ? true : false;
       console.log(`Click Assist: ${clickAssist ? 'ON' : 'OFF'}`);
