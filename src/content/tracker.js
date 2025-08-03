@@ -488,6 +488,12 @@ import handleCalibrationUpload from "./calibration";
           } else if (setting === 'dwellClick') {
             window.state.config.dwellClick = msg.dwellClick ? true : false;
             console.log(`Dwell Click set to: ${msg.dwellClick ? 'ON' : 'OFF'}`);
+          } else if (setting === 'dwellTime' && typeof msg.dwellTime === 'number') {
+            window.state.config.dwellTime = msg.dwellTime;
+            console.log(`Dwell Time set to: ${dwellTime}ms`);
+          } else if (setting === 'dwellArea' && typeof msg.dwellArea === 'number') {
+            window.state.config.dwellArea = msg.dwellArea;
+            console.log(`Dwell Area set to: ${dwellArea}px`);
           }
         }
         return sendResponse({ ok: true });
@@ -512,8 +518,8 @@ import handleCalibrationUpload from "./calibration";
 
   //  --- SETTINGS ---
   chrome.storage.local.get(
-    ['exponentialSmoothingFactor', 'clickAction', 'clickAssist', 'dwellClick'],
-    ({ exponentialSmoothingFactor, clickAction, clickAssist, dwellClick }) => {
+    ['exponentialSmoothingFactor', 'clickAction', 'clickAssist', 'dwellClick', 'dwellTime', 'dwellArea'],
+    ({ exponentialSmoothingFactor, clickAction, clickAssist, dwellClick, dwellTime, dwellArea }) => {
       if (typeof exponentialSmoothingFactor === 'number') {
         window.state.config.exponentialSmoothingFactor = exponentialSmoothingFactor;
         console.log('Loaded smoothing factor:', exponentialSmoothingFactor);
@@ -524,10 +530,20 @@ import handleCalibrationUpload from "./calibration";
         window.state.config.actions.clickThreshold = clickThresholdAction[clickAction] || 1.0;
         console.log('Click action threshold:', state.config.actions.clickThreshold);
       }
+
       window.state.config.clickAssist = clickAssist ? true : false;
       console.log(`Click Assist: ${clickAssist ? 'ON' : 'OFF'}`);
       window.state.config.dwellClick = dwellClick ? true : false;
       console.log(`Dwell Click: ${dwellClick ? 'ON' : 'OFF'}`);
+
+      if (typeof dwellTime === 'number') {
+        window.state.config.dwellTime = dwellTime;
+        console.log(`Dwell Time: ${dwellTime}ms`);
+      }
+      if (typeof dwellArea === 'number') {
+        window.state.config.dwellArea = dwellArea;
+        console.log(`Dwell Area: ${dwellArea}px`);
+      }
     });
 
 })();

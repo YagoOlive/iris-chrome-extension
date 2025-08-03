@@ -203,17 +203,28 @@ function StatusView({ onStop }) {
   const [factor, setFactor] = useState(0.95);
   const [clickAssist, setClickAssist] = useState(false);
   const [clickAction, setClickAction] = useState('');
+
   const [dwellClick, setDwellClick] = useState(false);
+  const [dwellTime, setDwellTime] = useState(1000); // default: 1s
+  const [dwellArea, setDwellArea] = useState(20); // default: 20px
+
 
   /* pull current value on mount */
   useEffect(() => {
     chrome.storage.local.get(
-      ['exponentialSmoothingFactor', 'clickAction', 'clickAssist', 'dwellClick'],
-      ({ exponentialSmoothingFactor, clickAssist, clickAction, dwellClick }) => {
+      ['exponentialSmoothingFactor',
+        'clickAction',
+        'clickAssist',
+        'dwellClick',
+        'dwellTime',
+        'dwellArea'],
+      ({ exponentialSmoothingFactor, clickAssist, clickAction, dwellClick, dwellTime, dwellArea }) => {
         if (typeof exponentialSmoothingFactor === 'number') setFactor(exponentialSmoothingFactor);
         if (typeof clickAction === 'string') setClickAction(clickAction);
         if (clickAssist) setClickAssist(true);
         if (dwellClick) setDwellClick(true);
+        if (typeof dwellTime === 'number') setDwellTime(dwellTime);
+        if (typeof dwellArea === 'number') setDwellArea(dwellArea);
       });
   }, []);
 
@@ -269,6 +280,24 @@ function StatusView({ onStop }) {
       clickAction: val
     });
   }
+
+  const handleDwellTimeChange = (e) => {
+    const val = Number(e.target.value);
+    setDwellTime(val);
+    if (val >= 300 && val <= 5000) {
+      chrome.storage.local.set({ dwellTime: val });
+      chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellTime: val });
+    }
+  };
+
+  const handleDwellAreaChange = (e) => {
+    const val = Number(e.target.value);
+    setDwellArea(val);
+    if (val >= 3 && val <= 100) {
+      chrome.storage.local.set({ dwellArea: val });
+      chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellArea: val });
+    }
+  };
 
   // Debounce: after factor stops changing for some ms, persist & broadcast
   useEffect(() => {
@@ -352,6 +381,40 @@ function StatusView({ onStop }) {
             <span className="switch-slider"></span>
           </label>
         </div>
+
+        {dwellClick && (
+          <div className="toggle-settings-group animate-in">
+
+            <div className="toggle-setting-block">
+              <label className="toggle-sub-setting-label">Dwell Time (ms)</label>
+              <input
+                type="number"
+                min="300"
+                max="5000"
+                step="100"
+                value={dwellTime}
+                onChange={handleDwellTimeChange}
+                className="number-input slim-input"
+              />
+            </div>
+            <div className="toggle-sub-setting-description">Time to dwell before clicking.</div>
+
+            <div className="toggle-setting-block">
+              <label className="toggle-sub-setting-label">Dwell Area (px)</label>
+              <input
+                type="number"
+                min="3"
+                max="100"
+                step="1"
+                value={dwellArea}
+                onChange={handleDwellAreaChange}
+                className="number-input slim-input"
+              />
+            </div>
+            <div className="toggle-sub-setting-description">Pointer movement allowed while dwelling.</div>
+
+          </div>
+        )}
 
       </section>
 

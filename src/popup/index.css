@@ -292,3 +292,70 @@ body {
   outline: none;
   border-color: var(--accent-color);
 }
+
+/* ====== Dwell Click Settings Layout ====== */
+
+.toggle-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toggle-setting-block {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.toggle-sub-setting-label {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-color);
+  margin-top: -7px;
+}
+
+.toggle-sub-setting-description {
+  font-size: 0.8rem;
+  color: var(--muted-color);
+  font-style: italic;
+  margin-top: -21px;
+}
+
+.number-input {
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  box-sizing: border-box;
+}
+
+.number-input:focus {
+  border-color: var(--accent-color);
+  outline: none;
+}
+
+.slim-input {
+  width: 25%;
+  flex-shrink: 0;
+}
+
+/* ====== Animate Dwell Settings In ====== */
+.animate-in {
+  animation: fadeSlideIn 300ms ease-out;
+}
+
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
