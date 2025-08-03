@@ -25,7 +25,10 @@ window.initializeState = function () {
           clickThreshold: 0.8,
         },
         clickAssist: true,
-        clickAssistRadius : 100
+        clickAssistRadius : 100,
+        dwellClick: true,
+        dwellTime: 1000, // ms dwell before clicking
+        dwellArea: 10 // px dwell movement threshold
       },
 
       // Calibration data for both 3 and 6 point systems

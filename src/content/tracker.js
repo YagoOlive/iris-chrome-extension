@@ -28,6 +28,8 @@ import handleCalibrationUpload from "./calibration";
   let activeInteractiveEl = null;
   let anchorX = null;
   let anchorY = null;
+
+  // Click Assist
   const CLICK_ASSIST_RADIUS = state.config.clickAssistRadius;
 
   // Click threshold value for each click action
@@ -216,6 +218,64 @@ import handleCalibrationUpload from "./calibration";
     lastClickTime = now;
   }
 
+  // ----- DWELL-CLICK state -----
+  let dwellAnchorX = null;
+  let dwellAnchorY = null;
+  let dwellStartTime = null;
+  const DWELL_COOLDOWN = 1000; // ms pause after a dwell click
+  let lastDwellClickTime = 0;
+
+  function startDwell() {
+    dwellAnchorX = state.cursorX;
+    dwellAnchorY = state.cursorY;
+    dwellStartTime = Date.now();
+  }
+
+
+  function handleDwellClick() {
+    if (!state.config.dwellClick || !window.state.readyToTrack) return;
+
+    const now = Date.now();
+
+    /* ➊ cooldown → require movement after a dwell fire */
+    if (now - lastDwellClickTime < DWELL_COOLDOWN) return;
+
+    /* ➋ initialise if we have no anchor yet */
+    if (dwellAnchorX === null) {
+      startDwell();
+      return;
+    }
+
+    /* ➌ reset if pointer left the dwell circle */
+    const dx = state.cursorX - dwellAnchorX;
+    const dy = state.cursorY - dwellAnchorY;
+    if (Math.hypot(dx, dy) > state.config.dwellArea) {
+      startDwell();
+      return;
+    }
+
+    /* ➍ inside circle → check timer */
+    if (now - dwellStartTime >= state.config.dwellTime) {
+      /* decide target element */
+      const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
+      let el = nearestInteractive(candidate);
+
+      if (state.config.clickAssist && activeInteractiveEl) {
+        const lax = state.cursorX - anchorX;
+        const lay = state.cursorY - anchorY;
+        if (Math.hypot(lax, lay) <= CLICK_ASSIST_RADIUS) el = activeInteractiveEl; // honor the lock
+      }
+
+      if (el) {
+        el.click();
+      }
+
+      lastDwellClickTime = now;
+      startDwell(); // re-anchor so a new dwell requires movement
+    }
+  }
+
+
   const INTERACTIVE_SEL =
     'a[href], button, input, select, textarea, label, [role="button"], [onclick]';
 
@@ -341,6 +401,7 @@ import handleCalibrationUpload from "./calibration";
     cursorWithClipping.style.top = `${roundedY}px`;
 
     updateHover();
+    handleDwellClick();
 
     // EDGE-SCROLLING LOGIC
     const { thresholdMs } = state.config.scrolling;
