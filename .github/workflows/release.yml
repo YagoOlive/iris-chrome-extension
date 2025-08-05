@@ -1,0 +1,79 @@
+name: Build & Publish Chrome-Extension Release
+
+on:
+  push:
+    branches: [main]          # create releases only from main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write         # allow tags & releases
+
+    steps:
+    # 1 — clone full history so we can tag
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0        # pull tags & previous commits
+
+    # 2 — decide whether manifest.json actually changed
+    - id: vars
+      run: |
+        VERSION=$(jq -r '.version' manifest.json)
+        if ! git diff --name-only HEAD~1 HEAD | grep -q 'manifest.json'; then
+          VERSION=""
+        fi
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+    # 3 — abort early when there's no version bump
+    - name: Skip job if not a release
+      if: ${{ steps.vars.outputs.version == '' }}
+      run: echo "No version bump detected, skipping." && exit 0
+
+    # 4 — install deps & build
+    - uses: actions/setup-node@v4
+      if:   ${{ steps.vars.outputs.version != '' }}
+      with:
+        node-version: '20'
+
+    - if: ${{ steps.vars.outputs.version != '' }}
+      run: |
+        npm ci
+        npm run build
+
+    # 5 — zip up ./dist
+    - name: Create zip
+      if:   ${{ steps.vars.outputs.version != '' }}
+      run: |
+        zip -r "head-tracking-chrome-extension-v${{ steps.vars.outputs.version }}.zip" dist
+        echo "ZIP=head-tracking-chrome-extension-v${{ steps.vars.outputs.version }}.zip" >> $GITHUB_ENV
+
+    # 6 — tag commit
+    - name: Create git tag
+      if:   ${{ steps.vars.outputs.version != '' }}
+      env:
+        VERSION: ${{ steps.vars.outputs.version }}
+      run: |
+        git config user.name  "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "v$VERSION" -m "v$VERSION"
+        git push origin "v$VERSION"
+
+    # 7 — slice the newest block from CHANGELOG.md
+    - name: Generate release notes
+      if:   ${{ steps.vars.outputs.version != '' }}
+      env:
+        VERSION: ${{ steps.vars.outputs.version }}
+      run: |
+        awk "/^## $VERSION /{flag=1;print;next}/^## /&&flag{exit}flag" CHANGELOG.md \
+          > release_notes.md
+
+    # 8 — create the GitHub Release & upload artefact
+    - name: Publish GitHub Release
+      if:   ${{ steps.vars.outputs.version != '' }}
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name:    "v${{ steps.vars.outputs.version }}"
+        name:        "v${{ steps.vars.outputs.version }}"
+        body_path:   release_notes.md
+        files:       "${{ env.ZIP }}"
