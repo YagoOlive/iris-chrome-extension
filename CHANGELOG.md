@@ -15,7 +15,7 @@ Dwell Click: Added a new setting to the settings section of the popup: “Enable
 
 ### Chores:
 - **internal:** npm dependency internal version bump ([304f9c3](https://github.com/thshao2/head-tracking-chrome-extension/commit/304f9c3470ae72059f5b327be706d458db37ee0d))
-- **internal:** refactor eslint.config.js, move globals to languageOptions object, add ignores to public/** and vite.config.js ([304f9c3](https://github.com/thshao2/head-tracking-chrome-extension/commit/304f9c3470ae72059f5b327be706d458db37ee0d)) ([a763019] (https://github.com/thshao2/head-tracking-chrome-extension/commit/a763019bbe3881d330bb20a85cde1ab696e6b359))
+- **internal:** refactor eslint.config.js, move globals to languageOptions object, add ignores to public/** and vite.config.js ([304f9c3](https://github.com/thshao2/head-tracking-chrome-extension/commit/304f9c3470ae72059f5b327be706d458db37ee0d)) ([a763019](https://github.com/thshao2/head-tracking-chrome-extension/commit/a763019bbe3881d330bb20a85cde1ab696e6b359))
 - **internal:** fix all eslint warnings and errors, clean up unused functions in content scripts ([80cfc7d](https://github.com/thshao2/head-tracking-chrome-extension/commit/80cfc7d0dc4d388ccbe3c44bba8f0339760145a3)) ([289c767](https://github.com/thshao2/head-tracking-chrome-extension/commit/289c767f1c77a3daf31d7a15cecd22f56e53dea4))
 - **docs:** add CHANGELOG.md file to repo ([5adb457](https://github.com/thshao2/head-tracking-chrome-extension/commit/5adb4576185f16e99827c937caa45b12957b0a22))
 - **ci:** add GitHub Actions CI/CD pipeline for building and publishing new releases ([ffae8d4](https://github.com/thshao2/head-tracking-chrome-extension/commit/ffae8d4033a13bb658b777e0d41ea9887a708736))
