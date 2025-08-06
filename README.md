@@ -10,7 +10,7 @@ Head-tracking pointing is an effective interface for those with limited hand mob
 
 3. ⚡ Accuracy — Unfortunately, using current technology, typical interaction tasks are substantially slower and less accurate with head pointing than with a hand-controlled mouse, as shown in multiple previous studies. The goal of this head-tracking pointing system is to allow for higher accuracy and faster completion of pointing tasks.
 
-## Setup/Installation
+## Setup
 
 To try the Chrome Extension locally:
 
