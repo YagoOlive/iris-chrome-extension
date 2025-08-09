@@ -112,14 +112,14 @@ import handleCalibrationUpload from "./calibration";
     // 1. Save the new landmarks to our global state object
     window.state.lastLandmarks = landmarks;
 
-    maybeClick(getClickScore(blends));
-
     // console.log("Tracker.js: Landmarks updated!");
 
     if (!window.state.readyToTrack) {
       console.log("Not yet ready....");
       return;
     }
+
+    maybeClick(getClickScore(blends));
 
     // Get current landmark configuration
     const currentConfig = state.config.landmarkPoints; // default is 3 points, else 6 points
