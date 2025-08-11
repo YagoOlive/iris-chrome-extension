@@ -260,11 +260,11 @@ import handleCalibrationUpload from "./calibration";
       const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
       let el = nearestInteractive(candidate);
 
-      if (state.config.clickAssist && activeInteractiveEl) {
-        const lax = state.cursorX - anchorX;
-        const lay = state.cursorY - anchorY;
-        if (Math.hypot(lax, lay) <= CLICK_ASSIST_RADIUS) el = activeInteractiveEl; // honor the lock
-      }
+      // if (state.config.clickAssist && activeInteractiveEl) {
+      //   const lax = state.cursorX - anchorX;
+      //   const lay = state.cursorY - anchorY;
+      //   if (Math.hypot(lax, lay) <= CLICK_ASSIST_RADIUS) el = activeInteractiveEl; // honor the lock
+      // }
 
       if (el) {
         el.click();

@@ -201,8 +201,14 @@ const clickActionDescriptions = {
 function StatusView({ onStop }) {
 
   const [factor, setFactor] = useState(0.95);
-  const [clickAssist, setClickAssist] = useState(false);
   const [clickAction, setClickAction] = useState('');
+
+  const [clickAssist, setClickAssist] = useState(false);
+  const [clickTimeout, setClickTimeout] = useState(1000) // default: 1s
+  const [clickRadius, setClickRadius] = useState(100); // default: 100px
+  const [clickRadiusError, setClickRadiusError] = useState(false);
+  const [clickTimeoutError, setClickTimeoutError] = useState(false);
+
 
   const [dwellClick, setDwellClick] = useState(false);
   const [dwellTime, setDwellTime] = useState(1000); // default: 1s
@@ -217,13 +223,20 @@ function StatusView({ onStop }) {
       ['exponentialSmoothingFactor',
         'clickAction',
         'clickAssist',
+        'clickTimeout',
+        'clickRadius',
         'dwellClick',
         'dwellTime',
         'dwellArea'],
-      ({ exponentialSmoothingFactor, clickAssist, clickAction, dwellClick, dwellTime, dwellArea }) => {
+      ({ exponentialSmoothingFactor, clickAction, clickAssist, clickTimeout, clickRadius,
+        dwellClick, dwellTime, dwellArea }) => {
         if (typeof exponentialSmoothingFactor === 'number') setFactor(exponentialSmoothingFactor);
         if (typeof clickAction === 'string') setClickAction(clickAction);
         if (clickAssist) setClickAssist(true);
+        if (typeof clickTimeout === 'number') setClickTimeout(clickTimeout);
+        if (typeof clickRadius === 'number') setClickRadius(clickRadius);
+        if (clickTimeout < 300 || clickTimeout > 5000) setClickTimeoutError(true);
+        if (clickRadius < 30 || clickRadius > 500) setClickRadiusError(true);
         if (dwellClick) setDwellClick(true);
         if (typeof dwellTime === 'number') setDwellTime(dwellTime);
         if (typeof dwellArea === 'number') setDwellArea(dwellArea);
@@ -267,6 +280,28 @@ function StatusView({ onStop }) {
     });
   }
 
+  const handleClickTimeoutChange = (e) => {
+    if (e.target.value === "") {
+      setClickTimeout("");
+      setClickTimeoutError(true);
+      return;
+    }
+    const val = Number(e.target.value);
+    setClickTimeout(val);
+    setClickTimeoutError(!(val >= 300 && val <= 5000));
+  };
+
+  const handleClickRadiusChange = (e) => {
+    if (e.target.value === "") {
+      setClickRadius("");
+      setClickRadiusError(true);
+      return;
+    }
+    const val = Number(e.target.value);
+    setClickRadius(val);
+    setClickRadiusError(!(val >= 3 && val <= 100));
+  };
+
   const handleDwellTimeChange = (e) => {
     if (e.target.value === "") {
       setDwellTime("");
@@ -301,6 +336,36 @@ function StatusView({ onStop }) {
 
     return () => clearTimeout(timeout);
   }, [factor]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+
+      if (clickTimeout >= 300 && clickTimeout <= 5000) {
+        chrome.storage.local.set({ clickTimeout: clickTimeout });
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', clickTimeout: clickTimeout });
+      } else {
+        chrome.storage.local.set({ clickTimeout: 1000 }); // set to default click assist timeout of 1s
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', clickTimeout: 1000 });
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [clickTimeout]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+
+      if (clickRadius >= 30 && clickRadius <= 500) {
+        chrome.storage.local.set({ clickRadius: clickRadius });
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', clickRadius: clickRadius });
+      } else {
+        chrome.storage.local.set({ clickRadius: 0 }); // disable click assist (by setting click radius to 0px) until user puts valid value
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', clickRadius: 0 });
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [clickRadius]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -392,6 +457,53 @@ function StatusView({ onStop }) {
             <span className="switch-slider"></span>
           </label>
         </div>
+
+        {clickAssist && (
+          <div className="toggle-settings-group animate-in">
+
+            <div className="toggle-setting-block">
+              <label className={`toggle-sub-setting-label ${clickTimeoutError ? "error-label" : ""}`}>
+                Click Assist Timeout (ms)
+              </label>
+              <input
+                type="number"
+                min="300"
+                max="5000"
+                step="100"
+                value={clickTimeout}
+                onChange={handleClickTimeoutChange}
+                className={`number-input slim-input ${clickTimeoutError ? "input-error" : ""}`}
+              />
+            </div>
+            <div className="toggle-sub-setting-description">Cursor lock expiration time.</div>
+            {clickTimeoutError && (
+              <div className="validation-message">
+                Value must be between 300 and 5000 ms.
+              </div>
+            )}
+
+            <div className="toggle-setting-block">
+              <label className={`toggle-sub-setting-label ${clickRadiusError ? "error-label" : ""}`}>
+                Click Assist Radius (px)
+              </label>
+              <input
+                type="number"
+                min="30"
+                max="500"
+                step="10"
+                value={clickRadius}
+                onChange={handleClickRadiusChange}
+                className={`number-input slim-input ${clickRadiusError ? "input-error" : ""}`}
+              />
+            </div>
+            <div className="toggle-sub-setting-description">Movement radius to maintain cursor lock.</div>
+            {clickRadiusError && (
+              <div className="validation-message">
+                Value must be between 30 and 500 px.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Dwell Click Toggle */}
         <div className="setting-block toggle-setting">
