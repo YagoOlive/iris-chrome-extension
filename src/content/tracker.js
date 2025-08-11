@@ -38,13 +38,73 @@ import handleCalibrationUpload from "./calibration";
   let anchorX = null;
   let anchorY = null;
   let lockStartTime = null;
+
   let lastClickTime = 0;
 
   // Dwell-click state
   let dwellAnchorX = null;
   let dwellAnchorY = null;
   let dwellStartTime = null;
-  let lastDwellClickTime = 0;
+
+  // Dwell ring elements
+  let dwellRing = null;
+  let dwellTrack = null;
+  let dwellProg = null;
+  let dwellCircumference = 0;
+
+  function createDwellRing() {
+    if (dwellRing) return;
+
+    // 36x36 viewbox, radius 16 for a tidy ring with 3.5px stroke
+    dwellRing = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    dwellRing.setAttribute("class", "dwell-ring");
+    dwellRing.setAttribute("viewBox", "0 0 36 36");
+
+    dwellTrack = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dwellTrack.setAttribute("class", "track");
+    dwellTrack.setAttribute("cx", "18");
+    dwellTrack.setAttribute("cy", "18");
+    dwellTrack.setAttribute("r", "16");
+
+    dwellProg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dwellProg.setAttribute("class", "progress");
+    dwellProg.setAttribute("cx", "18");
+    dwellProg.setAttribute("cy", "18");
+    dwellProg.setAttribute("r", "16");
+
+    dwellRing.appendChild(dwellTrack);
+    dwellRing.appendChild(dwellProg);
+    sprite.appendChild(dwellRing);
+
+    const r = 16;
+    dwellCircumference = 2 * Math.PI * r;
+    dwellProg.style.strokeDasharray = `${dwellCircumference}`;
+    dwellProg.style.strokeDashoffset = `${dwellCircumference}`;
+  }
+
+  function setDwellProgress(p) {
+    // p in [0,1]
+    const clamped = Math.max(0, Math.min(1, p));
+    const remaining = (1 - clamped) * dwellCircumference;
+    dwellProg.style.strokeDashoffset = `${remaining}`;
+
+    // nudge color as you near completion
+    if (clamped > 0.85) {
+      dwellProg.style.stroke = getComputedStyle(document.documentElement)
+        .getPropertyValue('--dwell-near-done') || '#f80c8e';
+    } else {
+      dwellProg.style.stroke = getComputedStyle(document.documentElement)
+        .getPropertyValue('--dwell-progress') || '#fdc203';
+    }
+  }
+
+  function showDwellRing(on) {
+    sprite.classList.toggle('dwell-active', !!on);
+    if (!on && dwellProg) {
+      dwellProg.style.strokeDashoffset = `${dwellCircumference}`;
+    }
+  }
+
 
   function createSprite() {
     if (sprite) return;
@@ -57,6 +117,8 @@ import handleCalibrationUpload from "./calibration";
     document.documentElement.appendChild(sprite);
     sprite.appendChild(inner);
     sprite.appendChild(notch);
+
+    createDwellRing();
 
     // Round for display
     const roundedX = Math.round(window.innerWidth / 2);
@@ -91,15 +153,15 @@ import handleCalibrationUpload from "./calibration";
     const clickAction = state.config.actions.click;
     if (clickAction === "smile") {
 
-      const smileL = blends[44]?.score ?? 0;   // 44 = mouthSmileLeft 
-      const smileR = blends[45]?.score ?? 0;   // 45 = mouthSmileRight
+      const smileL = blends[44]?.score ?? 0; // 44 = mouthSmileLeft 
+      const smileR = blends[45]?.score ?? 0; // 45 = mouthSmileRight
 
       return (smileL + smileR) / 2;
 
     } else if (clickAction === "browUp") {
 
-      const browUpL = blends[4]?.score ?? 0;   // 4 = browOuterUpLeft 
-      const browUpR = blends[5]?.score ?? 0;   // 5 = browOuterUpRight
+      const browUpL = blends[4]?.score ?? 0; // 4 = browOuterUpLeft 
+      const browUpR = blends[5]?.score ?? 0; // 5 = browOuterUpRight
 
       return (browUpL + browUpR) / 2;
 
@@ -118,8 +180,6 @@ import handleCalibrationUpload from "./calibration";
   function handlePacket({ landmarks, blends }) {
     // 1. Save the new landmarks to our global state object
     window.state.lastLandmarks = landmarks;
-
-    // console.log("Tracker.js: Landmarks updated!");
 
     if (!window.state.readyToTrack) {
       console.log("Not yet ready....");
@@ -209,27 +269,36 @@ import handleCalibrationUpload from "./calibration";
         el = activeInteractiveEl; // honor the lock
       }
     }
-
-    if (!el) return;
-
-    el.click();
-
-    lastClickTime = now;
+    if (el) {
+      el.click();
+      lastClickTime = now;
+      showDwellRing(false);
+      dwellAnchorX = null;
+      dwellAnchorY = null;
+    }
   }
 
   function startDwell() {
     dwellAnchorX = state.cursorX;
     dwellAnchorY = state.cursorY;
     dwellStartTime = Date.now();
+    showDwellRing(true);
+    setDwellProgress(0);
   }
 
   function handleDwellClick() {
-    if (!state.config.dwellClick || !window.state.readyToTrack) return;
+    if (!state.config.dwellClick || !window.state.readyToTrack) {
+      showDwellRing(false);
+      return;
+    }
 
     const now = Date.now();
 
     /* ➊ cooldown → require movement after a dwell fire */
-    if (now - lastDwellClickTime < CLICK_COOLDOWN) return;
+    if (now - lastClickTime < CLICK_COOLDOWN) {
+      showDwellRing(false);
+      return;
+    }
 
     /* ➋ initialise if we have no anchor yet */
     if (dwellAnchorX === null) {
@@ -245,18 +314,20 @@ import handleCalibrationUpload from "./calibration";
       return;
     }
 
-    /* ➍ inside circle → check timer */
-    if (now - dwellStartTime >= state.config.dwellTime) {
-      /* decide target element */
+    // ➍ inside circle: update progress
+    const p = (now - dwellStartTime) / state.config.dwellTime;
+    showDwellRing(true);
+    setDwellProgress(p);
+
+    if (p >= 1) {
       const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
       let el = nearestInteractive(candidate);
 
-      if (el) {
-        el.click();
-      }
+      el?.click();
 
-      lastDwellClickTime = now;
-      startDwell(); // re-anchor so a new dwell requires movement
+      dwellAnchorX = null;
+      dwellAnchorY = null;
+      lastClickTime = now;
     }
   }
 
@@ -438,6 +509,12 @@ import handleCalibrationUpload from "./calibration";
     sprite = null;
     inner = null;
     notch = null;
+    dwellRing?.remove();
+    dwellTrack?.remove();
+    dwellProg?.remove();
+    dwellRing = null;
+    dwellTrack = null;
+    dwellProg = null;
     window.__htCursorInjected = false;
     style.textContent = `
       html, body, * {

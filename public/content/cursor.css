@@ -103,3 +103,44 @@ a.ht-hover {
   outline: 2px solid var(--link-hover, #06c);
   outline-offset: 2px;
 } */
+
+/* Dwell ring — sits around #ht-cursor, hidden until dwelling */
+#ht-cursor .dwell-ring {
+  position: absolute;
+  /* width: 24px;
+  height: 36px;
+  left: -7.25px;
+  top:  -7.5px; */
+  width: 26px;
+  height: 38px;
+  left: -8.5px;
+  top:  -9.5px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+#ht-cursor.dwell-active .dwell-ring { opacity: 1; }
+
+/* Colors via CSS vars so you can theme from JS if needed */
+:root {
+  --dwell-track: rgba(0,0,0,0.25);
+  --dwell-progress: rgb(253, 194, 3);      /* matches your hover accent */
+  --dwell-near-done: #f80c8e;       /* becomes a bit brighter near end */
+}
+
+/* SVG strokes */
+#ht-cursor .dwell-ring circle.track {
+  fill: none;
+  stroke: var(--dwell-track);
+  stroke-width: 3.5;
+}
+
+#ht-cursor .dwell-ring circle.progress {
+  fill: none;
+  stroke: var(--dwell-progress);
+  stroke-linecap: round;
+  stroke-width: 3.5;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%; /* start at 12 o’clock */
+}
