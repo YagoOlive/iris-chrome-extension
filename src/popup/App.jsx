@@ -299,7 +299,7 @@ function StatusView({ onStop }) {
     }
     const val = Number(e.target.value);
     setClickRadius(val);
-    setClickRadiusError(!(val >= 3 && val <= 100));
+    setClickRadiusError(!(val >= 30 && val <= 500));
   };
 
   const handleDwellTimeChange = (e) => {
