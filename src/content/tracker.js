@@ -15,6 +15,9 @@ import handleCalibrationUpload from "./calibration";
 
   const CLICK_COOLDOWN = 1000; // ms between allowed clicks
 
+  // Show the dwell ring only after this fraction of dwellTime has elapsed
+  const DWELL_VISUAL_THRESHOLD = 0.40;
+
   // Click threshold value for each click action
   const clickThresholdAction = {
     smile: 0.8,
@@ -89,7 +92,7 @@ import handleCalibrationUpload from "./calibration";
     dwellProg.style.strokeDashoffset = `${remaining}`;
 
     // nudge color as you near completion
-    if (clamped > 0.85) {
+    if (clamped > 0.75) {
       dwellProg.style.stroke = getComputedStyle(document.documentElement)
         .getPropertyValue('--dwell-near-done') || '#f80c8e';
     } else {
@@ -282,7 +285,7 @@ import handleCalibrationUpload from "./calibration";
     dwellAnchorX = state.cursorX;
     dwellAnchorY = state.cursorY;
     dwellStartTime = Date.now();
-    showDwellRing(true);
+    showDwellRing(false);
     setDwellProgress(0);
   }
 
@@ -316,8 +319,13 @@ import handleCalibrationUpload from "./calibration";
 
     // ➍ inside circle: update progress
     const p = (now - dwellStartTime) / state.config.dwellTime;
-    showDwellRing(true);
-    setDwellProgress(p);
+
+    // At/above threshold → show and map to [0..1] over remaining time
+    if (p >= DWELL_VISUAL_THRESHOLD) {
+      const q = (p - DWELL_VISUAL_THRESHOLD) / (1 - DWELL_VISUAL_THRESHOLD);
+      showDwellRing(true);
+      setDwellProgress(q);
+    }
 
     if (p >= 1) {
       const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
