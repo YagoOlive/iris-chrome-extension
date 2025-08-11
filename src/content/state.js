@@ -25,7 +25,9 @@ window.initializeState = function () {
           clickThreshold: 0.8,
         },
         clickAssist: false,
+        clickAssistTimeout: 1000,
         clickAssistRadius : 100,
+
         dwellClick: false,
         dwellTime: 1000, // ms dwell before clicking
         dwellArea: 15 // px dwell movement threshold

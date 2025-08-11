@@ -6,12 +6,21 @@ import handleCalibrationUpload from "./calibration";
 
 // Use an IIFE to avoid polluting the global scope and run immediately
 (() => {
-  // 1. Prevent double-injection
+  // Prevent double-injection
   if (window.__htCursorInjected) return;
   window.__htCursorInjected = true;
 
   // Call the initializer from state.js immediately
   initializeState();
+
+  const CLICK_COOLDOWN = 1000; // ms between allowed clicks
+
+  // Click threshold value for each click action
+  const clickThresholdAction = {
+    smile: 0.8,
+    browUp: 0.8,
+    jawOpen: 0.6,
+  }
 
   let sprite = null;
   let port = null;
@@ -23,21 +32,19 @@ import handleCalibrationUpload from "./calibration";
   let scrollInterval = null;
   let lastBoundary = null;  // "top" | "bottom" | null
 
-  // Hover-effect state
+  // Click-assist state
   let lastHoverEl = null;
   let activeInteractiveEl = null;
   let anchorX = null;
   let anchorY = null;
+  let lockStartTime = null;
+  let lastClickTime = 0;
 
-  // Click Assist
-  const CLICK_ASSIST_RADIUS = state.config.clickAssistRadius;
-
-  // Click threshold value for each click action
-  const clickThresholdAction = {
-    smile: 0.8,
-    browUp: 0.8,
-    jawOpen: 0.6,
-  }
+  // Dwell-click state
+  let dwellAnchorX = null;
+  let dwellAnchorY = null;
+  let dwellStartTime = null;
+  let lastDwellClickTime = 0;
 
   function createSprite() {
     if (sprite) return;
@@ -186,13 +193,9 @@ import handleCalibrationUpload from "./calibration";
   }
 
   // ----- Click on facial expression ----------------------------------------------------
-  const CLICK_THRESHOLD = state.config.actions.clickThreshold; // min average score to count as a smile
-  const CLICK_COOLDOWN = 1000; // ms between allowed clicks
-  let lastClickTime = 0;
-
   function maybeClick(score) {
     const now = Date.now();
-    if (score < CLICK_THRESHOLD) return;
+    if (score < state.config.actions.clickThreshold) return;
     if (now - lastClickTime < CLICK_COOLDOWN) return;
 
     // ① find element under the virtual cursor
@@ -202,7 +205,7 @@ import handleCalibrationUpload from "./calibration";
     if (state.config.clickAssist && activeInteractiveEl) {
       const dx = state.cursorX - anchorX;
       const dy = state.cursorY - anchorY;
-      if (Math.hypot(dx, dy) <= CLICK_ASSIST_RADIUS) {
+      if (Math.hypot(dx, dy) <= state.config.clickAssistRadius) {
         el = activeInteractiveEl; // honor the lock
       }
     }
@@ -211,19 +214,8 @@ import handleCalibrationUpload from "./calibration";
 
     el.click();
 
-    // optional visual feedback:
-    // sprite.classList.add('ht-click');   // e.g. scale sprite for 100 ms
-    // setTimeout(() => sprite.classList.remove('ht-click'), 100);
-
     lastClickTime = now;
   }
-
-  // ----- DWELL-CLICK state -----
-  let dwellAnchorX = null;
-  let dwellAnchorY = null;
-  let dwellStartTime = null;
-  const DWELL_COOLDOWN = 1000; // ms pause after a dwell click
-  let lastDwellClickTime = 0;
 
   function startDwell() {
     dwellAnchorX = state.cursorX;
@@ -231,14 +223,13 @@ import handleCalibrationUpload from "./calibration";
     dwellStartTime = Date.now();
   }
 
-
   function handleDwellClick() {
     if (!state.config.dwellClick || !window.state.readyToTrack) return;
 
     const now = Date.now();
 
     /* ➊ cooldown → require movement after a dwell fire */
-    if (now - lastDwellClickTime < DWELL_COOLDOWN) return;
+    if (now - lastDwellClickTime < CLICK_COOLDOWN) return;
 
     /* ➋ initialise if we have no anchor yet */
     if (dwellAnchorX === null) {
@@ -260,12 +251,6 @@ import handleCalibrationUpload from "./calibration";
       const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
       let el = nearestInteractive(candidate);
 
-      // if (state.config.clickAssist && activeInteractiveEl) {
-      //   const lax = state.cursorX - anchorX;
-      //   const lay = state.cursorY - anchorY;
-      //   if (Math.hypot(lax, lay) <= CLICK_ASSIST_RADIUS) el = activeInteractiveEl; // honor the lock
-      // }
-
       if (el) {
         el.click();
       }
@@ -275,12 +260,17 @@ import handleCalibrationUpload from "./calibration";
     }
   }
 
-
   const INTERACTIVE_SEL =
     'a[href], button, input, select, textarea, label, [role="button"], [onclick]';
 
   function nearestInteractive(el) {
     return el?.closest(INTERACTIVE_SEL) || el;   // falls back to the raw element
+  }
+
+  function recordLock() {
+    anchorX = state.cursorX;
+    anchorY = state.cursorY;
+    lockStartTime = Date.now();
   }
 
   // ----- Hover-Effect ----------------------------------------------------
@@ -291,12 +281,17 @@ import handleCalibrationUpload from "./calibration";
 
     const isInteractive = !!el && el.matches(INTERACTIVE_SEL);
 
+    const now = Date.now();
+
     if (state.config.clickAssist) {
       /* -------- ➊ maintain existing lock -------- */
-      if (activeInteractiveEl) {
+      // if the pointer is still inside the interactive element, record a new anchor point
+      if (activeInteractiveEl && isInteractive && candidateInteractive === activeInteractiveEl) {
+        recordLock();
+      } else if (activeInteractiveEl) { // exited the interactive element ⇒ check if still in click radius buffer and time has not expired
         const dx = state.cursorX - anchorX;
         const dy = state.cursorY - anchorY;
-        if (Math.hypot(dx, dy) <= CLICK_ASSIST_RADIUS) {
+        if (Math.hypot(dx, dy) <= state.config.clickAssistRadius && now - lockStartTime < state.config.clickAssistTimeout) {
           el = activeInteractiveEl; // stay locked
         } else {
           activeInteractiveEl = null; // radius broken ⇒ unlock
@@ -306,8 +301,7 @@ import handleCalibrationUpload from "./calibration";
       /* -------- ➋ acquire new lock -------- */
       if (!activeInteractiveEl && candidateInteractive && isInteractive) {
         activeInteractiveEl = candidateInteractive;
-        anchorX = state.cursorX;
-        anchorY = state.cursorY;
+        recordLock();
         el = activeInteractiveEl;
       }
     }
@@ -343,7 +337,6 @@ import handleCalibrationUpload from "./calibration";
     }
     lastBoundary = null;
   }
-
 
   // Helper function for applying filtering and updating cursor position
   function applyFilteringAndUpdateCursor(headPositionX, headPositionY) {
@@ -484,6 +477,12 @@ import handleCalibrationUpload from "./calibration";
           } else if (setting === 'clickAssist') {
             window.state.config.clickAssist = msg.clickAssist ? true : false;
             console.log(`Click Assist set to: ${msg.clickAssist ? 'ON' : 'OFF'}`);
+          } else if (setting === 'clickTimeout' && typeof msg.clickTimeout === 'number') {
+            window.state.config.clickAssistTimeout = msg.clickTimeout;
+            console.log(`Click Assist Timeout set to: ${msg.clickTimeout}ms`);
+          } else if (setting === 'clickRadius' && typeof msg.clickRadius === 'number') {
+            window.state.config.clickAssistRadius = msg.clickRadius;
+            console.log(`Click Assist Radius set to: ${msg.clickRadius}px`);
           } else if (setting === 'dwellClick') {
             window.state.config.dwellClick = msg.dwellClick ? true : false;
             console.log(`Dwell Click set to: ${msg.dwellClick ? 'ON' : 'OFF'}`);
@@ -517,8 +516,10 @@ import handleCalibrationUpload from "./calibration";
 
   //  --- SETTINGS ---
   chrome.storage.local.get(
-    ['exponentialSmoothingFactor', 'clickAction', 'clickAssist', 'dwellClick', 'dwellTime', 'dwellArea'],
-    ({ exponentialSmoothingFactor, clickAction, clickAssist, dwellClick, dwellTime, dwellArea }) => {
+    ['exponentialSmoothingFactor', 'clickAction', 'clickAssist', 'clickTimeout', 'clickRadius',
+      'dwellClick', 'dwellTime', 'dwellArea'],
+    ({ exponentialSmoothingFactor, clickAction, clickAssist, clickTimeout, clickRadius,
+      dwellClick, dwellTime, dwellArea }) => {
       if (typeof exponentialSmoothingFactor === 'number') {
         window.state.config.exponentialSmoothingFactor = exponentialSmoothingFactor;
         console.log('Loaded smoothing factor:', exponentialSmoothingFactor);
@@ -532,9 +533,17 @@ import handleCalibrationUpload from "./calibration";
 
       window.state.config.clickAssist = clickAssist ? true : false;
       console.log(`Click Assist: ${clickAssist ? 'ON' : 'OFF'}`);
+      if (typeof clickTimeout === 'number') {
+        window.state.config.clickAssistTimeout = clickTimeout;
+        console.log(`Click Assist Timeout: ${clickTimeout}ms`);
+      }
+      if (typeof clickRadius === 'number') {
+        window.state.config.clickAssistRadius = clickRadius;
+        console.log(`Click Assist Radius: ${clickRadius}px`);
+      }
+
       window.state.config.dwellClick = dwellClick ? true : false;
       console.log(`Dwell Click: ${dwellClick ? 'ON' : 'OFF'}`);
-
       if (typeof dwellTime === 'number') {
         window.state.config.dwellTime = dwellTime;
         console.log(`Dwell Time: ${dwellTime}ms`);
