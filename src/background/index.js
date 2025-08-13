@@ -4,6 +4,7 @@ import stateScript from '../content/state.js?script';
 import trackerScript from '../content/tracker.js?script';
 
 import scrollScript from '../content/scroll.js?script';
+import clickScoreScript from '../content/click-score.js?script';
 
 const OFFSCREEN_DOCUMENT_PATH = chrome.runtime.getURL('src/offscreen/index.html');
 
@@ -127,6 +128,7 @@ async function injectContent(tabId) {
         stateScript,
         trackerScript,
         scrollScript,
+        clickScoreScript,
       ],
     });
   } catch (err) {
