@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import '../index.css';
+import '../styles/StatusView.css';
 
 const clickActionDescriptions = {
   "": "Select a facial gesture to trigger a left-click.",

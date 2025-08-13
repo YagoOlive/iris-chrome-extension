@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import '../index.css';
+import '../styles/SetupView.css';
 
 import handleCalibrationUpload from '../utils/calibration';
 
