@@ -106,7 +106,6 @@ import * as math from 'mathjs';
     }
   }
 
-
   function createSprite() {
     if (sprite) return;
     sprite = document.createElement('div');
@@ -142,8 +141,8 @@ import * as math from 'mathjs';
     window.state.config.coordinateSystem = config.coordinateSystem;
     window.state.config.landmarkPoints = config.landmarkPoints;
     window.state.config.filterType = config.filterType;
-    window.state.calibrationData.calibrationWidth = config.calibrationWidth;
-    window.state.calibrationData.calibrationHeight = config.calibrationHeight;
+    window.state.calibrationWidth = config.calibrationWidth;
+    window.state.calibrationHeight = config.calibrationHeight;
     window.state.transformationMatrices.threePoint2d = config.threePoint2d;
     window.state.transformationMatrices.sixPoint2d = config.sixPoint2d;
     window.state.transformationMatrices.threePoint3d = config.threePoint3d;
@@ -158,9 +157,6 @@ import * as math from 'mathjs';
   }
 
   console.log('Head-tracking content script injected and state initialized.');
-
-  createSprite();
-  connectPort();
 
   function getClickScore(blends) {
     const clickAction = state.config.actions.click;
@@ -214,8 +210,8 @@ import * as math from 'mathjs';
       if (!landmark) continue;
 
       // Use calibration dimensions to maintain consistency
-      const calibrationWidth = state.calibrationData.calibrationWidth || window.innerWidth;
-      const calibrationHeight = state.calibrationData.calibrationHeight || window.innerHeight;
+      const calibrationWidth = state.calibrationWidth || window.innerWidth;
+      const calibrationHeight = state.calibrationHeight || window.innerHeight;
 
       const x = landmark.x * calibrationWidth;
       const y = landmark.y * calibrationHeight;
@@ -255,8 +251,8 @@ import * as math from 'mathjs';
 
       // Apply filtering and update cursor position
       applyFilteringAndUpdateCursor(
-        headPositionX * (window.innerWidth / state.calibrationData.calibrationWidth),
-        headPositionY * (window.innerHeight / state.calibrationData.calibrationHeight)
+        headPositionX * (window.innerWidth / state.calibrationWidth),
+        headPositionY * (window.innerHeight / state.calibrationHeight)
       );
     } catch (error) {
       console.error("Matrix multiplication error in 2D mode:", error);
@@ -594,6 +590,8 @@ import * as math from 'mathjs';
   // --- INITIALIZATION ---
   chrome.storage.local.get(['config'], ({ config }) => {
     if (config) {
+      createSprite();
+      connectPort();
       initConfig(config);
       window.state.readyToTrack = true;
     } else {

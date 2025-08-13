@@ -1,10 +1,7 @@
 // src/background/index.js
 
-import calibrationScript from '../content/calibration.js?script';
-import mathScript from '../content/math.js?script';
 import stateScript from '../content/state.js?script';
 import trackerScript from '../content/tracker.js?script';
-
 
 const OFFSCREEN_DOCUMENT_PATH = chrome.runtime.getURL('src/offscreen/index.html');
 
@@ -126,8 +123,6 @@ async function injectContent(tabId) {
       target: { tabId: tabId },
       files: [
         stateScript,
-        mathScript,
-        calibrationScript,
         trackerScript,
       ],
     });

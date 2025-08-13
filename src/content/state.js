@@ -23,32 +23,24 @@ window.initializeState = function () {
         },
         clickAssist: false,
         clickAssistTimeout: 1000,
-        clickAssistRadius : 100,
+        clickAssistRadius: 100,
 
         dwellClick: false,
         dwellTime: 1000, // ms dwell before clicking
         dwellArea: 15 // px dwell movement threshold
       },
 
-      // Calibration data for both 3 and 6 point systems
-      calibrationData: {
-        landmarkPoints3: [],
-        landmarkPoints6: [],
-        cursorPositions: [],
-        allPoints: [],
-        calibrationWidth: null,
-        calibrationHeight: null, 
-      },
-
-      // Transformation matrices for both configurations
+      // Transformation matrices for all configurations (2D/3D, 3/6 facial landmarks)
       transformationMatrices: {
-        threePoint: null,
-        sixPoint: null,
         threePoint2d: null,
         sixPoint2d: null,
         threePoint3d: null,
         sixPoint3d: null,
       },
+
+      // Calibration width and height
+      calibrationWidth: null,
+      calibrationHeight: null,
 
       // Cursor tracking state
       lastHeadX: null,
