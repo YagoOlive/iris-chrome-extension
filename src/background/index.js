@@ -3,6 +3,8 @@
 import stateScript from '../content/state.js?script';
 import trackerScript from '../content/tracker.js?script';
 
+import scrollScript from '../content/scroll.js?script';
+
 const OFFSCREEN_DOCUMENT_PATH = chrome.runtime.getURL('src/offscreen/index.html');
 
 // A map to hold all active connections from content scripts
@@ -124,6 +126,7 @@ async function injectContent(tabId) {
       files: [
         stateScript,
         trackerScript,
+        scrollScript,
       ],
     });
   } catch (err) {

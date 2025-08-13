@@ -47,6 +47,11 @@ window.initializeState = function () {
       lastHeadY: null,
       cursorX: null,
       cursorY: null,
+
+      // Edge-scrolling state
+      boundaryTimer: null,
+      scrollInterval: null,
+      lastBoundary: null, // "top" | "bottom" | null
     };
     console.log("running state.js....window.state has been initialized!");
   }

@@ -2,6 +2,8 @@
 
 import * as math from 'mathjs';
 
+import { controlScroll, stopScroll } from './scroll';
+
 // Use an IIFE to avoid polluting the global scope and run immediately
 (() => {
   // Prevent double-injection
@@ -27,11 +29,6 @@ import * as math from 'mathjs';
   let port = null;
   let inner = null;
   let notch = null;
-
-  // Edge-scrolling state
-  let boundaryTimer = null;
-  let scrollInterval = null;
-  let lastBoundary = null;  // "top" | "bottom" | null
 
   // Click-assist state
   let lastHoverEl = null;
@@ -401,26 +398,6 @@ import * as math from 'mathjs';
     }
   }
 
-  function startScroll(direction) {
-    const { speedUp, speedDown, intervalMs } = state.config.scrolling;
-    const speed = direction === 'top' ? speedUp : -speedDown;
-    scrollInterval = setInterval(() => {
-      window.scrollBy(0, speed);
-    }, intervalMs);
-  }
-
-  function stopScroll() {
-    if (scrollInterval) {
-      clearInterval(scrollInterval);
-      scrollInterval = null;
-    }
-    if (boundaryTimer) {
-      clearTimeout(boundaryTimer);
-      boundaryTimer = null;
-    }
-    lastBoundary = null;
-  }
-
   // Helper function for applying filtering and updating cursor position
   function applyFilteringAndUpdateCursor(headPositionX, headPositionY) {
     // Exponential smoothing
@@ -477,24 +454,8 @@ import * as math from 'mathjs';
     updateHover();
     handleDwellClick();
 
-    // EDGE-SCROLLING LOGIC
-    const { thresholdMs } = state.config.scrolling;
-    const atBottom = state.cursorY <= 0;
-    const atTop = state.cursorY >= window.innerHeight - cursorSize;
-    const boundary = atTop ? 'top' : atBottom ? 'bottom' : null;
-
-    if (boundary && (lastBoundary !== boundary)) {
-      // just entered a new boundary
-      lastBoundary = boundary;
-      // start dwell timer
-      boundaryTimer = setTimeout(() => {
-        startScroll(boundary);
-      }, thresholdMs);
-    } else if (lastBoundary && !boundary) {
-      // left the boundary: stop everything
-      stopScroll();
-    }
-
+    // Edge-scrolling logic
+    controlScroll(cursorSize);
 
     // Update last positions
     state.lastHeadX = headPositionX;
