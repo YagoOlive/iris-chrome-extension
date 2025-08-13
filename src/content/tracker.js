@@ -2,8 +2,6 @@
 
 import * as math from 'mathjs';
 
-import handleCalibrationUpload from "./calibration";
-
 // Use an IIFE to avoid polluting the global scope and run immediately
 (() => {
   // Prevent double-injection
@@ -140,10 +138,22 @@ import handleCalibrationUpload from "./calibration";
     port.onDisconnect.addListener(() => (port = null));
   }
 
-  function startTracking(fileContent) {
+  function initConfig(config) {
+    window.state.config.coordinateSystem = config.coordinateSystem;
+    window.state.config.landmarkPoints = config.landmarkPoints;
+    window.state.config.filterType = config.filterType;
+    window.state.calibrationData.calibrationWidth = config.calibrationWidth;
+    window.state.calibrationData.calibrationHeight = config.calibrationHeight;
+    window.state.transformationMatrices.threePoint2d = config.threePoint2d;
+    window.state.transformationMatrices.sixPoint2d = config.sixPoint2d;
+    window.state.transformationMatrices.threePoint3d = config.threePoint3d;
+    window.state.transformationMatrices.sixPoint3d = config.sixPoint3d;
+  }
+
+  function startTracking(config) {
     createSprite();
     connectPort();
-    if (fileContent) handleCalibrationUpload(fileContent);
+    initConfig(config);
     window.state.readyToTrack = true;
   }
 
@@ -181,8 +191,6 @@ import handleCalibrationUpload from "./calibration";
   }
 
   function handlePacket({ landmarks, blends }) {
-    // 1. Save the new landmarks to our global state object
-    window.state.lastLandmarks = landmarks;
 
     if (!window.state.readyToTrack) {
       console.log("Not yet ready....");
@@ -423,12 +431,10 @@ import handleCalibrationUpload from "./calibration";
     if (state.lastHeadX === null) {
       window.state.lastHeadX = headPositionX;
       window.state.cursorX = headPositionX;
-      window.state.rawCursorX = headPositionX;
     }
     if (state.lastHeadY === null) {
       window.state.lastHeadY = headPositionY;
       window.state.cursorY = headPositionY;
-      window.state.rawCursorY = headPositionY;
     }
 
     // Get cursor element
@@ -537,7 +543,7 @@ import handleCalibrationUpload from "./calibration";
       case 'PING':
         return sendResponse({ ok: true }); // lets background know we’re injected
       case 'START_TRACKING':
-        startTracking(msg.calibrationCsvContent);
+        startTracking(msg.config);
         style.textContent = `
           html, body, * {
             cursor: none !important;
@@ -586,13 +592,10 @@ import handleCalibrationUpload from "./calibration";
   chrome.runtime.onMessage.addListener(messageListener);
 
   // --- INITIALIZATION ---
-  chrome.storage.local.get(['calibrationCsvContent'], ({ calibrationCsvContent }) => {
-    if (calibrationCsvContent) {
-      const success = handleCalibrationUpload(calibrationCsvContent);
-      if (success) {
-        window.state.readyToTrack = true;
-        console.log('Calibration data loaded. Ready for tracking...');
-      }
+  chrome.storage.local.get(['config'], ({ config }) => {
+    if (config) {
+      initConfig(config);
+      window.state.readyToTrack = true;
     } else {
       console.error('Could not find calibration data in storage. Stopping.');
       stopHeadCursor();

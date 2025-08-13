@@ -3,12 +3,16 @@
 import { useState, useRef, useEffect } from 'react';
 import './index.css';
 
+import handleCalibrationUpload from './utils/calibration';
+
 // --- Setup View Component ---
 function SetupView({ savedData, onSetupComplete }) {
   const [fileName, setFileName] = useState('');
   const [fileData, setFileData] = useState(null);
+  const [fileConfig, setFileConfig] = useState(null);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [stream, setStream] = useState(null);
+  const [loadingFile, setLoadingFile] = useState(false);
   const [loadingCamera, setLoadingCamera] = useState(false);
 
   const videoRef = useRef(null);
@@ -53,18 +57,29 @@ function SetupView({ savedData, onSetupComplete }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 1) Read the CSV as text
-    const text = await file.text();
+    setLoadingFile(true);
 
-    // 2) Update React state with both name + content
+    // Read the CSV as text
+    const text = await file.text();
+    // Get configuration, calibration dimensions, and transformation matrices
+    const config = await handleCalibrationUpload(text);
+
+    if (!config) {
+      // Error
+      return;
+    }
+
+    // 2) Update React state with both name + content + config
     setFileName(file.name);
     setFileData({ name: file.name, content: text });
+    setFileConfig(config);
 
     // Prepare object for storage
     const toSet = {
       isTrackingActive: false,
       calibrationCsvContent: text,
-      calibrationCsvName: file.name
+      calibrationCsvName: file.name,
+      config: config,
     };
 
     // Store in chrome.storage.local
@@ -75,6 +90,7 @@ function SetupView({ savedData, onSetupComplete }) {
         console.log('Calibration file saved to storage.');
       }
     });
+    setLoadingFile(false);
   }
 
   async function ensureCameraPermission() {
@@ -146,13 +162,15 @@ function SetupView({ savedData, onSetupComplete }) {
 
   // 4. Start head-tracking only if CSV + camera enabled
   async function handleStart() {
+    if (loadingFile || loadingCamera) return;
     if (!fileData) return alert('Upload or select a calibration file first.');
     if (!cameraEnabled) return alert('Enable camera first.');
 
     const message = {
       cmd: 'START_TRACKING',
       calibrationCsvName: fileData.name,
-      calibrationCsvContent: fileData.content
+      calibrationCsvContent: fileData.content,
+      config: fileConfig
     };
 
     await chrome.runtime.sendMessage(message);
@@ -183,7 +201,7 @@ function SetupView({ savedData, onSetupComplete }) {
         </label>
       </div>
       {cameraEnabled && <video ref={videoRef} autoPlay playsInline muted className="video-preview" />}
-      <button disabled={!fileData || !cameraEnabled} onClick={handleStart}>
+      <button disabled={!fileData || !cameraEnabled || loadingFile || loadingCamera} onClick={handleStart}>
         Start Head Tracking
       </button>
     </>

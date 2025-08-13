@@ -2,9 +2,6 @@
 window.initializeState = function () {
   if (typeof window !== 'undefined' && !window.state) {
     window.state = {
-      // Landmarks data
-      lastLandmarks: null,
-
       // Calibration state
       readyToTrack: false,
 
@@ -58,10 +55,6 @@ window.initializeState = function () {
       lastHeadY: null,
       cursorX: null,
       cursorY: null,
-
-      // Calculated residuals
-      calculatedResiduals: null,
-
     };
     console.log("running state.js....window.state has been initialized!");
   }

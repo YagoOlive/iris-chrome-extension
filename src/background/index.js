@@ -218,10 +218,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       port.postMessage({ cmd: 'START_CAMERA' });
 
       // 3. Save state and inject content scripts
-      const toSet = { isTrackingActive: true };
-      if (msg.calibrationCsvName) toSet.calibrationCsvName = msg.calibrationCsvName;
-      if (msg.calibrationCsvContent) toSet.calibrationCsvContent = msg.calibrationCsvContent;
-      await chrome.storage.local.set(toSet);
+      await chrome.storage.local.set({ isTrackingActive: true });
 
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
@@ -229,7 +226,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (check) {
           await chrome.tabs.sendMessage(tab.id, {
             cmd: 'START_TRACKING',
-            calibrationCsvContent: msg.calibrationCsvContent,
+            config: msg.config,
           });
         }
       }
