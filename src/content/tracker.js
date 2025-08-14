@@ -268,7 +268,7 @@ import getClickScore from './click-score';
   }
 
   function handleDwellClick() {
-    if (!state.config.dwellClick || !window.state.readyToTrack) {
+    if (!state.config.dwellClick || !window.state.readyToTrack || state.boundaryTimer) {
       showDwellRing(false);
       return;
     }
