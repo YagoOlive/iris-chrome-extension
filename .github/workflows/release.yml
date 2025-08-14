@@ -131,11 +131,7 @@ jobs:
           destination-github-username: ${{ github.repository_owner }}
           destination-repository-name: head-tracking-pointer-public
           target-branch: main
-          commit-message: |
-            release: ${{ needs.release.outputs.version }}
-
-            Co-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
-
+          commit-message: "release: ${{ needs.release.outputs.version }}"
           user-name:  ${{ github.repository_owner }}
           user-email: "${{ github.event.sender.id }}+${{ github.repository_owner }}@users.noreply.github.com"
         env:
