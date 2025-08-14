@@ -2,19 +2,19 @@ name: Build & Publish Chrome-Extension Release
 
 on:
   push:
-    branches: [main]          # create releases only from main
+    branches: [main] # create releases only from main
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write         # allow tags & releases
+      contents: write # allow tags & releases
 
     steps:
     # 1 — clone full history so we can tag
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0        # pull tags & previous commits
+        fetch-depth: 0 # pull tags & previous commits
 
     # 2 — decide whether manifest.json actually changed
     - id: vars
@@ -77,3 +77,48 @@ jobs:
         name:        "v${{ steps.vars.outputs.version }}"
         body_path:   release_notes.md
         files:       "${{ env.ZIP }}"
+
+  public-release:
+    needs: release # waits for the build & private-release job
+    if:   ${{ needs.release.outputs.version != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    # 1 — check out *private* repo so we can copy the files we just built
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # 2 — stage only the public-facing files
+    - name: Prepare export directory
+      run: |
+        mkdir export
+        cp manifest.json README.md CHANGELOG.md export/
+        cp -r public export/public
+
+    # 3 — push them to the public repo
+    - name: Sync docs to public repo
+      uses: cpina/github-action-push-to-another-repository@main
+      with:
+        source-directory: export
+        destination-github-username:  ${{ github.repository_owner }}
+        destination-repository-name:  head-tracking-pointer-public
+        target-branch: main
+        commit-message: "release: ${{ needs.release.outputs.version }}"
+      env:
+        SSH_DEPLOY_KEY: ${{ secrets.PUBLIC_REPO_DEPLOY_KEY }}
+
+    # 4 — create the public Release with the ZIP
+    - name: Publish release in public repo
+      uses: softprops/action-gh-release@v2
+      with:
+        repository:  ${{ github.repository_owner }}/head-tracking-pointer-public
+        tag_name:    "v${{ needs.release.outputs.version }}"
+        name:        "v${{ needs.release.outputs.version }}"
+        body_path:   release_notes.md
+        files:       "head-tracking-chrome-extension-v${{ needs.release.outputs.version }}.zip"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
