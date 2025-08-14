@@ -1,24 +1,4 @@
-/* Hide the real cursor everywhere */
-html, body, * {
-  cursor: none !important;              /* css-level hide */        /* fallback JS is in tracker.js */
-}
-
-/* Alternative Virtual sprite */
-/* #ht-cursor {
-  width: 24px;
-  height: 24px;
-  background: radial-gradient(red 35%, rgba(255, 255, 255, 0.918) 60%, transparent 61%);
-  border-radius: 50%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  pointer-events: none;                 
-  z-index: 2147483647;
-  transform: translate(-50%, -50%);
-  transition: transform 40ms linear;
-} */
-
-/* Main Virtual sprite */
+/* Main Virtual Sprite */
 #ht-cursor {
   position: fixed;
   width: 22px;
@@ -32,12 +12,12 @@ html, body, * {
   height: 60%;
   background: black;
   clip-path: polygon(
-    0% 0%, 
-    0% 100%, 
-    20% 80%, 
-    0% 100%, 
-    40% 75%, 
-    100% 75%, 
+    0% 0%,
+    0% 100%,
+    20% 80%,
+    0% 100%,
+    40% 75%,
+    100% 75%,
     0% 0%
   );
   position: absolute;
@@ -54,24 +34,21 @@ html, body, * {
   width: calc(100% - 2px);
   height: calc(100% - 4px);
   background: white;
-  clip-path: inherit; /* reuse the same shape */
+  clip-path: inherit;
 }
 
-/* Notch — separate and positioned relative to #ht-cursor */
 #ht-cursor .cursor-notch {
   position: absolute;
-  left: 3.5px;   /* adjust to snugly meet arrowhead */
-  top: 14px;   /* adjust based on height of arrowhead */
+  left: 3.5px;
+  top: 14px;
   width: 3px;
   height: 6px;
   background: black;
   /* box-shadow: 1px 1px 1px rgba(0,0,0,0.2); */
-  transform: rotate(-26deg); /* ← Adjust this angle as needed */
-  transform-origin: top left; /* Pivot point for natural attachment */
-
+  transform: rotate(-26deg);
+  transform-origin: top left;
 }
 
-/* Optional white fill */
 #ht-cursor .cursor-notch::after {
   content: "";
   position: absolute;
@@ -88,48 +65,37 @@ html, body, * {
 }
 
 #ht-cursor.hovering-link {
-  --cursor-fill: limegreen;   /* or whatever green you like */
+  --cursor-fill: limegreen;
 }
 
 /* Only draw the effect when the class lands on an <a> */
 a.ht-hover {
   text-decoration: underline;
-  /* color: var(--link-hover, #06c); */
-  cursor: pointer; /* lets you read `getComputedStyle(el).cursor` later */
+  cursor: pointer;
 }
 
-/* Optional: give other interactive elements a subtle ring instead of underline */
-/* .ht-hover:not(a) {
-  outline: 2px solid var(--link-hover, #06c);
-  outline-offset: 2px;
-} */
-
-/* Dwell ring — sits around #ht-cursor, hidden until dwelling */
+/* -------- Dwell Click Visual Ring -------- */
 #ht-cursor .dwell-ring {
   position: absolute;
-  /* width: 24px;
-  height: 36px;
-  left: -7.25px;
-  top:  -7.5px; */
   width: 26px;
   height: 38px;
   left: -8.5px;
-  top:  -9.5px;
+  top: -9.5px;
   pointer-events: none;
   opacity: 0;
   transition: opacity 120ms ease;
 }
 
-#ht-cursor.dwell-active .dwell-ring { opacity: 1; }
-
-/* Colors via CSS vars so you can theme from JS if needed */
-:root {
-  --dwell-track: rgba(0,0,0,0.25);
-  --dwell-progress: rgb(253, 194, 3);      /* matches your hover accent */
-  --dwell-near-done: #f80c8e;       /* becomes a bit brighter near end */
+#ht-cursor.dwell-active .dwell-ring {
+  opacity: 1;
 }
 
-/* SVG strokes */
+:root {
+  --dwell-track: rgba(0, 0, 0, 0.25);
+  --dwell-progress: rgb(253, 194, 3);
+  --dwell-near-done: #f80c8e;
+}
+
 #ht-cursor .dwell-ring circle.track {
   fill: none;
   stroke: var(--dwell-track);
@@ -142,5 +108,5 @@ a.ht-hover {
   stroke-linecap: round;
   stroke-width: 3.5;
   transform: rotate(-90deg);
-  transform-origin: 50% 50%; /* start at 12 o’clock */
+  transform-origin: 50% 50%;
 }

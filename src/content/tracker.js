@@ -45,6 +45,11 @@ import getClickScore from './click-score';
   let dwellProg = null;
   let dwellCircumference = 0;
 
+  // Create element to remove/restore the default cursor
+  const style = document.createElement('style');
+  // Append it into <head> (or document.documentElement for document_start)
+  (document.head || document.documentElement).appendChild(style);
+
   function createDwellRing() {
     if (dwellRing) return;
 
@@ -146,6 +151,11 @@ import getClickScore from './click-score';
     connectPort();
     initConfig(config);
     window.state.readyToTrack = true;
+    style.textContent = `
+      html, body, * {
+        cursor: none !important;
+      }
+    `;
   }
 
   console.log('Head-tracking content script injected and state initialized.');
@@ -429,13 +439,8 @@ import getClickScore from './click-score';
     state.lastHeadY = headPositionY;
   }
 
-  // Create element to remove/restore the default cursor
-  const style = document.createElement('style');
-  // Append it into <head> (or document.documentElement for document_start)
-  (document.head || document.documentElement).appendChild(style);
-
   // --- TEARDOWN ---
-  function stopHeadCursor() {
+  function stopTracking() {
     console.log('Cleaning up tracker script on this page.');
     stopScroll();
     window.state.readyToTrack = false;
@@ -468,14 +473,9 @@ import getClickScore from './click-score';
         return sendResponse({ ok: true }); // lets background know we’re injected
       case 'START_TRACKING':
         startTracking(msg.config);
-        style.textContent = `
-          html, body, * {
-            cursor: none !important;
-          }
-        `;
         return sendResponse({ ok: true });
       case 'STOP_TRACKING':
-        stopHeadCursor();
+        stopTracking();
         return sendResponse({ ok: true });
       case 'UPDATE_SETTINGS':
         updateSettings(msg);
@@ -488,13 +488,10 @@ import getClickScore from './click-score';
   // --- INITIALIZATION ---
   chrome.storage.local.get(['config'], ({ config }) => {
     if (config) {
-      createSprite();
-      connectPort();
-      initConfig(config);
-      window.state.readyToTrack = true;
+      startTracking(config);
     } else {
       console.error('Could not find calibration data in storage. Stopping.');
-      stopHeadCursor();
+      stopTracking();
     }
   });
 
