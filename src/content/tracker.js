@@ -3,6 +3,7 @@
 import * as math from 'mathjs';
 
 import { controlScroll, stopScroll } from './scroll';
+import { initSettings, updateSettings } from './settings';
 import getClickScore from './click-score';
 
 // Use an IIFE to avoid polluting the global scope and run immediately
@@ -18,13 +19,6 @@ import getClickScore from './click-score';
 
   // Show the dwell ring only after this fraction of dwellTime has elapsed
   const DWELL_VISUAL_THRESHOLD = 0.40;
-
-  // Click threshold value for each click action
-  const clickThresholdAction = {
-    smile: 0.8,
-    browUp: 0.8,
-    jawOpen: 0.6,
-  }
 
   let sprite = null;
   let port = null;
@@ -484,37 +478,7 @@ import getClickScore from './click-score';
         stopHeadCursor();
         return sendResponse({ ok: true });
       case 'UPDATE_SETTINGS':
-        for (const setting in msg) {
-          if (setting === 'cmd') {
-            continue;
-          } else if (setting === 'exponentialSmoothingFactor' && typeof msg.exponentialSmoothingFactor === 'number') {
-            window.state.config.exponentialSmoothingFactor = msg.exponentialSmoothingFactor;
-            console.log('Smoothing factor set to: ', msg.exponentialSmoothingFactor);
-          } else if (setting === 'clickAction' && typeof msg.clickAction === 'string') {
-            window.state.config.actions.click = msg.clickAction;
-            console.log('Click action set to:', msg.clickAction);
-            window.state.config.actions.clickThreshold = clickThresholdAction[msg.clickAction] || 1.0;
-            console.log('Click action threshold set to:', state.config.actions.clickThreshold);
-          } else if (setting === 'clickAssist') {
-            window.state.config.clickAssist = msg.clickAssist ? true : false;
-            console.log(`Click Assist set to: ${msg.clickAssist ? 'ON' : 'OFF'}`);
-          } else if (setting === 'clickTimeout' && typeof msg.clickTimeout === 'number') {
-            window.state.config.clickAssistTimeout = msg.clickTimeout;
-            console.log(`Click Assist Timeout set to: ${msg.clickTimeout}ms`);
-          } else if (setting === 'clickRadius' && typeof msg.clickRadius === 'number') {
-            window.state.config.clickAssistRadius = msg.clickRadius;
-            console.log(`Click Assist Radius set to: ${msg.clickRadius}px`);
-          } else if (setting === 'dwellClick') {
-            window.state.config.dwellClick = msg.dwellClick ? true : false;
-            console.log(`Dwell Click set to: ${msg.dwellClick ? 'ON' : 'OFF'}`);
-          } else if (setting === 'dwellTime' && typeof msg.dwellTime === 'number') {
-            window.state.config.dwellTime = msg.dwellTime;
-            console.log(`Dwell Time set to: ${msg.dwellTime}ms`);
-          } else if (setting === 'dwellArea' && typeof msg.dwellArea === 'number') {
-            window.state.config.dwellArea = msg.dwellArea;
-            console.log(`Dwell Area set to: ${msg.dwellArea}px`);
-          }
-        }
+        updateSettings(msg);
         return sendResponse({ ok: true });
     }
   };
@@ -538,40 +502,8 @@ import getClickScore from './click-score';
   chrome.storage.local.get(
     ['exponentialSmoothingFactor', 'clickAction', 'clickAssist', 'clickTimeout', 'clickRadius',
       'dwellClick', 'dwellTime', 'dwellArea'],
-    ({ exponentialSmoothingFactor, clickAction, clickAssist, clickTimeout, clickRadius,
-      dwellClick, dwellTime, dwellArea }) => {
-      if (typeof exponentialSmoothingFactor === 'number') {
-        window.state.config.exponentialSmoothingFactor = exponentialSmoothingFactor;
-        console.log('Loaded smoothing factor:', exponentialSmoothingFactor);
-      }
-      if (typeof clickAction === 'string') {
-        window.state.config.actions.click = clickAction;
-        console.log('Loaded click action:', clickAction);
-        window.state.config.actions.clickThreshold = clickThresholdAction[clickAction] || 1.0;
-        console.log('Click action threshold:', state.config.actions.clickThreshold);
-      }
-
-      window.state.config.clickAssist = clickAssist ? true : false;
-      console.log(`Click Assist: ${clickAssist ? 'ON' : 'OFF'}`);
-      if (typeof clickTimeout === 'number') {
-        window.state.config.clickAssistTimeout = clickTimeout;
-        console.log(`Click Assist Timeout: ${clickTimeout}ms`);
-      }
-      if (typeof clickRadius === 'number') {
-        window.state.config.clickAssistRadius = clickRadius;
-        console.log(`Click Assist Radius: ${clickRadius}px`);
-      }
-
-      window.state.config.dwellClick = dwellClick ? true : false;
-      console.log(`Dwell Click: ${dwellClick ? 'ON' : 'OFF'}`);
-      if (typeof dwellTime === 'number') {
-        window.state.config.dwellTime = dwellTime;
-        console.log(`Dwell Time: ${dwellTime}ms`);
-      }
-      if (typeof dwellArea === 'number') {
-        window.state.config.dwellArea = dwellArea;
-        console.log(`Dwell Area: ${dwellArea}px`);
-      }
+    (items) => {
+      initSettings(items);
     });
 
 })();
