@@ -9,116 +9,139 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # allow tags & releases
+    outputs:
+      version:  ${{ steps.vars.outputs.version }}
+      zip_name: ${{ steps.zip.outputs.name }}
 
     steps:
-    # 1 — clone full history so we can tag
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # pull tags & previous commits
+      # 1 — checkout with full history so tags work
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # pull tags & previous commits
 
-    # 2 — decide whether manifest.json actually changed
-    - id: vars
-      run: |
-        VERSION=$(jq -r '.version' manifest.json)
-        if ! git diff --name-only HEAD~1 HEAD | grep -q 'manifest.json'; then
-          VERSION=""
-        fi
-        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      # 2 — detect version bump anywhere in this push range
+      - id: vars
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          CHANGED=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -c '^manifest.json$' || true)
+          if [ "$CHANGED" -eq 0 ]; then 
+            VERSION=""
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-    # 3 — abort early when there's no version bump
-    - name: Skip job if not a release
-      if: ${{ steps.vars.outputs.version == '' }}
-      run: echo "No version bump detected, skipping." && exit 0
+      # 3 — stop early if not a release (keeps job green, sets output to '')
+      - name: Skip job if not a release
+        if: ${{ steps.vars.outputs.version == '' }}
+        run: echo "No version bump detected."
 
-    # 4 — install deps & build
-    - uses: actions/setup-node@v4
-      if:   ${{ steps.vars.outputs.version != '' }}
-      with:
-        node-version: '20'
+      # 4 — build
+      - uses: actions/setup-node@v4
+        if: ${{ steps.vars.outputs.version != '' }}
+        with:
+          node-version: '20'
+      - if: ${{ steps.vars.outputs.version != '' }}
+        run: |
+          npm ci
+          npm run build
 
-    - if: ${{ steps.vars.outputs.version != '' }}
-      run: |
-        npm ci
-        npm run build
+      # 5 — zip ./dist
+      - id: zip
+        if: ${{ steps.vars.outputs.version != '' }}
+        run: |
+          NAME="head-tracking-chrome-extension-v${{ steps.vars.outputs.version }}.zip"
+          zip -r "$NAME" dist
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
-    # 5 — zip up ./dist
-    - name: Create zip
-      if:   ${{ steps.vars.outputs.version != '' }}
-      run: |
-        zip -r "head-tracking-chrome-extension-v${{ steps.vars.outputs.version }}.zip" dist
-        echo "ZIP=head-tracking-chrome-extension-v${{ steps.vars.outputs.version }}.zip" >> $GITHUB_ENV
+      # 6 — create tag (idempotent)
+      - name: Create git tag
+        if: ${{ steps.vars.outputs.version != '' }}
+        env:
+          VERSION: ${{ steps.vars.outputs.version }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists, continuing."
+          else
+            git tag -a "v$VERSION" -m "v$VERSION"
+            git push origin "v$VERSION"
+          fi
 
-    # 6 — tag commit
-    - name: Create git tag
-      if:   ${{ steps.vars.outputs.version != '' }}
-      env:
-        VERSION: ${{ steps.vars.outputs.version }}
-      run: |
-        git config user.name  "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git tag -a "v$VERSION" -m "v$VERSION"
-        git push origin "v$VERSION"
+      # 7 — slice the CHANGELOG for this version
+      - name: Generate release notes
+        if: ${{ steps.vars.outputs.version != '' }}
+        env:
+          VERSION: ${{ steps.vars.outputs.version }}
+        run: |
+          awk "/^## $VERSION /{flag=1;print;next}/^## /&&flag{exit}flag" CHANGELOG.md > release_notes.md
 
-    # 7 — slice the newest block from CHANGELOG.md
-    - name: Generate release notes
-      if:   ${{ steps.vars.outputs.version != '' }}
-      env:
-        VERSION: ${{ steps.vars.outputs.version }}
-      run: |
-        awk "/^## $VERSION /{flag=1;print;next}/^## /&&flag{exit}flag" CHANGELOG.md \
-          > release_notes.md
+      # 8 — publish private repo Release
+      - name: Publish GitHub Release
+        if: ${{ steps.vars.outputs.version != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name:  "v${{ steps.vars.outputs.version }}"
+          name:      "v${{ steps.vars.outputs.version }}"
+          body_path: release_notes.md
+          files:     ${{ steps.zip.outputs.name }}
 
-    # 8 — create the GitHub Release & upload artefact
-    - name: Publish GitHub Release
-      if:   ${{ steps.vars.outputs.version != '' }}
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name:    "v${{ steps.vars.outputs.version }}"
-        name:        "v${{ steps.vars.outputs.version }}"
-        body_path:   release_notes.md
-        files:       "${{ env.ZIP }}"
+      # 9 — upload artifacts for downstream job
+      - name: Upload release artifacts
+        if: ${{ steps.vars.outputs.version != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: |
+            ${{ steps.zip.outputs.name }}
+            release_notes.md
+
 
   public-release:
     needs: release # waits for the build & private-release job
-    if:   ${{ needs.release.outputs.version != '' }}
+    if: ${{ needs.release.outputs.version != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-    # 1 — check out *private* repo so we can copy the files we just built
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      # 1 — check out private repo to copy public-facing files
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    # 2 — stage only the public-facing files
-    - name: Prepare export directory
-      run: |
-        mkdir export
-        cp manifest.json README.md CHANGELOG.md export/
-        cp -r public export/public
+      # 2 — download the .zip and release_notes.md from the first job
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: ./artifacts
 
-    # 3 — push them to the public repo
-    - name: Sync docs to public repo
-      uses: cpina/github-action-push-to-another-repository@main
-      with:
-        source-directory: export
-        destination-github-username:  ${{ github.repository_owner }}
-        destination-repository-name:  head-tracking-pointer-public
-        target-branch: main
-        commit-message: "release: ${{ needs.release.outputs.version }}"
-      env:
-        SSH_DEPLOY_KEY: ${{ secrets.PUBLIC_REPO_DEPLOY_KEY }}
+      # 3 — stage only the public files
+      - name: Prepare export directory
+        run: |
+          mkdir -p export
+          cp manifest.json README.md CHANGELOG.md export/
+          cp -r public export/public
 
-    # 4 — create the public Release with the ZIP
-    - name: Publish release in public repo
-      uses: softprops/action-gh-release@v2
-      with:
-        repository:  ${{ github.repository_owner }}/head-tracking-pointer-public
-        tag_name:    "v${{ needs.release.outputs.version }}"
-        name:        "v${{ needs.release.outputs.version }}"
-        body_path:   release_notes.md
-        files:       "head-tracking-chrome-extension-v${{ needs.release.outputs.version }}.zip"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 4 — push them to the public repo (SSH deploy key)
+      - name: Sync docs to public repo
+        uses: cpina/github-action-push-to-another-repository@main
+        with:
+          source-directory: export
+          destination-github-username: ${{ github.repository_owner }}
+          destination-repository-name: head-tracking-pointer-public
+          target-branch: main
+          commit-message: "release: v${{ needs.release.outputs.version }}"
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.PUBLIC_REPO_DEPLOY_KEY }}
 
+      # 5 — create the public Release with the ZIP
+      - name: Publish release in public repo
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: ${{ github.repository_owner }}/head-tracking-pointer-public
+          tag_name: "v${{ needs.release.outputs.version }}"
+          name: "v${{ needs.release.outputs.version }}"
+          body_path: ./artifacts/release_notes.md
+          files: "./artifacts/head-tracking-chrome-extension-v${{ needs.release.outputs.version }}.zip"
+          token: ${{ secrets.PUBLIC_REPO_PAT }}
