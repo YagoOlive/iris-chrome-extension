@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0 (2025-08-13)
+## 0.4.0 (2025-08-14)
 
 Full Changelog: [v0.3.0...v0.4.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.3.0...v0.4.0)
 
@@ -10,7 +10,7 @@ Full Changelog: [v0.3.0...v0.4.0](https://github.com/thshao2/head-tracking-chrom
   - **The click assist timeout (ms):** Gives an “expiration” time to locked cursor once the cursor leaves an interactive element. Once the cursor is outside of the locked interactive for more than this amount of time, the cursor automatically unlocks from it. The value must be between 500ms and 10000ms, or else an error is shown. The default value is 2000ms.
 - **Click Assist:** The functionality of click assist has been improved so that it now accurately knows exactly where and when you have left an interactive element. This allows it to better determine the area (clickAssistRadius) and time (clickAssistTimeout) to which the cursor will stay locked onto the interactive element.
 - **Dwell Click:** Added a visual “progress ring” to show users the remaining dwell time needed until the cursor will perform a click. The visual progress ring will only show once 40% of the dwell time has already elapsed.
-File Upload: Due to the fact that the handling of the file upload has been moved to the setup phase, a loading spinner has been added to show users that the file is being processed. In addition, a new and clear error message is displayed if the file upload is unsuccessful.
+- **File Upload:** Due to the fact that the handling of the file upload has been moved to the setup phase, a loading spinner has been added to show users that the file is being processed. In addition, a new and clear error message is displayed if the file upload is unsuccessful.
 
 ### Bug Fixes:
 - Fixed a bug where the dwell-click timer would still be activated while the user was scrolling up/down a webpage (through hands-free edge scrolling). This could lead to unintended clicks being executed during hands-free scrolling.
@@ -20,10 +20,13 @@ File Upload: Due to the fact that the handling of the file upload has been moved
 - **internal:** Refactor SetupView and StatusView into their own files in a new components/ folder in src/popup/* ([c024964](https://github.com/thshao2/head-tracking-chrome-extension/commit/c02496461ebeb14fc45f9526b9e6b3b49465982d))
 - **internal:** Move component-specific styles in src/popup/* into separate .css files in a new styles/ folder ([55c516c](https://github.com/thshao2/head-tracking-chrome-extension/commit/55c516c027eae036330e1ca4e4ef9981e0a99e4b))
 - **internal:** Code refactoring in tracker.js content script ([1c89e4b](https://github.com/thshao2/head-tracking-chrome-extension/commit/1c89e4b964374436a8a1b9cf7894c3b7f1e3eba6)) ([c89f9f5](https://github.com/thshao2/head-tracking-chrome-extension/commit/c89f9f5d5318016418790c6fcc724d2fba900349))
-- **ci:** Extend Github Actions CI/CD pipeline to publish new releases to the public repository, as well as push the following updated content: public/**, manifest.json, CHANGELOG.md, README.md ([0b9ae96](https://github.com/thshao2/head-tracking-chrome-extension/commit/0b9ae968ee3454bafacc57841fed7c03f3d37180)) ([4f5d17f](https://github.com/thshao2/head-tracking-chrome-extension/commit/4f5d17fae3fb4e0ae6184dccc4b86634ddfa950f))
+- **ci:** Extend Github Actions CI/CD pipeline to publish new releases to the public repository, as well as push the following updated content: public/**, manifest.json, CHANGELOG.md, README.md ([0b9ae96](https://github.com/thshao2/head-tracking-chrome-extension/commit/0b9ae968ee3454bafacc57841fed7c03f3d37180)) ([4f5d17f](https://github.com/thshao2/head-tracking-chrome-extension/commit/4f5d17fae3fb4e0ae6184dccc4b86634ddfa950f)) ([c353c5c](https://github.com/thshao2/head-tracking-chrome-extension/commit/c353c5ce546f0db574cb4bd70619edf080240d43)) ([2d5faa3](https://github.com/thshao2/head-tracking-chrome-extension/commit/2d5faa3265499025263ffb0bd242e93725dd2a65))
 
 ### Performance Upgrades:
 - **Calibration File Upload:** The processing of the calibration file has now been moved to the setup phase. This prevents unnecessary/repeated processing of the calibration file every time the tracking process starts, even when the uploaded file remains the same. It also greatly reduces the time in which the tracking process starts from when the “Start Tracking” button is clicked, and prevents repeated processing of the calibration file in each new loaded webpage (refresh & new tab).
+
+### Documentation
+- Update README.md to include new settings for click assist, visual indicator for dwell-based clicking
 
 ## 0.3.0 (2025-08-04)
 
