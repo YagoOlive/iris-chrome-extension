@@ -15,15 +15,15 @@ export default function StatusView({ onStop }) {
   const [clickAction, setClickAction] = useState('');
 
   const [clickAssist, setClickAssist] = useState(false);
-  const [clickTimeout, setClickTimeout] = useState(2000) // default: 2s
+  const [clickTimeout, setClickTimeout] = useState(4000) // default: 4s
   const [clickRadius, setClickRadius] = useState(100); // default: 100px
   const [clickRadiusError, setClickRadiusError] = useState(false);
   const [clickTimeoutError, setClickTimeoutError] = useState(false);
 
 
   const [dwellClick, setDwellClick] = useState(false);
-  const [dwellTime, setDwellTime] = useState(1000); // default: 1s
-  const [dwellArea, setDwellArea] = useState(20); // default: 20px
+  const [dwellTime, setDwellTime] = useState(4000); // default: 4s
+  const [dwellArea, setDwellArea] = useState(40); // default: 40px
   const [dwellTimeError, setDwellTimeError] = useState(false);
   const [dwellAreaError, setDwellAreaError] = useState(false);
 
@@ -155,8 +155,8 @@ export default function StatusView({ onStop }) {
         chrome.storage.local.set({ clickTimeout: clickTimeout });
         chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', clickTimeout: clickTimeout });
       } else {
-        chrome.storage.local.set({ clickTimeout: 2000 }); // set to default click assist timeout of 2s
-        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', clickTimeout: 2000 });
+        chrome.storage.local.set({ clickTimeout: 4000 }); // set to default click assist timeout of 4s
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', clickTimeout: 4000 });
       }
     }, 500);
 
@@ -185,8 +185,8 @@ export default function StatusView({ onStop }) {
         chrome.storage.local.set({ dwellTime: dwellTime });
         chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellTime: dwellTime });
       } else {
-        chrome.storage.local.set({ dwellTime: 1000 }); // set to default dwell time of 1s
-        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellTime: 1000 });
+        chrome.storage.local.set({ dwellTime: 4000 }); // set to default dwell time of 4s
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellTime: 4000 });
       }
     }, 500);
 
