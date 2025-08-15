@@ -5,6 +5,9 @@ window.initializeState = function () {
       // Calibration state
       readyToTrack: false,
 
+      // Tabstrip state
+      tabstrip: null, // "open" | "inactive" | "closing" | "reopen" | null
+
       // Application configuration
       config: {
         coordinateSystem: "2d",

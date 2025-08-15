@@ -6,6 +6,7 @@ import trackerScript from '../content/tracker.js?script';
 import scrollScript from '../content/scroll.js?script';
 import clickScoreScript from '../content/click-score.js?script';
 import settingsScript from '../content/settings.js?script';
+import tabstripScript from '../content/tabstrip?script';
 
 const OFFSCREEN_DOCUMENT_PATH = chrome.runtime.getURL('src/offscreen/index.html');
 
@@ -121,7 +122,7 @@ async function injectContent(tabId) {
   try {
     await chrome.scripting.insertCSS({
       target: { tabId: tabId },
-      files: ['content/cursor.css'],
+      files: ['content/cursor.css', 'content/tabstrip.css'],
     });
     await chrome.scripting.executeScript({
       target: { tabId: tabId },
@@ -131,6 +132,7 @@ async function injectContent(tabId) {
         scrollScript,
         clickScoreScript,
         settingsScript,
+        tabstripScript,
       ],
     });
   } catch (err) {
@@ -211,7 +213,7 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
 // 3. On Message: Handle all communication
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
-    // This listener is now only for one-off messages from the popup
+    // This is for messages from the popup and content scripts
     if (msg.cmd === 'START_TRACKING') {
       // 1. Get a guaranteed connection to the offscreen port
       const port = await getOffscreenPort();
@@ -296,7 +298,63 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       // 3. Re-open the popup while the user-gesture is still valid
       await chrome.action.openPopup();
     }
+    // --- message handlers for the tabstrip ---
+    else if (msg.cmd === 'TABSTRIP_QUERY') {
+      // Tabs in current window, ordered by index (Chrome default)
+      const all = await chrome.tabs.query({ currentWindow: true });
 
+      // Filter out special schemes the extension can't/shouldn't act on
+      const filtered = all.filter(t => {
+        const u = t.url || '';
+        return /^https?:|^file:/.test(u); // skip chrome://, chrome-extension://, devtools://
+      });
+
+      const activeIdx = filtered.findIndex(t => t.active);
+
+      // Build a window of up to 9 tabs: active ±4 neighbors
+      let start = Math.max(0, activeIdx - 4);
+      let end = Math.min(filtered.length, start + 9);
+      // re-adjust start if we hit the end
+      start = Math.max(0, end - 9);
+
+      const windowed = filtered.slice(start, end).map(t => ({
+        id: t.id,
+        windowId: t.windowId,
+        title: t.title || 'Untitled',
+        favIconUrl: t.favIconUrl || '',
+        index: t.index,
+        active: t.active
+      }));
+
+      sendResponse({
+        ok: true,
+        tabs: windowed,
+        activeTabId: filtered[activeIdx]?.id ?? null
+      });
+    }
+    else if (msg.cmd === 'TABSTRIP_ACTIVATE') {
+      const { tabId, windowId } = msg;
+      try {
+        // Bring window to front (if different), then activate the tab
+        if (windowId !== undefined) {
+          await chrome.windows.update(windowId, { focused: true });
+        }
+        await chrome.tabs.update(tabId, { active: true }); // switches tabs
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({ ok: false, error: e?.message });
+      }
+    }
+
+    else if (msg.cmd === 'TABSTRIP_CLOSE') {
+      const { tabId } = msg;
+      try {
+        await chrome.tabs.remove(tabId); // closes tab
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({ ok: false, error: e?.message });
+      }
+    }
   })();
   return true;
 });

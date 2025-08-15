@@ -20,6 +20,10 @@ import getClickScore from './click-score';
   // Show the dwell ring only after this fraction of dwellTime has elapsed
   const DWELL_VISUAL_THRESHOLD = 0.40;
 
+  const TOP_TRIGGER_PX = 8; // tabstrip top edge trigger zone
+  const TABSTRIP_KEEP_ALIVE_PX = 100 // tabstrip remains open if cursor dwells within 100px of the top boundary
+  const TABSTRIP_HIDE_DELAY = 2000; // ms until the tabstrip hides after leaving the keep alive zone
+
   let sprite = null;
   let port = null;
   let inner = null;
@@ -151,11 +155,13 @@ import getClickScore from './click-score';
     connectPort();
     initConfig(config);
     window.state.readyToTrack = true;
-    style.textContent = `
-      html, body, * {
-        cursor: none !important;
-      }
-    `;
+    window.HTTabstrip?.show();
+    window.HTTabstrip?.hide?.(TABSTRIP_HIDE_DELAY);
+    // style.textContent = `
+    //   html, body, * {
+    //     cursor: none !important;
+    //   }
+    // `;
   }
 
   console.log('Head-tracking content script injected and state initialized.');
@@ -428,6 +434,19 @@ import getClickScore from './click-score';
     cursorWithClipping.style.left = `${roundedX}px`;
     cursorWithClipping.style.top = `${roundedY}px`;
 
+    // Dynamic-Tabstrip trigger
+    if ((!state.tabstrip && roundedY <= TOP_TRIGGER_PX) ||
+      ((state.tabstrip === "inactive") && roundedY <= TABSTRIP_KEEP_ALIVE_PX)) {
+      window.HTTabstrip?.show();
+      state.tabstrip = "open";
+    } else if (state.tabstrip === "open" && roundedY > TABSTRIP_KEEP_ALIVE_PX) {
+      state.tabstrip = "inactive";
+      window.HTTabstrip?.hide(TABSTRIP_HIDE_DELAY);
+    } else if (state.tabstrip === "closing" && roundedY <= TABSTRIP_KEEP_ALIVE_PX) {
+      state.tabstrip = "reopen";
+      window.HTTabstrip?.show();
+    }
+
     updateHover();
     handleDwellClick();
 
@@ -459,11 +478,13 @@ import getClickScore from './click-score';
     dwellTrack = null;
     dwellProg = null;
     window.__htCursorInjected = false;
-    style.textContent = `
-      html, body, * {
-        cursor: auto !important;
-      }
-    `;
+    window.HTTabstrip?.hide?.(0);
+    window.HTTabstrip?.destroy?.();
+    // style.textContent = `
+    //   html, body, * {
+    //     cursor: auto !important;
+    //   }
+    // `;
   }
 
   // --- MESSAGE LISTENER ---
