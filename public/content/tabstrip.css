@@ -42,11 +42,10 @@
 }
 
 #ht-tabstrip .ht-tabs {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  display: flex;
   gap: 6px;
   align-items: center;
+  min-width: 0; /* allow children to shrink properly */
 }
 
 #ht-tabstrip .ht-tab {
@@ -65,14 +64,22 @@
   text-overflow: ellipsis;
   cursor: pointer;
   transition: transform 120ms ease, background 120ms ease;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 #ht-tabstrip .ht-tab:hover,
 #ht-tabstrip .ht-tab.ht-hover { transform: translateY(-3px); }
 
-#ht-tabstrip .ht-close.ht-hover { opacity: 1; }
+#ht-tabstrip .ht-close.ht-hover { 
+  opacity: 1;
+  color: red;
+}
 
-#ht-tabstrip .ht-close:hover { opacity: 1; }
+#ht-tabstrip .ht-close:hover { 
+  opacity: 1; 
+  color: red;
+}
 
 #ht-tabstrip .ht-tab.is-active {
   background: rgba(255,255,255,0.16);
@@ -102,7 +109,8 @@
 }
 
 #ht-tabstrip .ht-plus {
-  width: 36px;
+  width: 36px; /* fixed 36px */
+  flex: 0 0 36px; /* do not grow/shrink */
   justify-content: center;
   grid-template-columns: 1fr;
   font-weight: 700;
