@@ -139,6 +139,7 @@ import getClickScore from './click-score';
   }
 
   function initConfig(config) {
+    if (state.configInit) return;
     window.state.config.coordinateSystem = config.coordinateSystem;
     window.state.config.landmarkPoints = config.landmarkPoints;
     window.state.config.filterType = config.filterType;
@@ -148,15 +149,26 @@ import getClickScore from './click-score';
     window.state.transformationMatrices.sixPoint2d = config.sixPoint2d;
     window.state.transformationMatrices.threePoint3d = config.threePoint3d;
     window.state.transformationMatrices.sixPoint3d = config.sixPoint3d;
+    window.state.configInit = true;
   }
 
   function startTracking(config) {
     createSprite();
     connectPort();
     initConfig(config);
+    // If background requested a sticky-open (e.g., after tab-switch/new tab)
+    chrome.storage.local.get(['tabstripForceOpen'], ({ tabstripForceOpen }) => {
+      if (tabstripForceOpen) {
+        window.HTTabstrip?.show(false);
+        state.tabstrip = "open";
+        chrome.storage.local.remove('tabstripForceOpen'); // clear the flag so it doesn't keep opening on later pages
+      } else {
+        // normal behavior: brief peek, then hide
+        window.HTTabstrip?.show();
+        window.HTTabstrip?.hide?.(TABSTRIP_HIDE_DELAY);
+      }
+    });
     window.state.readyToTrack = true;
-    window.HTTabstrip?.show();
-    window.HTTabstrip?.hide?.(TABSTRIP_HIDE_DELAY);
     // style.textContent = `
     //   html, body, * {
     //     cursor: none !important;
@@ -478,6 +490,7 @@ import getClickScore from './click-score';
     dwellTrack = null;
     dwellProg = null;
     window.__htCursorInjected = false;
+    window.state.configInit = false;
     window.HTTabstrip?.hide?.(0);
     window.HTTabstrip?.destroy?.();
     // style.textContent = `
@@ -501,6 +514,9 @@ import getClickScore from './click-score';
       case 'UPDATE_SETTINGS':
         updateSettings(msg);
         return sendResponse({ ok: true });
+      case 'GLOBAL_CLICK_SUPPRESS':
+        lastClickTime = Date.now();
+        return sendResponse({ ok: true });
     }
   };
 
@@ -514,6 +530,7 @@ import getClickScore from './click-score';
       console.error('Could not find calibration data in storage. Stopping.');
       stopTracking();
     }
+    lastClickTime = Date.now();
   });
 
   //  --- SETTINGS ---

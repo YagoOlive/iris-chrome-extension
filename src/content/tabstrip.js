@@ -4,6 +4,7 @@
   const CONTAINER_ID = 'ht-tabstrip';
   const LIST_ID = 'ht-tabstrip-list';
   const HIDE_DELAY_DEFAULT = 2000;
+  const TRANSITION_DELAY_DEFAULT = 1010;
 
   let container, list, hideTimer;
 
@@ -39,6 +40,14 @@
   }
 
   function onClick(e) {
+    // New tab
+    const newBtn = e.target.closest('[data-new-tab]');
+    if (newBtn) {
+      e.stopPropagation();
+      chrome.runtime.sendMessage({ cmd: 'TABSTRIP_NEW_TAB' });
+      return;
+    }
+
     // Close button
     const closeBtn = e.target.closest('[data-close-id]');
     if (closeBtn) {
@@ -58,9 +67,7 @@
       e.stopPropagation();
       const id = Number(tabBtn.getAttribute('data-tab-id'));
       const winId = Number(tabBtn.getAttribute('data-window-id'));
-      chrome.runtime.sendMessage({ cmd: 'TABSTRIP_ACTIVATE', tabId: id, windowId: winId }, () => {
-        hide(120);
-      });
+      chrome.runtime.sendMessage({ cmd: 'TABSTRIP_ACTIVATE', tabId: id, windowId: winId });
     }
   }
 
@@ -105,6 +112,14 @@
     tabs.forEach(t => {
       list.appendChild(tabItemTemplate(t, t.id === activeTabId));
     });
+    // add a '+' new tab button at the end
+    const plus = document.createElement('button');
+    plus.type = 'button';
+    plus.className = 'ht-tab ht-plus';
+    plus.setAttribute('data-new-tab', '1');
+    plus.setAttribute('aria-label', 'Open new tab');
+    plus.textContent = '+';
+    list.appendChild(plus);
   }
 
   function update() {
@@ -114,15 +129,23 @@
     });
   }
 
-  function show() {
+  function show(animation = true) {
     ensureUI();
     clearTimeout(hideTimer);
     update();
-    container.classList.add('is-visible');
-    container.classList.remove('ht-hidden');
+    if (animation) {
+      container.classList.remove('ht-hidden');
+      container.classList.remove('is-visible'); // ensure starting state
+      // force a reflow so the transition triggers
+      void container.offsetWidth; // ← magic: reads layout, flushes styles
+      container.classList.add('is-visible');
+    } else {
+      container.classList.add('is-visible');
+      container.classList.remove('ht-hidden');
+    }
   }
 
-  function hide(delay = HIDE_DELAY_DEFAULT) {
+  function hide(delay = HIDE_DELAY_DEFAULT, transitionTime = TRANSITION_DELAY_DEFAULT) {
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
       if (!container) return;
@@ -136,7 +159,7 @@
         } else {
           state.tabstrip = "open";
         }
-      }, 1010);
+      }, transitionTime);
     }, delay);
   }
 

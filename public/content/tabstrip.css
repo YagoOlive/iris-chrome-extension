@@ -67,7 +67,12 @@
   transition: transform 120ms ease, background 120ms ease;
 }
 
-#ht-tabstrip .ht-tab:hover { transform: translateY(-1px); }
+#ht-tabstrip .ht-tab:hover,
+#ht-tabstrip .ht-tab.ht-hover { transform: translateY(-3px); }
+
+#ht-tabstrip .ht-close.ht-hover { opacity: 1; }
+
+#ht-tabstrip .ht-close:hover { opacity: 1; }
 
 #ht-tabstrip .ht-tab.is-active {
   background: rgba(255,255,255,0.16);
@@ -96,7 +101,18 @@
   user-select: none;
 }
 
-#ht-tabstrip .ht-close:hover { opacity: 1; }
+#ht-tabstrip .ht-plus {
+  width: 36px;
+  justify-content: center;
+  grid-template-columns: 1fr;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+
+#ht-tabstrip .ht-plus:hover,
+#ht-tabstrip .ht-plus.ht-hover {
+  transform: translateY(-3px) scale(1.04);
+}
 
 @media (prefers-reduced-motion: reduce) {
   #ht-tabstrip { transition: none; }

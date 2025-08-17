@@ -6,7 +6,7 @@ import trackerScript from '../content/tracker.js?script';
 import scrollScript from '../content/scroll.js?script';
 import clickScoreScript from '../content/click-score.js?script';
 import settingsScript from '../content/settings.js?script';
-import tabstripScript from '../content/tabstrip?script';
+import tabstripScript from '../content/tabstrip.js?script';
 
 const OFFSCREEN_DOCUMENT_PATH = chrome.runtime.getURL('src/offscreen/index.html');
 
@@ -101,8 +101,7 @@ async function getOffscreenPort() {
   }
 
   // 3. If not, wait for it to connect.
-  // This promise will resolve when the onConnect listener in this script
-  // assigns a value to `offscreenPort`.
+  // This promise will resolve when the onConnect listener in this script assigns a value to `offscreenPort`.
   console.log("Background: Waiting for offscreen port to connect...");
   return new Promise((resolve) => {
     const listener = (port) => {
@@ -187,14 +186,14 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   activeTabId = tabId;
   const { isTrackingActive } = await chrome.storage.local.get('isTrackingActive');
-  if (isTrackingActive && !contentScriptPorts.has(tabId)) {
+  if (isTrackingActive) {
     console.log(`Tracking is active. Injecting content into active tab ${tabId}`);
     const check = await ensureContent(tabId); // inject only once
     if (check) {
-      const { calibrationCsvContent } = await chrome.storage.local.get('calibrationCsvContent')
+      const { config } = await chrome.storage.local.get('config');
       await chrome.tabs.sendMessage(tabId, {
         cmd: 'START_TRACKING',
-        calibrationCsvContent: calibrationCsvContent,
+        config: config,
       });
     }
   }
@@ -209,6 +208,17 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
     if (tabs.length) activeTabId = tabs[0].id;
   });
 });
+
+// async function broadcastToHTTPTabs(payload) {
+//   const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+//   for (const t of tabs) {
+//     try {
+//       await chrome.tabs.sendMessage(t.id, payload);
+//     } catch {
+//       /* tab is non-scriptable, content script not injected */
+//     }
+//   }
+// }
 
 // 3. On Message: Handle all communication
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -339,13 +349,31 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (windowId !== undefined) {
           await chrome.windows.update(windowId, { focused: true });
         }
+
+        const isAlreadyInjected = await ensureContent(tabId);
+
+        if (isAlreadyInjected) {
+          await chrome.storage.local.set({ tabstripForceOpen: 'reopen' });
+          await chrome.tabs.sendMessage(tabId, { cmd: 'GLOBAL_CLICK_SUPPRESS' });
+        } else {
+          await chrome.storage.local.set({ tabstripForceOpen: 'initial' });
+        }
+
         await chrome.tabs.update(tabId, { active: true }); // switches tabs
+
         sendResponse({ ok: true });
       } catch (e) {
         sendResponse({ ok: false, error: e?.message });
       }
     }
-
+    else if (msg.cmd === 'TABSTRIP_NEW_TAB') {
+      try {
+        const created = await chrome.tabs.create({ url: 'https://www.google.com', active: true });
+        sendResponse({ ok: true, tabId: created.id });
+      } catch (e) {
+        sendResponse({ ok: false, error: e?.message });
+      }
+    }
     else if (msg.cmd === 'TABSTRIP_CLOSE') {
       const { tabId } = msg;
       try {

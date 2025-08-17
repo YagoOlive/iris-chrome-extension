@@ -8,6 +8,9 @@ window.initializeState = function () {
       // Tabstrip state
       tabstrip: null, // "open" | "inactive" | "closing" | "reopen" | null
 
+      // Configuration state
+      configInit: false,
+
       // Application configuration
       config: {
         coordinateSystem: "2d",
