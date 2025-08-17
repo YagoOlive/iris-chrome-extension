@@ -23,6 +23,18 @@
     const inner = document.createElement('div');
     inner.className = 'ht-tabstrip-inner';
 
+    const prev = document.createElement('button');
+    prev.className = 'ht-nav ht-prev';
+    prev.setAttribute('data-nav', 'prev');
+    prev.setAttribute('aria-label', 'Previous tabs');
+    prev.textContent = '‹';
+
+    const next = document.createElement('button');
+    next.className = 'ht-nav ht-next';
+    next.setAttribute('data-nav', 'next');
+    next.setAttribute('aria-label', 'Next tabs');
+    next.textContent = '›';
+
     const title = document.createElement('div');
     title.className = 'ht-tabstrip-title';
     title.textContent = 'Tabs';
@@ -32,7 +44,9 @@
     list.className = 'ht-tabs';
 
     inner.appendChild(title);
+    inner.append(prev);
     inner.appendChild(list);
+    inner.append(next);
     container.appendChild(inner);
     document.documentElement.appendChild(container);
 
@@ -40,6 +54,18 @@
   }
 
   function onClick(e) {
+    // Paging
+    const nav = e.target.closest('[data-nav]');
+    if (nav) {
+      e.stopPropagation();
+      const dir = nav.getAttribute('data-nav');
+      chrome.runtime.sendMessage({ cmd: 'TABSTRIP_NAV', dir }, (res) => {
+        if (res?.ok) render(res.tabs, res.activeTabId);
+        navState(res);
+      });
+      return;
+    }
+
     // New tab
     const newBtn = e.target.closest('[data-new-tab]');
     if (newBtn) {
@@ -126,7 +152,15 @@
     chrome.runtime.sendMessage({ cmd: 'TABSTRIP_QUERY' }, (res) => {
       if (!res?.ok) return;
       render(res.tabs, res.activeTabId);
+      navState(res);
     });
+  }
+
+  function navState(res) {
+    const prev = container.querySelector('.ht-prev');
+    const next = container.querySelector('.ht-next');
+    prev?.classList.toggle('is-disabled', !res?.canPagePrev);
+    next?.classList.toggle('is-disabled', !res?.canPageNext);
   }
 
   function show(animation = true) {

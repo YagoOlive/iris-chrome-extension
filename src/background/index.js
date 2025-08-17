@@ -160,6 +160,17 @@ async function removeContent(tabId) {
   }
 }
 
+function storageKeyForStart(windowId) {
+  return `tabstripStart:${windowId}`;
+}
+
+async function getFilteredCurrentWindowTabs() {
+  const all = await chrome.tabs.query({ currentWindow: true });
+  return all.filter(t => /^https?:|^file:/.test(t.url || '')); // skip chrome://, chrome-extension://, devtools://
+}
+
+function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
 // --- LISTENERS ---
 
 // 1. On Install: Set up the initial state
@@ -310,22 +321,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     // --- message handlers for the tabstrip ---
     else if (msg.cmd === 'TABSTRIP_QUERY') {
-      // Tabs in current window, ordered by index (Chrome default)
-      const all = await chrome.tabs.query({ currentWindow: true });
-
-      // Filter out special schemes the extension can't/shouldn't act on
-      const filtered = all.filter(t => {
-        const u = t.url || '';
-        return /^https?:|^file:/.test(u); // skip chrome://, chrome-extension://, devtools://
-      });
-
+      const filtered = await getFilteredCurrentWindowTabs();
       const activeIdx = filtered.findIndex(t => t.active);
 
-      // Build a window of up to 9 tabs: active ±4 neighbors
-      let start = Math.max(0, activeIdx - 4);
+      const windowId = filtered[activeIdx]?.windowId ?? (await chrome.windows.getCurrent())?.id;
+      const key = storageKeyForStart(windowId);
+      const maxStart = Math.max(0, filtered.length - 9);
+
+      // read persisted start; if missing, center active on first open
+      const got = await chrome.storage.local.get(key);
+      let start = typeof got[key] === 'number'
+        ? clamp(got[key], 0, maxStart)
+        : clamp(activeIdx - 4, 0, maxStart);
+      if (!(key in got)) await chrome.storage.local.set({ [key]: start });
       let end = Math.min(filtered.length, start + 9);
-      // re-adjust start if we hit the end
-      start = Math.max(0, end - 9);
+      if (end - start < 9) start = Math.max(0, end - 9);
 
       const windowed = filtered.slice(start, end).map(t => ({
         id: t.id,
@@ -339,7 +349,33 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse({
         ok: true,
         tabs: windowed,
-        activeTabId: filtered[activeIdx]?.id ?? null
+        activeTabId: filtered[activeIdx]?.id ?? null,
+        canPagePrev: start > 0,
+        canPageNext: end < filtered.length
+      });
+    }
+    else if (msg.cmd === 'TABSTRIP_NAV') {
+      const dir = msg.dir; // 'prev' | 'next'
+      const filtered = await getFilteredCurrentWindowTabs();
+      const activeIdx = filtered.findIndex(t => t.active);
+      const windowId = filtered[activeIdx]?.windowId ?? (await chrome.windows.getCurrent())?.id;
+      const key = storageKeyForStart(windowId);
+      const maxStart = Math.max(0, filtered.length - 9);
+      const got = await chrome.storage.local.get(key);
+      let start = clamp((typeof got[key] === 'number' ? got[key] : 0) + (dir === 'next' ? 9 : -9), 0, maxStart);
+      await chrome.storage.local.set({ [key]: start });
+      let end = Math.min(filtered.length, start + 9);
+      if (end - start < 9) start = Math.max(0, end - 9);
+      const windowed = filtered.slice(start, end).map(t => ({
+        id: t.id, windowId: t.windowId, title: t.title || 'Untitled',
+        favIconUrl: t.favIconUrl || '', index: t.index, active: t.active
+      }));
+      sendResponse({
+        ok: true,
+        tabs: windowed,
+        activeTabId: filtered[activeIdx]?.id ?? null,
+        canPagePrev: start > 0,
+        canPageNext: end < filtered.length
       });
     }
     else if (msg.cmd === 'TABSTRIP_ACTIVATE') {
@@ -377,7 +413,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     else if (msg.cmd === 'TABSTRIP_CLOSE') {
       const { tabId } = msg;
       try {
-        await chrome.tabs.remove(tabId); // closes tab
+        // If closing the active tab, proactively suppress clicks in the replacement
+        const filtered = await getFilteredCurrentWindowTabs();
+        const idx = filtered.findIndex(t => t.id === tabId);
+        if (idx !== -1 && filtered[idx].active) {
+          const replacement = filtered[idx + 1] || filtered[idx - 1];
+          if (replacement) {
+            const injected = await ensureContent(replacement.id);
+            if (injected) {
+              await chrome.tabs.sendMessage(replacement.id, { cmd: 'GLOBAL_CLICK_SUPPRESS' });
+              await chrome.storage.local.set({ tabstripForceOpen: 'reopen' });
+            } else {
+              await chrome.storage.local.set({ tabstripForceOpen: 'initial' });
+            }
+          }
+        }
+        await chrome.tabs.remove(tabId); // close after suppression
         sendResponse({ ok: true });
       } catch (e) {
         sendResponse({ ok: false, error: e?.message });
