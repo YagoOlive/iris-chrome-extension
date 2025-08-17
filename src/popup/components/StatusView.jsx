@@ -15,7 +15,7 @@ export default function StatusView({ onStop }) {
   const [clickAction, setClickAction] = useState('');
 
   const [clickAssist, setClickAssist] = useState(false);
-  const [clickTimeout, setClickTimeout] = useState(4000) // default: 4s
+  const [clickTimeout, setClickTimeout] = useState(1000) // default: 1s
   const [clickRadius, setClickRadius] = useState(100); // default: 100px
   const [clickRadiusError, setClickRadiusError] = useState(false);
   const [clickTimeoutError, setClickTimeoutError] = useState(false);
@@ -46,7 +46,7 @@ export default function StatusView({ onStop }) {
         if (clickAssist) setClickAssist(true);
         if (typeof clickTimeout === 'number') setClickTimeout(clickTimeout);
         if (typeof clickRadius === 'number') setClickRadius(clickRadius);
-        if (clickTimeout < 500 || clickTimeout > 10000) setClickTimeoutError(true);
+        if (clickTimeout < 100 || clickTimeout > 10000) setClickTimeoutError(true);
         if (clickRadius < 30 || clickRadius > 500) setClickRadiusError(true);
         if (dwellClick) setDwellClick(true);
         if (typeof dwellTime === 'number') setDwellTime(dwellTime);
@@ -99,7 +99,7 @@ export default function StatusView({ onStop }) {
     }
     const val = Number(e.target.value);
     setClickTimeout(val);
-    setClickTimeoutError(!(val >= 500 && val <= 10000));
+    setClickTimeoutError(!(val >= 100 && val <= 10000));
   };
 
   const handleClickRadiusChange = (e) => {
@@ -151,12 +151,12 @@ export default function StatusView({ onStop }) {
   useEffect(() => {
     const timeout = setTimeout(() => {
 
-      if (clickTimeout >= 500 && clickTimeout <= 10000) {
+      if (clickTimeout >= 100 && clickTimeout <= 10000) {
         chrome.storage.local.set({ clickTimeout: clickTimeout });
         chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', clickTimeout: clickTimeout });
       } else {
-        chrome.storage.local.set({ clickTimeout: 4000 }); // set to default click assist timeout of 4s
-        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', clickTimeout: 4000 });
+        chrome.storage.local.set({ clickTimeout: 1000 }); // set to default click assist timeout of 1s
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', clickTimeout: 1000 });
       }
     }, 500);
 
@@ -278,7 +278,7 @@ export default function StatusView({ onStop }) {
               </label>
               <input
                 type="number"
-                min="500"
+                min="100"
                 max="10000"
                 step="100"
                 value={clickTimeout}
@@ -289,7 +289,7 @@ export default function StatusView({ onStop }) {
             <div className="toggle-sub-setting-description">Cursor lock expiration time.</div>
             {clickTimeoutError && (
               <div className="validation-message">
-                Value must be between 500 and 10000 ms.
+                Value must be between 100 and 10000 ms.
               </div>
             )}
 
