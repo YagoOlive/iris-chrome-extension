@@ -2,8 +2,8 @@
 
 #ht-tabstrip {
   position: fixed;
-  left: 15vw;
-  width: 70vw;
+  left: 5vw;
+  width: 90vw;
   top: 22px;
   z-index: 2147483646; /* above everything */
   pointer-events: none; /* inert until visible */
