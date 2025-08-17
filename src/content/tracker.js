@@ -20,7 +20,7 @@ import getClickScore from './click-score';
   // Show the dwell ring only after this fraction of dwellTime has elapsed
   const DWELL_VISUAL_THRESHOLD = 0.40;
 
-  const TOP_TRIGGER_PX = 8; // tabstrip top edge trigger zone
+  const TOP_TRIGGER_PX = 0; // tabstrip top edge trigger zone
   const TABSTRIP_KEEP_ALIVE_PX = 100 // tabstrip remains open if cursor dwells within 100px of the top boundary
   const TABSTRIP_HIDE_DELAY = 2000; // ms until the tabstrip hides after leaving the keep alive zone
 
