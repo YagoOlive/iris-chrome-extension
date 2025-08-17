@@ -66,6 +66,7 @@
   transition: transform 120ms ease, background 120ms ease;
   flex: 1 1 0;
   min-width: 0;
+  position: relative;
 }
 
 #ht-tabstrip .ht-tab:hover,
@@ -98,21 +99,23 @@
   user-select: none;
 }
 
-/* #ht-tabstrip .ht-close-hit {
+#ht-tabstrip .ht-close-hit {
   position: absolute;
   top: 0;
   right: 0;
-  width: 30%;
+  width: 36px;
   height: 100%;
   background: transparent;
-} */
+}
 
-#ht-tabstrip .ht-close.ht-hover {
+#ht-tabstrip .ht-close.ht-hover,
+#ht-tabstrip .ht-close-hit.ht-hover + .ht-close {
   opacity: 1;
   color: red;
 }
 
-#ht-tabstrip .ht-close:hover {
+#ht-tabstrip .ht-close:hover,
+#ht-tabstrip .ht-close-hit:hover + .ht-close {
   opacity: 1;
   color: red;
 }

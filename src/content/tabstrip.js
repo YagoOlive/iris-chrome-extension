@@ -105,6 +105,13 @@
     btn.setAttribute('data-window-id', tab.windowId);
     btn.title = tab.title;
 
+    // invisible close hit target (right 30% of the tab)
+    const closeHit = document.createElement('span');
+    closeHit.className = 'ht-close-hit';
+    closeHit.setAttribute('data-close-id', tab.id);
+    closeHit.setAttribute('role', 'button');
+    closeHit.setAttribute('aria-hidden', 'true');
+
     const ico = document.createElement('img');
     ico.className = 'ht-favicon';
     if (tab.favIconUrl) {
@@ -122,13 +129,11 @@
 
     const close = document.createElement('span');
     close.className = 'ht-close';
-    close.setAttribute('data-close-id', tab.id);
-    close.setAttribute('role', 'button');
-    close.setAttribute('aria-label', 'Close tab');
     close.textContent = '×';
 
     btn.appendChild(ico);
     btn.appendChild(text);
+    btn.appendChild(closeHit);
     btn.appendChild(close);
     return btn;
   }
