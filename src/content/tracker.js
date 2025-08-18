@@ -251,6 +251,21 @@ import getClickScore from './click-score';
     }
   }
 
+  function cursorClick(candidateEl) {
+    if (!candidateEl) return;
+    if (candidateEl.tagName.toLowerCase() === 'textarea' ||
+      candidateEl.tagName.toLowerCase() === 'input') {
+      candidateEl.focus();
+      candidateEl.click();
+    } else {
+      candidateEl.click();
+    }
+    lastClickTime = Date.now();
+    showDwellRing(false);
+    dwellAnchorX = null;
+    dwellAnchorY = null;
+  }
+
   // ----- Click on facial expression ----------------------------------------------------
   function maybeClick(score) {
     const now = Date.now();
@@ -268,13 +283,7 @@ import getClickScore from './click-score';
         el = activeInteractiveEl; // honor the lock
       }
     }
-    if (el) {
-      el.click();
-      lastClickTime = now;
-      showDwellRing(false);
-      dwellAnchorX = null;
-      dwellAnchorY = null;
-    }
+    cursorClick(el);
   }
 
   function startDwell() {
@@ -326,12 +335,7 @@ import getClickScore from './click-score';
     if (p >= 1) {
       const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
       let el = nearestInteractive(candidate);
-
-      el?.click();
-
-      dwellAnchorX = null;
-      dwellAnchorY = null;
-      lastClickTime = now;
+      cursorClick(el);
     }
   }
 
