@@ -15,7 +15,7 @@ const icons = (() => {
     const g2 = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     const g3 = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 
-    if (d == PATHS.refresh || d == PATHS.search) {
+    if (d == PATHS.refresh) {
       g.setAttribute('id', 'SVGRepo_bgCarrier');
       g.setAttribute('stroke-width', '0');
       g2.setAttribute('id', 'SVGRepo_tracerCarrier');
@@ -39,7 +39,7 @@ const icons = (() => {
   const PATHS = {
     add: 'M12 5c.55 0 1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1z',
     close: 'M6.4 6.4c.39-.39 1.02-.39 1.41 0L12 10.59l4.19-4.19a1 1 0 1 1 1.41 1.41L13.41 12l4.19 4.19a1 1 0 1 1-1.41 1.41L12 13.41l-4.19 4.19a1 1 0 1 1-1.41-1.41L10.59 12 6.4 7.81a1 1 0 0 1 0-1.41z',
-    search: 'M14.9536 14.9458L21 21M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z',
+    search: 'M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99a1 1 0 1 0 1.41-1.41L15.5 14zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z',
     refresh: 'M21 3V8M21 8H16M21 8L18 5.29168C16.4077 3.86656 14.3051 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21C16.2832 21 19.8675 18.008 20.777 14',
     arrowBack: 'M20 11H7.83l5.59-5.59A1 1 0 1 0 12 4l-8 8 8 8a1 1 0 1 0 1.41-1.41L7.83 13H20a1 1 0 1 0 0-2z',
     arrowFwd: 'M4 13h12.17l-5.59 5.59A1 1 0 1 0 12 20l8-8-8-8a1 1 0 1 0-1.41 1.41L16.17 11H4a1 1 0 1 0 0 2z',
@@ -50,7 +50,7 @@ const icons = (() => {
   return {
     add: () => svg(PATHS.add),
     close: () => svg(PATHS.close),
-    search: () => svg(PATHS.search, { size: 15, fill: 'none' }),
+    search: () => svg(PATHS.search, { size: 18 }),
     refresh: () => svg(PATHS.refresh, { size: 15, fill: 'none' }),
     arrowBack: () => svg(PATHS.arrowBack, { size: 15 }),
     arrowForward: () => svg(PATHS.arrowFwd, { size: 15 }),
@@ -66,8 +66,8 @@ const icons = (() => {
   const HIDE_DELAY_DEFAULT = 2000;
   const TRANSITION_DELAY_DEFAULT = 1010;
 
-  let container, list, hideTimer;  
-  
+  let container, list, hideTimer;
+
   // let host, shadow;
 
   function ensureUI() {

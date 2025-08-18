@@ -209,6 +209,21 @@
 #ht-tabstrip .ht-nav.ht-hover { transform: translateY(-2px); }
 #ht-tabstrip .ht-nav.is-disabled { opacity: .35; pointer-events: none; }
 
+/* Center SVGs and prevent baseline drift */
+#ht-tabstrip svg { display: block; }
+
+/* Controls, nav, plus: always center contents */
+#ht-tabstrip .ht-ctrl,
+#ht-tabstrip .ht-omnibox .ht-go,
+#ht-tabstrip .ht-nav,
+#ht-tabstrip .ht-plus {
+  display: grid;
+  place-items: center;
+  line-height: 1; /* no baseline surprises */
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   #ht-tabstrip { transition: none; }
   #ht-tabstrip .ht-tab { transition: none; }
