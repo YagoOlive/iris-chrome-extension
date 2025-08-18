@@ -138,7 +138,9 @@ async function injectContent(tabId) {
     });
   } catch (err) {
     console.error(`Failed to inject content into tab ${tabId}:`, err);
+    return false;
   }
+  return true;
 }
 
 // utility: ensure the script is present *once* and return true if it was already there
@@ -233,6 +235,17 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
 //   }
 // }
 
+async function createNewTab() {
+  const created = await chrome.tabs.create({ url: 'https://www.google.com', active: true });
+  // Slide window to include the new rightmost tab
+  const filtered = await getFilteredCurrentWindowTabs();
+  const key = storageKeyForStart(created.windowId);
+  const maxStart = Math.max(0, filtered.length - 8);
+  await chrome.storage.local.set({ [key]: maxStart });
+  if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
+  return created;
+}
+
 // 3. On Message: Handle all communication
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
@@ -249,12 +262,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
-        const check = await ensureContent(tab.id); // inject only once
-        if (check) {
+        let check = null; // 0 = non-scriptable, 1 = first injection, 2 = already injected
+        try {
+          const res = await chrome.tabs.sendMessage(tab.id, { cmd: 'PING' });
+          if (res?.ok) check = 2; // already injected
+        } catch {
+          const injectable = await injectContent(tab.id);
+          check = injectable ? 1 : 0;
+        }
+        if (check === 2) {
           await chrome.tabs.sendMessage(tab.id, {
             cmd: 'START_TRACKING',
             config: msg.config,
           });
+        } else if (check === 0) {
+          // If user clicks "Start Tracking" on a non-scriptable tab, open a new tab for the user
+          await createNewTab();
         }
       }
       sendResponse({ ok: true, message: 'Tracking started.' });
@@ -418,13 +441,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     else if (msg.cmd === 'TABSTRIP_NEW_TAB') {
       try {
-        const created = await chrome.tabs.create({ url: 'https://www.google.com', active: true });
-        // Slide window to include the new rightmost tab
-        const filtered = await getFilteredCurrentWindowTabs();
-        const key = storageKeyForStart(created.windowId);
-        const maxStart = Math.max(0, filtered.length - 8);
-        await chrome.storage.local.set({ [key]: maxStart });
-        if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
+        const created = await createNewTab();
         sendResponse({ ok: true, tabId: created.id });
       } catch (e) {
         sendResponse({ ok: false, error: e?.message });
