@@ -47,8 +47,8 @@
       return b;
     };
     const backBtn = mkCtrl('ht-back', 'Go back', 'back', '←');
-    const fwdBtn  = mkCtrl('ht-fwd', 'Go forward', 'forward', '→');
-    const refBtn  = mkCtrl('ht-refresh', 'Refresh', 'reload', '⟳');
+    const fwdBtn = mkCtrl('ht-fwd', 'Go forward', 'forward', '→');
+    const refBtn = mkCtrl('ht-refresh', 'Refresh', 'reload', '⟳');
 
     const omni = document.createElement('form');
     omni.className = 'ht-omnibox';
@@ -257,6 +257,7 @@
       container.classList.add('is-visible');
       container.classList.remove('ht-hidden');
     }
+    container.querySelector('.ht-omnibox input')?.focus();
   }
 
   function hide(delay = HIDE_DELAY_DEFAULT, transitionTime = TRANSITION_DELAY_DEFAULT) {
@@ -268,6 +269,7 @@
       // let the transition play; then make it inert
       setTimeout(() => {
         if (state.tabstrip !== "reopen") {
+          container.querySelector('.ht-omnibox input')?.blur();
           container?.classList.add('ht-hidden');
           state.tabstrip = null;
         } else {
