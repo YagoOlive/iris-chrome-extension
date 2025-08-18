@@ -405,6 +405,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     else if (msg.cmd === 'TABSTRIP_NEW_TAB') {
       try {
         const created = await chrome.tabs.create({ url: 'https://www.google.com', active: true });
+        // Slide window to include the new rightmost tab
+        const filtered = await getFilteredCurrentWindowTabs();
+        const key = storageKeyForStart(created.windowId);
+        const maxStart = Math.max(0, filtered.length - 8);
+        await chrome.storage.local.set({ [key]: maxStart });
         sendResponse({ ok: true, tabId: created.id });
       } catch (e) {
         sendResponse({ ok: false, error: e?.message });
@@ -441,8 +446,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!activeTab?.id) return sendResponse({ ok: false, error: 'No active tab' });
 
         // soften any pending gesture click
-        try { 
-          await chrome.tabs.sendMessage(activeTab.id, { cmd: 'GLOBAL_CLICK_SUPPRESS' }); 
+        try {
+          await chrome.tabs.sendMessage(activeTab.id, { cmd: 'GLOBAL_CLICK_SUPPRESS' });
         } catch {
           /* Tab has no listener or is non-scriptable; ignore */
         }
