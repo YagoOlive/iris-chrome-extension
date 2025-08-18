@@ -526,6 +526,36 @@ import getClickScore from './click-score';
 
   chrome.runtime.onMessage.addListener(messageListener);
 
+  // --- BFCache / history navigation handling ---
+  // If the page is restored from BFCache, ports are closed and content scripts
+  // don't re-execute. Use pageshow to reconnect and restart tracking.
+  window.addEventListener('pageshow', (e) => {
+    // Back/forward restore or a BFCache restore (persisted = true)
+    const nav = performance.getEntriesByType('navigation')[0];
+    console.log(e);
+    console.log(nav);
+    const isBackForward =
+      (nav && nav.type === 'back_forward') || e.persisted === true;
+
+    if (isBackForward) {
+      lastClickTime = Date.now();
+      stopTracking();
+      chrome.storage.local.get(['config'], ({ config }) => {
+        if (config) startTracking(config);
+      });
+    }
+  });
+
+  // be explicit when we’re about to be BFCache’d
+  window.addEventListener('pagehide', (e) => {
+    if (e.persisted) {
+      try { port?.disconnect(); } catch { /* error during port disconnect */ }
+      // Flag so we can restart on pageshow
+      window.state.readyToTrack = false;
+    }
+  });
+
+
   // --- INITIALIZATION ---
   chrome.storage.local.get(['config'], ({ config }) => {
     if (config) {
