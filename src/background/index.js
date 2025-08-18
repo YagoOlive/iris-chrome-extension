@@ -16,6 +16,8 @@ const contentScriptPorts = new Map();
 let offscreenPort = null;
 let activeTabId = null;
 
+let tabstripStartKeys = [];
+
 // --- PORT MANAGEMENT ---
 
 chrome.runtime.onConnect.addListener((port) => {
@@ -272,6 +274,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       await chrome.storage.local.set({ isTrackingActive: false });
       const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
       for (const tab of tabs) await removeContent(tab.id);
+
+      // 3. Remove tabstripStart keys from chrome.storage.local
+      for (const key of tabstripStartKeys) {
+        await chrome.storage.local.remove(key);
+      }
+
+      tabstripStartKeys = [];
+
       sendResponse({ ok: true, message: 'Tracking stopped.' });
     }
     else if (msg.cmd === 'UPDATE_SETTINGS') {
@@ -333,7 +343,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       let start = typeof got[key] === 'number'
         ? clamp(got[key], 0, maxStart)
         : clamp(activeIdx - 4, 0, maxStart);
-      if (!(key in got)) await chrome.storage.local.set({ [key]: start });
+      if (!(key in got)) {
+        await chrome.storage.local.set({ [key]: start });
+        if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
+      }
       let end = Math.min(filtered.length, start + 9);
       if (end - start < 9) start = Math.max(0, end - 9);
 
@@ -364,6 +377,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const got = await chrome.storage.local.get(key);
       let start = clamp((typeof got[key] === 'number' ? got[key] : 0) + (dir === 'next' ? 9 : -9), 0, maxStart);
       await chrome.storage.local.set({ [key]: start });
+      if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
       let end = Math.min(filtered.length, start + 9);
       if (end - start < 9) start = Math.max(0, end - 9);
       const windowed = filtered.slice(start, end).map(t => ({
@@ -410,6 +424,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const key = storageKeyForStart(created.windowId);
         const maxStart = Math.max(0, filtered.length - 8);
         await chrome.storage.local.set({ [key]: maxStart });
+        if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
         sendResponse({ ok: true, tabId: created.id });
       } catch (e) {
         sendResponse({ ok: false, error: e?.message });
@@ -484,6 +499,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const key = storageKeyForStart(created.windowId);
         const maxStart = Math.max(0, filtered.length - 9);
         await chrome.storage.local.set({ [key]: maxStart });
+        if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
         await chrome.storage.local.set({ tabstripForceOpen: 'initial' });
 
         sendResponse({ ok: true, tabId: created.id });
