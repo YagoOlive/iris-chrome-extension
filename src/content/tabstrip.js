@@ -23,38 +23,78 @@
     const inner = document.createElement('div');
     inner.className = 'ht-tabstrip-inner';
 
-    const prev = document.createElement('button');
-    prev.className = 'ht-nav ht-prev';
-    prev.setAttribute('data-nav', 'prev');
-    prev.setAttribute('aria-label', 'Previous tabs');
-    prev.textContent = '‹';
-
-    const next = document.createElement('button');
-    next.className = 'ht-nav ht-next';
-    next.setAttribute('data-nav', 'next');
-    next.setAttribute('aria-label', 'Next tabs');
-    next.textContent = '›';
-
+    // Title
     const title = document.createElement('div');
     title.className = 'ht-tabstrip-title';
     title.textContent = 'Tabs';
 
+    // Row 1: tabs grid
     list = document.createElement('div');
     list.id = LIST_ID;
     list.className = 'ht-tabs';
 
+    // Row 2: nav + omnibox
+    const controls = document.createElement('div');
+    controls.className = 'ht-controls';
+
+    const mkCtrl = (cls, label, action, text) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `ht-ctrl ${cls}`;
+      b.setAttribute('data-action', action);
+      b.setAttribute('aria-label', label);
+      b.textContent = text;
+      return b;
+    };
+    const backBtn = mkCtrl('ht-back', 'Go back', 'back', '←');
+    const fwdBtn  = mkCtrl('ht-fwd', 'Go forward', 'forward', '→');
+    const refBtn  = mkCtrl('ht-refresh', 'Refresh', 'reload', '⟳');
+
+    const omni = document.createElement('form');
+    omni.className = 'ht-omnibox';
+    omni.setAttribute('data-omnibox', '1');
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Search or type a URL';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+
+    const go = document.createElement('button');
+    go.type = 'submit';
+    go.className = 'ht-go';
+    go.setAttribute('aria-label', 'Open in new tab');
+    go.textContent = '↵';
+
+    omni.appendChild(input);
+    omni.appendChild(go);
+
+    controls.appendChild(backBtn);
+    controls.appendChild(fwdBtn);
+    controls.appendChild(refBtn);
+    controls.appendChild(omni);
+
     inner.appendChild(title);
-    inner.append(prev);
     inner.appendChild(list);
-    inner.append(next);
+    inner.appendChild(controls);
     container.appendChild(inner);
     document.documentElement.appendChild(container);
 
     container.addEventListener('click', onClick, true);
+    container.addEventListener('submit', onSubmit, true);
+  }
+
+  function onSubmit(e) {
+    const form = e.target.closest('[data-omnibox]');
+    if (!form) return;
+    e.preventDefault();
+    const q = form.querySelector('input')?.value?.trim();
+    if (!q) return;
+    chrome.runtime.sendMessage({ cmd: 'TABSTRIP_OPEN_URL', q });
   }
 
   function onClick(e) {
-    // Paging
+    // Paging chevrons
     const nav = e.target.closest('[data-nav]');
     if (nav) {
       e.stopPropagation();
@@ -66,7 +106,16 @@
       return;
     }
 
-    // New tab
+    // Row 2: back/forward/reload
+    const ctrl = e.target.closest('[data-action]');
+    if (ctrl) {
+      e.stopPropagation();
+      const action = ctrl.getAttribute('data-action'); // 'back' | 'forward'| 'reload'
+      chrome.runtime.sendMessage({ cmd: 'TABSTRIP_NAVIGATE', action });
+      return;
+    }
+
+    // New tab (+)
     const newBtn = e.target.closest('[data-new-tab]');
     if (newBtn) {
       e.stopPropagation();
@@ -74,7 +123,7 @@
       return;
     }
 
-    // Close button
+    // Close button (expanded hit target)
     const closeBtn = e.target.closest('[data-close-id]');
     if (closeBtn) {
       e.stopPropagation();
@@ -140,10 +189,15 @@
 
   function render(tabs, activeTabId) {
     list.replaceChildren();
+
+    // Chevrons sit outside the tabs row; ensure they exist
+    ensureChevrons();
+
     tabs.forEach(t => {
       list.appendChild(tabItemTemplate(t, t.id === activeTabId));
     });
-    // add a '+' new tab button at the end
+
+    // '+' new tab button at the end (fixed width)
     const plus = document.createElement('button');
     plus.type = 'button';
     plus.className = 'ht-tab ht-plus';
@@ -151,6 +205,28 @@
     plus.setAttribute('aria-label', 'Open new tab');
     plus.textContent = '+';
     list.appendChild(plus);
+  }
+
+  function ensureChevrons() {
+    if (!container) return;
+    let prev = container.querySelector('.ht-prev');
+    let next = container.querySelector('.ht-next');
+    if (!prev) {
+      prev = document.createElement('button');
+      prev.className = 'ht-nav ht-prev';
+      prev.setAttribute('data-nav', 'prev');
+      prev.setAttribute('aria-label', 'Previous tabs');
+      prev.textContent = '‹';
+      container.querySelector('.ht-tabstrip-inner')?.append(prev);
+    }
+    if (!next) {
+      next = document.createElement('button');
+      next.className = 'ht-nav ht-next';
+      next.setAttribute('data-nav', 'next');
+      next.setAttribute('aria-label', 'Next tabs');
+      next.textContent = '›';
+      container.querySelector('.ht-tabstrip-inner')?.append(next);
+    }
   }
 
   function update() {
@@ -174,9 +250,8 @@
     update();
     if (animation) {
       container.classList.remove('ht-hidden');
-      container.classList.remove('is-visible'); // ensure starting state
-      // force a reflow so the transition triggers
-      void container.offsetWidth; // ← magic: reads layout, flushes styles
+      container.classList.remove('is-visible');
+      void container.offsetWidth;
       container.classList.add('is-visible');
     } else {
       container.classList.add('is-visible');
@@ -209,6 +284,6 @@
     list = null;
   }
 
-  // Expose a tiny control surface for tracker.js
+  // Expose controls
   window.HTTabstrip = { show, hide, destroy };
 })();

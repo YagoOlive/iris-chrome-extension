@@ -434,6 +434,58 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ ok: false, error: e?.message });
       }
     }
+    else if (msg.cmd === 'TABSTRIP_NAVIGATE') {
+      try {
+        const { action } = msg; // 'back' | 'forward' | 'reload'
+        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!activeTab?.id) return sendResponse({ ok: false, error: 'No active tab' });
+
+        // soften any pending gesture click
+        try { 
+          await chrome.tabs.sendMessage(activeTab.id, { cmd: 'GLOBAL_CLICK_SUPPRESS' }); 
+        } catch {
+          /* Tab has no listener or is non-scriptable; ignore */
+        }
+
+        if (action === 'back') {
+          await chrome.tabs.goBack(activeTab.id);
+        } else if (action === 'forward') {
+          await chrome.tabs.goForward(activeTab.id);
+        } else if (action === 'reload') {
+          await chrome.tabs.reload(activeTab.id);
+        }
+        // keep the island visible after nav
+        // await chrome.storage.local.set({ tabstripForceOpen: 'reopen' });
+        sendResponse({ ok: true });
+      } catch (e) {
+        // No-op if back/forward not available; API simply rejects.
+        sendResponse({ ok: false, error: e?.message });
+      }
+    }
+    else if (msg.cmd === 'TABSTRIP_OPEN_URL') {
+      try {
+        const q = (msg.q || '').trim();
+        if (!q) return sendResponse({ ok: false, error: 'Empty query' });
+
+        // URL heuristics → otherwise Google search
+        const looksURL = /^(https?:|file:)/i.test(q) || (/^[\w-]+(\.[\w-]+)+([/?#].*)?$/i.test(q) && !/\s/.test(q));
+        const finalUrl = looksURL ? (/^(https?:|file:)/i.test(q) ? q : `https://${q}`)
+          : `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+
+        const created = await chrome.tabs.create({ url: finalUrl, active: true });
+
+        // Slide to show the brand new tab at the far right
+        const filtered = await getFilteredCurrentWindowTabs();
+        const key = storageKeyForStart(created.windowId);
+        const maxStart = Math.max(0, filtered.length - 9);
+        await chrome.storage.local.set({ [key]: maxStart });
+        await chrome.storage.local.set({ tabstripForceOpen: 'initial' });
+
+        sendResponse({ ok: true, tabId: created.id });
+      } catch (e) {
+        sendResponse({ ok: false, error: e?.message });
+      }
+    }
   })();
   return true;
 });

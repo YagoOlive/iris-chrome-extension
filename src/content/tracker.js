@@ -21,7 +21,7 @@ import getClickScore from './click-score';
   const DWELL_VISUAL_THRESHOLD = 0.40;
 
   const TOP_TRIGGER_PX = 0; // tabstrip top edge trigger zone
-  const TABSTRIP_KEEP_ALIVE_PX = 100 // tabstrip remains open if cursor dwells within 100px of the top boundary
+  const TABSTRIP_KEEP_ALIVE_PX = 112 // tabstrip remains open if cursor dwells within 112px of the top boundary
   const TABSTRIP_HIDE_DELAY = 2000; // ms until the tabstrip hides after leaving the keep alive zone
 
   let sprite = null;
