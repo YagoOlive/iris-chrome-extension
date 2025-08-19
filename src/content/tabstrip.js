@@ -15,7 +15,7 @@ const icons = (() => {
     const g2 = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     const g3 = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 
-    if (d == PATHS.refresh) {
+    if (d == PATHS.refresh || d == PATHS.chevronL || d == PATHS.chevronR) {
       g.setAttribute('id', 'SVGRepo_bgCarrier');
       g.setAttribute('stroke-width', '0');
       g2.setAttribute('id', 'SVGRepo_tracerCarrier');
@@ -43,8 +43,8 @@ const icons = (() => {
     refresh: 'M21 3V8M21 8H16M21 8L18 5.29168C16.4077 3.86656 14.3051 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21C16.2832 21 19.8675 18.008 20.777 14',
     arrowBack: 'M20 11H7.83l5.59-5.59A1 1 0 1 0 12 4l-8 8 8 8a1 1 0 1 0 1.41-1.41L7.83 13H20a1 1 0 1 0 0-2z',
     arrowFwd: 'M4 13h12.17l-5.59 5.59A1 1 0 1 0 12 20l8-8-8-8a1 1 0 1 0-1.41 1.41L16.17 11H4a1 1 0 1 0 0 2z',
-    chevronL: 'M15.41 16.59 10.83 12l4.58-4.59A1 1 0 0 0 14 6l-6 6 6 6a1 1 0 1 0 1.41-1.41z',
-    chevronR: 'M8.59 7.41 13.17 12l-4.58 4.59A1 1 0 1 0 10 18l6-6-6-6A1 1 0 1 0 8.59 7.41z',
+    chevronL: 'M15 6L9 12L15 18',
+    chevronR: 'M9 6L15 12L9 18',
     plus: 'M12 5c.55 0 1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1z',
   };
   return {
@@ -54,8 +54,8 @@ const icons = (() => {
     refresh: () => svg(PATHS.refresh, { size: 15, fill: 'none' }),
     arrowBack: () => svg(PATHS.arrowBack, { size: 15 }),
     arrowForward: () => svg(PATHS.arrowFwd, { size: 15 }),
-    chevronL: () => svg(PATHS.chevronL),
-    chevronR: () => svg(PATHS.chevronR),
+    chevronL: () => svg(PATHS.chevronL, { size: 14, fill: 'none'}),
+    chevronR: () => svg(PATHS.chevronR, { size: 14, fill: 'none'}),
     plus: () => svg(PATHS.plus, { size: 18 }),
   };
 })();
