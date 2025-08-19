@@ -240,7 +240,7 @@ const icons = (() => {
     btn.setAttribute('data-window-id', tab.windowId);
     btn.title = tab.title;
 
-    // invisible close hit target (right 30% of the tab)
+    // invisible close hit target (right 36px of the tab)
     const closeHit = document.createElement('span');
     closeHit.className = 'ht-close-hit';
     closeHit.setAttribute('data-close-id', tab.id);

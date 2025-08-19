@@ -292,7 +292,7 @@ import getClickScore from './click-score';
     if (state.config.clickAssist && activeInteractiveEl) {
       const dx = state.cursorX - anchorX;
       const dy = state.cursorY - anchorY;
-      if (Math.hypot(dx, dy) <= state.config.clickAssistRadius) {
+      if (Math.hypot(dx, dy) <= state.config.clickAssistRadius && now - lockStartTime < state.config.clickAssistTimeout) {
         el = activeInteractiveEl; // honor the lock
       }
     }
@@ -356,7 +356,10 @@ import getClickScore from './click-score';
     'a[href], button, input, select, textarea, label, [role="button"], [onclick]';
 
   function nearestInteractive(el) {
-    return el?.closest(INTERACTIVE_SEL) || el;   // falls back to the raw element
+    if (!el) return null;
+    const close = el.closest('.ht-close-hit'); // Edge Case #1: Hovering over close button on a tab
+    if (close) return close; // promote close target above the tab button
+    return el.closest(INTERACTIVE_SEL) || el; // falls back to the raw element
   }
 
   function recordLock() {
@@ -381,12 +384,20 @@ import getClickScore from './click-score';
       if (activeInteractiveEl && isInteractive && candidateInteractive === activeInteractiveEl) {
         recordLock();
       } else if (activeInteractiveEl) { // exited the interactive element ⇒ check if still in click radius buffer and time has not expired
-        const dx = state.cursorX - anchorX;
-        const dy = state.cursorY - anchorY;
-        if (Math.hypot(dx, dy) <= state.config.clickAssistRadius && now - lockStartTime < state.config.clickAssistTimeout) {
-          el = activeInteractiveEl; // stay locked
+
+        // Edge Case: If the pointer is over the .ht-close-hit button, prioritize switching into it.
+        if (candidateInteractive?.matches?.('.ht-close-hit') && now - lockStartTime > 250) {
+          activeInteractiveEl = candidateInteractive;
+          recordLock();
+          el = activeInteractiveEl;
         } else {
-          activeInteractiveEl = null; // radius broken ⇒ unlock
+          const dx = state.cursorX - anchorX;
+          const dy = state.cursorY - anchorY;
+          if (Math.hypot(dx, dy) <= state.config.clickAssistRadius && now - lockStartTime < state.config.clickAssistTimeout) {
+            el = activeInteractiveEl; // stay locked
+          } else {
+            activeInteractiveEl = null; // radius broken ⇒ unlock
+          }
         }
       }
 

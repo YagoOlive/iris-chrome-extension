@@ -223,7 +223,6 @@
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
 
-
 @media (prefers-reduced-motion: reduce) {
   #ht-tabstrip { transition: none; }
   #ht-tabstrip .ht-tab { transition: none; }
