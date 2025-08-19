@@ -68,34 +68,34 @@ const icons = (() => {
 
   let container, list, hideTimer;
 
-  // let host, shadow;
+  let host, shadow;
 
   function ensureUI() {
-    if (document.getElementById(CONTAINER_ID)) {
-      container = document.getElementById(CONTAINER_ID);
-      list = document.getElementById(LIST_ID);
+    if (host?.isConnected) {
+      container = shadow.getElementById(CONTAINER_ID);
+      list = shadow.getElementById(LIST_ID);
       return;
     }
 
-    // // Create a host in the page and attach a shadow root
-    // host = document.createElement('div');
-    // host.id = 'ht-tabstrip-host';
-    // // Keep host out of layout flow and above everything
-    // host.style.position = 'fixed';
-    // host.style.zIndex = '2147483647';
-    // host.style.left = '0';
-    // host.style.top = '0';
-    // host.style.width = '0';
-    // host.style.height = '0';
-    // document.documentElement.appendChild(host);
+    // Create a host in the page and attach a shadow root
+    host = document.createElement('div');
+    host.id = 'ht-tabstrip-host';
+    // Keep host out of layout flow and above everything
+    host.style.position = 'fixed';
+    host.style.zIndex = '2147483646';
+    host.style.left = '0';
+    host.style.top = '0';
+    host.style.width = '0';
+    host.style.height = '0';
+    document.documentElement.appendChild(host);
 
-    // shadow = host.attachShadow({ mode: 'open' });
+    shadow = host.attachShadow({ mode: 'open' });
 
-    // // Load the tabstrip CSS inside the shadow (prevents page CSS bleed)
-    // const link = document.createElement('link');
-    // link.rel = 'stylesheet';
-    // link.href = chrome.runtime.getURL('content/tabstrip.css');
-    // shadow.appendChild(link);
+    // Load the tabstrip CSS inside the shadow (prevents page CSS bleed)
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = chrome.runtime.getURL('content/tabstrip.css');
+    shadow.appendChild(link);
 
     // Build the UI in the shadow
     container = document.createElement('div');
@@ -163,8 +163,7 @@ const icons = (() => {
     inner.appendChild(list);
     inner.appendChild(controls);
     container.appendChild(inner);
-    document.documentElement.appendChild(container);
-    // shadow.appendChild(container);
+    shadow.appendChild(container);
 
     // Events on the shadow root
     container.addEventListener('click', onClick, true);

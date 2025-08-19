@@ -266,6 +266,19 @@ import getClickScore from './click-score';
     dwellAnchorY = null;
   }
 
+  // Returns the deepest element at (x,y), descending into any shadow roots.
+  function elementFromPointDeep(x, y, root = document) {
+    let el = root.elementFromPoint(x, y);
+    // Descend through nested shadow roots, if any
+    while (el && el.shadowRoot) {
+      const next = el.shadowRoot.elementFromPoint(x, y);
+      if (!next || next === el) break;
+      el = next;
+    }
+    return el;
+  }
+
+
   // ----- Click on facial expression ----------------------------------------------------
   function maybeClick(score) {
     const now = Date.now();
@@ -273,7 +286,7 @@ import getClickScore from './click-score';
     if (now - lastClickTime < CLICK_COOLDOWN) return;
 
     // ① find element under the virtual cursor
-    const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
+    const candidate = elementFromPointDeep(state.cursorX, state.cursorY);
     let el = nearestInteractive(candidate);
 
     if (state.config.clickAssist && activeInteractiveEl) {
@@ -333,7 +346,7 @@ import getClickScore from './click-score';
     }
 
     if (p >= 1) {
-      const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
+      const candidate = elementFromPointDeep(state.cursorX, state.cursorY);
       let el = nearestInteractive(candidate);
       cursorClick(el);
     }
@@ -354,7 +367,7 @@ import getClickScore from './click-score';
 
   // ----- Hover-Effect ----------------------------------------------------
   function updateHover() {
-    const candidate = document.elementFromPoint(state.cursorX, state.cursorY);
+    const candidate = elementFromPointDeep(state.cursorX, state.cursorY);
     const candidateInteractive = nearestInteractive(candidate);
     let el = candidateInteractive;
 
