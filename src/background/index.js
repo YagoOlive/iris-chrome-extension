@@ -235,14 +235,18 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
 //   }
 // }
 
-async function createNewTab() {
-  const created = await chrome.tabs.create({ url: 'https://www.google.com', active: true });
+async function slideTabWindowRight(created) {
   // Slide window to include the new rightmost tab
   const filtered = await getFilteredCurrentWindowTabs();
   const key = storageKeyForStart(created.windowId);
   const maxStart = Math.max(0, filtered.length - 8);
   await chrome.storage.local.set({ [key]: maxStart });
   if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
+}
+
+async function createNewTab() {
+  const created = await chrome.tabs.create({ url: 'https://www.google.com', active: true });
+  await slideTabWindowRight(created);
   return created;
 }
 
@@ -512,12 +516,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const created = await chrome.tabs.create({ url: finalUrl, active: true });
 
         // Slide to show the brand new tab at the far right
-        const filtered = await getFilteredCurrentWindowTabs();
-        const key = storageKeyForStart(created.windowId);
-        const maxStart = Math.max(0, filtered.length - 9);
-        await chrome.storage.local.set({ [key]: maxStart });
-        if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
-        await chrome.storage.local.set({ tabstripForceOpen: 'initial' });
+        await slideTabWindowRight(created);
 
         sendResponse({ ok: true, tabId: created.id });
       } catch (e) {
