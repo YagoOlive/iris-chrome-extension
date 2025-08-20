@@ -377,10 +377,14 @@ const icons = (() => {
   }
 
   function destroy() {
+    hide(0, 0);
     clearTimeout(hideTimer);
     container?.remove();
     container = null;
     list = null;
+    host?.remove();
+    shadow = null;
+    host = null;
   }
 
   // Expose controls
