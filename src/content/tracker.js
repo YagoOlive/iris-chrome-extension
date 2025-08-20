@@ -49,10 +49,55 @@ import getClickScore from './click-score';
   let dwellProg = null;
   let dwellCircumference = 0;
 
+  let waitRing = null;
+  let waitTrack = null;
+
   // Create element to remove/restore the default cursor
   const style = document.createElement('style');
   // Append it into <head> (or document.documentElement for document_start)
   (document.head || document.documentElement).appendChild(style);
+
+  function createWaitRing() {
+    if (waitRing) return;
+
+    waitRing = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    waitRing.setAttribute("class", "wait-ring");
+    waitRing.setAttribute("viewBox", "0 0 18 18");
+    waitRing.style.overflow = 'visible';
+
+    waitTrack = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    waitTrack.setAttribute("class", "wait-track");
+    waitTrack.setAttribute("cx", "9");
+    waitTrack.setAttribute("cy", "9");
+    waitTrack.setAttribute("r", "4");
+
+    const spinningArc = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    spinningArc.setAttribute("class", "spinner");
+    spinningArc.setAttribute("cx", "9");
+    spinningArc.setAttribute("cy", "9");
+    spinningArc.setAttribute("r", "4");
+
+    waitRing.appendChild(waitTrack);
+    waitRing.appendChild(spinningArc);
+    sprite.appendChild(waitRing);
+  }
+
+  function showWait() {
+    sprite?.classList.add('is-waiting');
+    window.state.loading = true;
+  }
+
+  function hideWait() {
+    sprite?.classList.remove('is-waiting');
+    window.state.loading = false;
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') hideWait();
+  });
+
+  // Expose a tiny API for the tabstrip/content code
+  window.HTCursor = { showWait, hideWait };
 
   function createDwellRing() {
     if (dwellRing) return;
@@ -120,6 +165,7 @@ import getClickScore from './click-score';
     sprite.appendChild(notch);
 
     createDwellRing();
+    createWaitRing();
 
     // Round for display
     const roundedX = Math.round(window.innerWidth / 2);
@@ -154,6 +200,7 @@ import getClickScore from './click-score';
 
   function startTracking(config) {
     createSprite();
+    hideWait();
     connectPort();
     initConfig(config);
     // If background requested a sticky-open (e.g., after tab-switch/new tab)
@@ -251,15 +298,79 @@ import getClickScore from './click-score';
     }
   }
 
+  // --- Click synthesis that behaves like a human click (crossing shadow DOM) ---
+  function dispatchPointer(type, x, y, target) {
+    const ev = new PointerEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      pointerId: 1,
+      pointerType: 'mouse',
+      isPrimary: true,
+      clientX: x,
+      clientY: y,
+      buttons: type === 'pointerdown' ? 1 : 0,
+    });
+    return target.dispatchEvent(ev);
+  }
+
+  function dispatchMouse(type, x, y, target) {
+    const ev = new MouseEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      view: window,
+      clientX: x,
+      clientY: y,
+      button: 0
+    });
+    return target.dispatchEvent(ev);
+  }
+
+  /**
+   * Simulate a "real" left click: pointerdown → mousedown → pointerup → mouseup → click.
+   * Returns true if the final click's default was NOT prevented.
+   */
+  function synthesizeHumanClick(target, x, y) {
+    // order matters
+    dispatchPointer('pointerover', x, y, target);
+    dispatchMouse('mouseover', x, y, target);
+    dispatchPointer('pointerenter', x, y, target);
+    dispatchMouse('mouseenter', x, y, target);
+
+    dispatchPointer('pointerdown', x, y, target);
+    dispatchMouse('mousedown', x, y, target);
+    dispatchPointer('pointerup', x, y, target);
+    dispatchMouse('mouseup', x, y, target);
+
+    const clickEv = new MouseEvent('click', {
+      bubbles: true, cancelable: true, composed: true, view: window,
+      clientX: x, clientY: y, button: 0
+    });
+    return target.dispatchEvent(clickEv); // false => defaultPrevented
+  }
+
+
   function cursorClick(candidateEl) {
-    if (!candidateEl) return;
-    if (candidateEl.tagName.toLowerCase() === 'textarea' ||
-      candidateEl.tagName.toLowerCase() === 'input') {
+    if (!candidateEl || state.loading) return;
+
+    // Input fields require focus + click
+    const tag = candidateEl.tagName?.toLowerCase?.();
+    if (tag === 'textarea' || tag === 'input') {
       candidateEl.focus();
-      candidateEl.click();
-    } else {
-      candidateEl.click();
     }
+
+    // Fire a realistic click sequence with coordinates so default navigation happens
+    synthesizeHumanClick(candidateEl, state.cursorX, state.cursorY);
+
+    // if (candidateEl.tagName.toLowerCase() === 'textarea' ||
+    //   candidateEl.tagName.toLowerCase() === 'input') {
+    //   candidateEl.focus();
+    //   candidateEl.click();
+    // } else {
+    //   candidateEl.click();
+    // }
+
     lastClickTime = Date.now();
     showDwellRing(false);
     dwellAnchorX = null;
@@ -308,7 +419,7 @@ import getClickScore from './click-score';
   }
 
   function handleDwellClick() {
-    if (!state.config.dwellClick || !window.state.readyToTrack || state.boundaryTimer) {
+    if (!state.config.dwellClick || !window.state.readyToTrack || state.boundaryTimer || state.loading) {
       showDwellRing(false);
       return;
     }
@@ -370,6 +481,7 @@ import getClickScore from './click-score';
 
   // ----- Hover-Effect ----------------------------------------------------
   function updateHover() {
+    if (state.loading) return;
     const candidate = elementFromPointDeep(state.cursorX, state.cursorY);
     const candidateInteractive = nearestInteractive(candidate);
     let el = candidateInteractive;

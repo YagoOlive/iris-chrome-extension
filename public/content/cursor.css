@@ -94,6 +94,8 @@ a.ht-hover {
   --dwell-track: rgba(0, 0, 0, 0.25);
   --dwell-progress: rgb(253, 194, 3);
   --dwell-near-done: #f80c8e;
+  --wait-track:  #0373f3;
+  --wait-stroke: #06f3fb;
 }
 
 #ht-cursor .dwell-ring circle.track {
@@ -110,3 +112,42 @@ a.ht-hover {
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
 }
+
+/* --- Wait spinner --- */
+#ht-cursor .wait-ring {
+  position: absolute;
+  left: -8px;
+  top: -9px;
+  width: 32px;
+  height: 32px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  overflow: visible;
+}
+
+#ht-cursor.is-waiting .wait-ring { opacity: 1; }
+
+#ht-cursor.is-waiting .cursor-inner,
+#ht-cursor.is-waiting .cursor-notch,
+#ht-cursor.is-waiting .dwell-ring { opacity: 0; }
+
+#ht-cursor .wait-ring .wait-track {
+  fill: none;
+  stroke: var(--wait-track, #0373f3);
+  stroke-linecap: round;
+  stroke-width: 3.0;
+}
+
+#ht-cursor .wait-ring .spinner {
+  fill: none;
+  stroke: var(--wait-stroke, #0373f3);
+  stroke-linecap: round;
+  stroke-width: 2.5;
+  stroke-dasharray: 25.12;
+  stroke-dashoffset: 20;
+  animation: ht-spin 1s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes ht-spin { to { transform: rotate(360deg); } }

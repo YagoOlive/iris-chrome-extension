@@ -54,8 +54,8 @@ const icons = (() => {
     refresh: () => svg(PATHS.refresh, { size: 15, fill: 'none' }),
     arrowBack: () => svg(PATHS.arrowBack, { size: 15 }),
     arrowForward: () => svg(PATHS.arrowFwd, { size: 15 }),
-    chevronL: () => svg(PATHS.chevronL, { size: 14, fill: 'none'}),
-    chevronR: () => svg(PATHS.chevronR, { size: 14, fill: 'none'}),
+    chevronL: () => svg(PATHS.chevronL, { size: 14, fill: 'none' }),
+    chevronR: () => svg(PATHS.chevronR, { size: 14, fill: 'none' }),
     plus: () => svg(PATHS.plus, { size: 18 }),
   };
 })();
@@ -69,6 +69,13 @@ const icons = (() => {
   let container, list, hideTimer;
 
   let host, shadow;
+
+  function showWait() {
+    try {
+      window.HTCursor?.showWait?.();
+    } catch { /* error during call */ }
+  }
+
 
   function ensureUI() {
     if (host?.isConnected) {
@@ -205,6 +212,7 @@ const icons = (() => {
     const newBtn = e.target.closest('[data-new-tab]');
     if (newBtn) {
       e.stopPropagation();
+      showWait();
       chrome.runtime.sendMessage({ cmd: 'TABSTRIP_NEW_TAB' });
       return;
     }
@@ -214,6 +222,8 @@ const icons = (() => {
     if (closeBtn) {
       e.stopPropagation();
       const id = Number(closeBtn.getAttribute('data-close-id'));
+      const closingActive = !!closeBtn.closest('.ht-tab')?.classList.contains('is-active');
+      if (closingActive) showWait();
       chrome.runtime.sendMessage({ cmd: 'TABSTRIP_CLOSE', tabId: id }, () => {
         // optimistically remove item, then re-query to sync
         closeBtn.closest('.ht-tab')?.remove();
@@ -228,6 +238,7 @@ const icons = (() => {
       e.stopPropagation();
       const id = Number(tabBtn.getAttribute('data-tab-id'));
       const winId = Number(tabBtn.getAttribute('data-window-id'));
+      if (!tabBtn.classList.contains('is-active')) showWait();
       chrome.runtime.sendMessage({ cmd: 'TABSTRIP_ACTIVATE', tabId: id, windowId: winId });
     }
   }

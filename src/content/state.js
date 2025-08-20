@@ -5,6 +5,9 @@ window.initializeState = function () {
       // Calibration state
       readyToTrack: false,
 
+      // Wait state (disable/enable cursor click)
+      loading: false,
+
       // Tabstrip state
       tabstrip: null, // "open" | "inactive" | "closing" | "reopen" | null
 
