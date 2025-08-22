@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.0 (2025-08-22)
+
+Full Changelog: [v0.4.0...v0.5.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.4.0...v0.5.0)
+
+### Features:
+- **Click Assist:** Updated the default clickAssistTimeout setting from 2s -> 1s, updated the range of accepted values of clickAssistTimeout from 500ms - 10000ms to 100ms - 10000ms.
+- **Dwell Click:** Updated the default dwellTime setting from 1s -> 4s and the default dwellArea setting from 20px -> 40px.
+- **NEW Custom Tabstrip:** A new custom tabstrip UI injected into each webpage was created to allow for an even more hands-free experience for the user. The custom tabstrip has two rows, just like the Chrome Browser:
+  - **First row:** The tabstrip displays all of the current active tabs open in the current window, allowing the user to switch between tabs, close specific tabs, and open a new tab. If the user clicks on the new tab button, the browser automatically loads up www.google.com in a new tab.
+    - **Note:** Switching and closing tabs may take a few seconds to finish. To alert the user that the background is processing a tab change/close, the head-tracking cursor will be replaced with a waiting ring, disabling all further interactivity with the webpage until the request is complete.
+  - **Second row:** The tabstrip displays “Go back”, “Go Forward”, and “Reload this page” buttons that allow the user to programmatically go back/forward in the browser tab session history, as well as refresh the page without needing to move the actual cursor to the real chrome tabstrip. It also has an input text bar that allows the user to type a url/query (automatically focused when the tabstrip opens). Hitting “Enter” or clicking on the search button opens a new tab with the search results or webpage of the url, depending on if the user entered a url or a search query.
+- **Trigger Tabstrip Zone:** To show the tabstrip, move the cursor to the top of the screen and hit the top boundary. This will prompt the custom tabstrip to come down, allowing you to interact with it. While the cursor is near the tabstrip, it will remain open. To have the tabstrip retract back to its hidden state, move the cursor away from the top of the screen and wait for 2-4 seconds.
+- **Tabs Displayed in Tabstrip:** To prevent overflow of too many tabs being displayed at once, a maximum of 9 tabs will be shown in the custom tabstrip at any time. If there are less than 9 tabs, each tab will expand to take up the remaining space, dynamically taking up the entire width of the tabstrip.
+- **More than 9 tabs?** In the case that the user has more than 9 tabs open, two “prev/next” buttons on the ends of the tabstrip will be enabled, allowing the user to move between windows of “9 tabs”. This ensures that the user can still access any tab as needed. However, it is not recommended to have more than 9 tabs at once to improve performance.
+- **Initialization:** If the user starts the head-tracking process on a page that is non-scriptable (e.g. the default new tab page in the Chrome Browser or anything that starts with chrome://, chrome-extension://), a new tab with www.google.com will be opened automatically.
+- The system-level cursor is no longer hidden from the page to allow for the user to regain control of the actual cursor at any time.
+
+### Bug Fixes:
+- Fixed a bug where clicking on inputs or text boxes with the head-tracking cursor would not do anything because the element needed to be focused beforehand.
+- Fixed a bug where clicking on the “go back” or “go forward” buttons would cause the entire tracking process to halt, due to the port -> background script connection not being reconnected properly.
+
 ## 0.4.0 (2025-08-14)
 
 Full Changelog: [v0.3.0...v0.4.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.3.0...v0.4.0)
