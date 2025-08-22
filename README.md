@@ -68,6 +68,27 @@ To try the Chrome Extension locally:
 - The cursor will be highlighted green every time it hovers over a clickable element in the page.
 - You can perform a specific facial gesture (configured in tracking settings, see below) to perform a left-click, or turn on dwell click.
 
+### Custom Tabstrip
+
+Because the head-tracked cursor cannot interact with Chrome’s native tabstrip (due to browser security restrictions), the extension provides its own custom tabstrip for seamless, hands-free tab management.
+
+- **Show the tabstrip:** Move the cursor to the very top edge of the page. The tabstrip will appear and automatically hide after 2 seconds of inactivity.
+- **Mangage Tabs**:
+  - Open new tabs
+  - Switch between tabs
+  - Close tabs
+- **Tab limits:** The tabstrip displays up to a maximum of **9 tabs** at once. If more are open, use the paging arrows on either side to view the next/previous set of tabs.
+  
+    ⚠️ For best performance, it is not recommended to have more than 9 tabs open at once.
+  
+- **Navigation controls:** Use the built-in Back and Forward buttons on the custom tabstrip.
+
+    ❗Clicks using the head-tracking cursor may not register on Chrome’s native back/forward buttons.
+
+- **Search**: Use the input box to type a search query or a website address.
+  - Press <kbd>Enter</kbd> or click the **Search** icon.
+  - A new tab will open with either search results (if you typed a query) or the requested website.
+
 ### ⚙️ Settings
 
 Open the popup again while tracking will to configure the following:
@@ -91,10 +112,14 @@ Open the popup again while tracking will to configure the following:
     Helps reduce accidental cursor drift during a facial gesture. Once you have entered an interactive element, “Click Assist” locks the cursor to it, even if you move away from it (up to a certain distance and time). Allows for two additional configurable settings:
 
       - Click Assist Radius (in pixels):
-        The distance from the element in which the cursor will remain locked (30-500px).
+        The distance from the element in which the cursor will remain locked (30–500px). 
+       
+        **Default:** 100px
       
       - Click Assist Timeout (in milliseconds):
-        The amount of time the cursor will remain locked after leaving the element (0.5-10 seconds).
+        The amount of time the cursor will remain locked after leaving the element (0.1–10 seconds). 
+        
+        **Default:** 1s
     
 4. ⏱️ Dwell Click 
 
@@ -103,8 +128,12 @@ Open the popup again while tracking will to configure the following:
       - Dwell Area (in pixels):
         Allowed movement range while dwelling (3–100 px). Enables clicks without needing the cursor to be perfectly still.
 
+        **Default:** 40px
+
       - Dwell Time (in milliseconds):
         Time to remain within the dwell area before clicking (300–5000 ms).
+
+        **Default:** 4s
 
     Once 40% of the dwell time has elapsed, a visual progress ring indicator will show the time remaining until a click is triggered.
 

@@ -21,6 +21,10 @@ Full Changelog: [v0.4.0...v0.5.0](https://github.com/thshao2/head-tracking-chrom
 - Fixed a bug where clicking on inputs or text boxes with the head-tracking cursor would not do anything because the element needed to be focused beforehand.
 - Fixed a bug where clicking on the “go back” or “go forward” buttons would cause the entire tracking process to halt, due to the port -> background script connection not being reconnected properly.
 
+### Documentation
+- Update README.md to include new defaults for click assist timeout, dwell time, and dwell area settings. 
+- Update the _Usage_ section in the README.md to include details about the new custom tabstrip provided by the extension.
+
 ## 0.4.0 (2025-08-14)
 
 Full Changelog: [v0.3.0...v0.4.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.3.0...v0.4.0)
