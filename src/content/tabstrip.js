@@ -76,7 +76,6 @@ const icons = (() => {
     } catch { /* error during call */ }
   }
 
-
   function ensureUI() {
     if (host?.isConnected) {
       container = shadow.getElementById(CONTAINER_ID);
@@ -203,8 +202,14 @@ const icons = (() => {
     const ctrl = e.target.closest('[data-action]');
     if (ctrl) {
       e.stopPropagation();
-      const action = ctrl.getAttribute('data-action'); // 'back' | 'forward'| 'reload'
-      chrome.runtime.sendMessage({ cmd: 'TABSTRIP_NAVIGATE', action });
+      const action = ctrl.getAttribute('data-action'); // 'back' | 'forward' | 'reload'
+      if (action === 'back') {
+        window.history.back();
+      } else if (action === 'forward') {
+        window.history.forward();
+      } else if (action === 'reload') {
+        location.reload();
+      }
       return;
     }
 
@@ -366,7 +371,7 @@ const icons = (() => {
       // let the transition play; then make it inert
       setTimeout(() => {
         if (state.tabstrip !== "reopen") {
-          container.querySelector('.ht-omnibox input')?.blur();
+          container?.querySelector('.ht-omnibox input')?.blur();
           container?.classList.add('ht-hidden');
           state.tabstrip = null;
         } else {

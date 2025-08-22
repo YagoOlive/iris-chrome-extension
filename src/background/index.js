@@ -27,8 +27,13 @@ chrome.runtime.onConnect.addListener((port) => {
     if (!activeTabId) activeTabId = tabId;
     console.log(`Background: Port connected from content script in tab ${tabId}`);
     port.onDisconnect.addListener(() => {
-      contentScriptPorts.delete(tabId);
-      console.log(`Background: Port from tab ${tabId} disconnected.`);
+      // Only delete if *this* is the currently-tracked port for the tab.
+      if (contentScriptPorts.get(tabId) === port) {
+        contentScriptPorts.delete(tabId);
+        console.log(`Background: Port from tab ${tabId} disconnected (current).`);
+      } else {
+        console.log(`Background: Ignored stale disconnect from older port for tab ${tabId}.`);
+      }
     });
   } else if (port.name === 'offscreen') {
     offscreenPort = port;
@@ -223,17 +228,6 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
     if (tabs.length) activeTabId = tabs[0].id;
   });
 });
-
-// async function broadcastToHTTPTabs(payload) {
-//   const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
-//   for (const t of tabs) {
-//     try {
-//       await chrome.tabs.sendMessage(t.id, payload);
-//     } catch {
-//       /* tab is non-scriptable, content script not injected */
-//     }
-//   }
-// }
 
 async function slideTabWindowRight(created) {
   // Slide window to include the new rightmost tab

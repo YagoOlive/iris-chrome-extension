@@ -350,26 +350,18 @@ import getClickScore from './click-score';
     return target.dispatchEvent(clickEv); // false => defaultPrevented
   }
 
-
   function cursorClick(candidateEl) {
     if (!candidateEl || state.loading) return;
 
-    // Input fields require focus + click
+    // Inputs need focus first
     const tag = candidateEl.tagName?.toLowerCase?.();
     if (tag === 'textarea' || tag === 'input') {
       candidateEl.focus();
     }
 
-    // Fire a realistic click sequence with coordinates so default navigation happens
+    // use HTMLElement.click() function or synthesizeHumanClick() function
+    // candidateEl.click();
     synthesizeHumanClick(candidateEl, state.cursorX, state.cursorY);
-
-    // if (candidateEl.tagName.toLowerCase() === 'textarea' ||
-    //   candidateEl.tagName.toLowerCase() === 'input') {
-    //   candidateEl.focus();
-    //   candidateEl.click();
-    // } else {
-    //   candidateEl.click();
-    // }
 
     lastClickTime = Date.now();
     showDwellRing(false);
@@ -675,18 +667,15 @@ import getClickScore from './click-score';
 
     if (isBackForward) {
       lastClickTime = Date.now();
-      stopTracking();
       chrome.storage.local.get(['config'], ({ config }) => {
+        stopTracking();
         if (config) startTracking(config);
       });
     }
   });
 
-  // be explicit when we’re about to be BFCache’d
   window.addEventListener('pagehide', (e) => {
-    if (e.persisted) {
-      try { port?.disconnect(); } catch { /* error during port disconnect */ }
-      // Flag so we can restart on pageshow
+    if (e.persisted) {      
       window.state.readyToTrack = false;
     }
   });
