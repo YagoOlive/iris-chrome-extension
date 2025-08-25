@@ -1,3 +1,5 @@
+// src/content/click-score.js
+
 export default function getClickScore(blends) {
   const clickAction = state.config.actions.click;
   if (clickAction === "smile") {

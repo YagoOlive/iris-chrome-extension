@@ -1,3 +1,5 @@
+// src/content/cursor.js
+
 (() => {
   let inner = null;
   let notch = null;

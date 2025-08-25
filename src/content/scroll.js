@@ -1,3 +1,5 @@
+// src/content/scroll.js
+
 export function startScroll(direction) {
   const { speedUp, speedDown, intervalMs } = state.config.scrolling;
   const speed = direction === 'top' ? speedUp : -speedDown;

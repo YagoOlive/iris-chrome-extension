@@ -1,4 +1,4 @@
-// public/content/tracker.js
+// src/content/tracker.js
 
 import * as math from 'mathjs';
 

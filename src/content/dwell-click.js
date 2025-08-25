@@ -1,3 +1,5 @@
+// src/content/dwell-click.js
+
 (() => {
   let dwellStartTime = null;
 

@@ -1,3 +1,5 @@
+// src/content/click.js
+
 (() => {
   // --- Click synthesis that behaves like a human click (crossing shadow DOM) ---
   function dispatchPointer(type, x, y, target) {

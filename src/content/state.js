@@ -1,4 +1,5 @@
-// state.js
+// src/content/state.js
+
 window.initializeState = function () {
   if (typeof window !== 'undefined' && !window.state) {
     window.state = {

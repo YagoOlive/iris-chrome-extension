@@ -1,3 +1,5 @@
+// src/content/settings.js
+
 // Click threshold value for each click action
 const clickThresholdAction = {
   smile: 0.8,

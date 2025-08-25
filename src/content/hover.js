@@ -1,3 +1,5 @@
+// src/content/hover.js
+
 (() => {
   let lastHoverEl = null;
 
