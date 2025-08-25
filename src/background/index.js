@@ -1,28 +1,23 @@
 // src/background/index.js
 
-import stateScript from '../content/state.js?script';
-import trackerScript from '../content/tracker.js?script';
-import cursorScript from '../content/cursor.js?script';
-
-import scrollScript from '../content/scroll.js?script';
-import clickScoreScript from '../content/click-score.js?script';
-import settingsScript from '../content/settings.js?script';
-import tabstripScript from '../content/tabstrip.js?script';
-
-import clickScript from '../content/click.js?script';
-import dwellClickScript from '../content/dwell-click.js?script';
-import hoverScript from '../content/hover.js?script';
-
-
-const OFFSCREEN_DOCUMENT_PATH = chrome.runtime.getURL('src/offscreen/index.html');
+import { injectContent, ensureContent } from './inject.js';
+import { getOffscreenPort, getOffscreenPortRef, setOffscreenPortRef, closeOffscreenIfAny } from './offscreen.js';
+import {
+  handleTABSTRIP_ACTIVATE,
+  handleTABSTRIP_CLOSE,
+  handleTABSTRIP_NAV,
+  handleTABSTRIP_NEW_TAB,
+  handleTABSTRIP_OPEN_URL,
+  handleTABSTRIP_QUERY,
+  createNewTab,
+  keysToClear,
+  clearKeys,
+} from './tabstrip.js';
 
 // A map to hold all active connections from content scripts
 const contentScriptPorts = new Map();
 
-let offscreenPort = null;
 let activeTabId = null;
-
-let tabstripStartKeys = [];
 
 // --- PORT MANAGEMENT ---
 
@@ -33,7 +28,7 @@ chrome.runtime.onConnect.addListener((port) => {
     if (!activeTabId) activeTabId = tabId;
     console.log(`Background: Port connected from content script in tab ${tabId}`);
     port.onDisconnect.addListener(() => {
-      // Only delete if *this* is the currently-tracked port for the tab.
+      // Only delete if this is the currently-tracked port for the tab.
       if (contentScriptPorts.get(tabId) === port) {
         contentScriptPorts.delete(tabId);
         console.log(`Background: Port from tab ${tabId} disconnected (current).`);
@@ -42,10 +37,10 @@ chrome.runtime.onConnect.addListener((port) => {
       }
     });
   } else if (port.name === 'offscreen') {
-    offscreenPort = port;
+    setOffscreenPortRef(port);
     console.log('Background: Port connected from offscreen document.');
-    offscreenPort.onMessage.addListener((packet) => { // packet = { landmarks, blends }
-
+    port.onMessage.addListener((packet) => {
+      // packet = { landmarks, blends }
       console.log("Background: Landmarks and facial expressions received by background script.");
 
       // send only to the currently-active tab
@@ -63,132 +58,11 @@ chrome.runtime.onConnect.addListener((port) => {
       }
     });
     port.onDisconnect.addListener(() => {
-      offscreenPort = null;
+      setOffscreenPortRef(null);
       console.log('Background: Offscreen port disconnected.');
     });
   }
 });
-
-// --- HELPERS ---
-
-// A helper to check if an offscreen document is already active
-async function hasOffscreenDocument() {
-  const matchedClients = await clients.matchAll();
-  return matchedClients.some(
-    (c) => c.url.endsWith(OFFSCREEN_DOCUMENT_PATH)
-  );
-}
-
-// The main function to create the offscreen document
-async function setupOffscreenDocument() {
-  if (await hasOffscreenDocument()) {
-    console.log('Background: Offscreen document already exists.');
-  } else {
-    console.log('Background: Creating offscreen document.');
-    // Use a promise to wait for the document to be fully created
-    await new Promise((resolve, reject) => {
-      chrome.offscreen.createDocument({
-        url: OFFSCREEN_DOCUMENT_PATH,
-        reasons: ['USER_MEDIA'],
-        justification: 'Required to access the camera for head-tracking.',
-      }, (error) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      });
-    });
-    console.log('Background: Offscreen document created.');
-  }
-}
-
-// --- NEW ROBUST HELPER ---
-async function getOffscreenPort() {
-  // 1. Ensure the document is created
-  await setupOffscreenDocument();
-
-  // 2. If the port is already connected, return it
-  if (offscreenPort) {
-    return offscreenPort;
-  }
-
-  // 3. If not, wait for it to connect.
-  // This promise will resolve when the onConnect listener in this script assigns a value to `offscreenPort`.
-  console.log("Background: Waiting for offscreen port to connect...");
-  return new Promise((resolve) => {
-    const listener = (port) => {
-      if (port.name === 'offscreen') {
-        chrome.runtime.onConnect.removeListener(listener); // Clean up listener
-        resolve(port);
-      }
-    };
-    chrome.runtime.onConnect.addListener(listener);
-  });
-}
-
-// --- HELPERS ---
-
-// Injects the content scripts and CSS into a specific tab
-async function injectContent(tabId) {
-  try {
-    await chrome.scripting.insertCSS({
-      target: { tabId: tabId },
-      files: ['content/cursor.css', 'content/tabstrip.css'],
-    });
-    await chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      files: [
-        stateScript,
-        cursorScript,
-        dwellClickScript,
-        clickScript,
-        hoverScript,
-        trackerScript,
-        scrollScript,
-        clickScoreScript,
-        settingsScript,
-        tabstripScript,
-      ],
-    });
-  } catch (err) {
-    console.error(`Failed to inject content into tab ${tabId}:`, err);
-    return false;
-  }
-  return true;
-}
-
-// utility: ensure the script is present *once* and return true if it was already there
-async function ensureContent(tabId) {
-  try {
-    const res = await chrome.tabs.sendMessage(tabId, { cmd: 'PING' });
-    if (res?.ok) return true; // already injected
-  } catch { /* no listener */ }
-  await injectContent(tabId); // first time for this frame
-  return false;
-}
-
-// Removes the CSS and tells the content script to clean up
-async function removeContent(tabId) {
-  try {
-    // The content script might not be there (e.g., on chrome:// pages), so wrap in try/catch
-    await chrome.tabs.sendMessage(tabId, { cmd: 'STOP_TRACKING' });
-  } catch {
-    // This error is expected on pages where the content script is not injected.
-    // console.log(`Could not clean up tab ${tabId}, it might not have the content script.`);
-  }
-}
-
-function storageKeyForStart(windowId) {
-  return `tabstripStart:${windowId}`;
-}
-
-async function getFilteredCurrentWindowTabs() {
-  const all = await chrome.tabs.query({ currentWindow: true });
-  return all.filter(t => /^https?:|^file:/.test(t.url || '')); // skip chrome://, chrome-extension://, devtools://
-}
-
-function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
 // --- LISTENERS ---
 
@@ -239,21 +113,6 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
   });
 });
 
-async function slideTabWindowRight(created) {
-  // Slide window to include the new rightmost tab
-  const filtered = await getFilteredCurrentWindowTabs();
-  const key = storageKeyForStart(created.windowId);
-  const maxStart = Math.max(0, filtered.length - 8);
-  await chrome.storage.local.set({ [key]: maxStart });
-  if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
-}
-
-async function createNewTab() {
-  const created = await chrome.tabs.create({ url: 'https://www.google.com', active: true });
-  await slideTabWindowRight(created);
-  return created;
-}
-
 // 3. On Message: Handle all communication
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
@@ -292,26 +151,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     else if (msg.cmd === 'STOP_TRACKING') {
       // 1. Get the port (it should already exist) and send the stop command
+      const offscreenPort = getOffscreenPortRef();
       if (offscreenPort) offscreenPort.postMessage({ cmd: 'STOP_CAMERA' });
-      try {
-        await chrome.offscreen.closeDocument();
-      }
-      catch (e) {
-        console.warn('Offscreen document already closed.', e);
-      }
-      offscreenPort = null;
+      await closeOffscreenIfAny();
 
-      // 2. Update state and remove content scripts
+      // 2. Update state and tell the content script to clean up, stop the tracking process
       await chrome.storage.local.set({ isTrackingActive: false });
       const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
-      for (const tab of tabs) await removeContent(tab.id);
+      for (const tab of tabs) {
+        try {
+          await chrome.tabs.sendMessage(tab.id, { cmd: 'STOP_TRACKING' });
+        } catch {
+          // This error is expected on pages where the content script is not injected.
+          // Likely non-scriptable (chrome:// etc.) – safe to ignore.
+        }
+      };
 
       // 3. Remove tabstripStart keys from chrome.storage.local
-      for (const key of tabstripStartKeys) {
-        await chrome.storage.local.remove(key);
-      }
-
-      tabstripStartKeys = [];
+      if (keysToClear().length) await clearKeys();
 
       sendResponse({ ok: true, message: 'Tracking stopped.' });
     }
@@ -362,170 +219,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     // --- message handlers for the tabstrip ---
     else if (msg.cmd === 'TABSTRIP_QUERY') {
-      const filtered = await getFilteredCurrentWindowTabs();
-      const activeIdx = filtered.findIndex(t => t.active);
-
-      const windowId = filtered[activeIdx]?.windowId ?? (await chrome.windows.getCurrent())?.id;
-      const key = storageKeyForStart(windowId);
-      const maxStart = Math.max(0, filtered.length - 9);
-
-      // read persisted start; if missing, center active on first open
-      const got = await chrome.storage.local.get(key);
-      let start = typeof got[key] === 'number'
-        ? clamp(got[key], 0, maxStart)
-        : clamp(activeIdx - 4, 0, maxStart);
-      if (!(key in got)) {
-        await chrome.storage.local.set({ [key]: start });
-        if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
-      }
-      let end = Math.min(filtered.length, start + 9);
-      if (end - start < 9) start = Math.max(0, end - 9);
-
-      const windowed = filtered.slice(start, end).map(t => ({
-        id: t.id,
-        windowId: t.windowId,
-        title: t.title || 'Untitled',
-        favIconUrl: t.favIconUrl || '',
-        index: t.index,
-        active: t.active
-      }));
-
-      sendResponse({
-        ok: true,
-        tabs: windowed,
-        activeTabId: filtered[activeIdx]?.id ?? null,
-        canPagePrev: start > 0,
-        canPageNext: end < filtered.length
-      });
+      const res = await handleTABSTRIP_QUERY();
+      sendResponse(res);
     }
     else if (msg.cmd === 'TABSTRIP_NAV') {
-      const dir = msg.dir; // 'prev' | 'next'
-      const filtered = await getFilteredCurrentWindowTabs();
-      const activeIdx = filtered.findIndex(t => t.active);
-      const windowId = filtered[activeIdx]?.windowId ?? (await chrome.windows.getCurrent())?.id;
-      const key = storageKeyForStart(windowId);
-      const maxStart = Math.max(0, filtered.length - 9);
-      const got = await chrome.storage.local.get(key);
-      let start = clamp((typeof got[key] === 'number' ? got[key] : 0) + (dir === 'next' ? 9 : -9), 0, maxStart);
-      await chrome.storage.local.set({ [key]: start });
-      if (!tabstripStartKeys.includes(key)) tabstripStartKeys.push(key);
-      let end = Math.min(filtered.length, start + 9);
-      if (end - start < 9) start = Math.max(0, end - 9);
-      const windowed = filtered.slice(start, end).map(t => ({
-        id: t.id, windowId: t.windowId, title: t.title || 'Untitled',
-        favIconUrl: t.favIconUrl || '', index: t.index, active: t.active
-      }));
-      sendResponse({
-        ok: true,
-        tabs: windowed,
-        activeTabId: filtered[activeIdx]?.id ?? null,
-        canPagePrev: start > 0,
-        canPageNext: end < filtered.length
-      });
+      const res = await handleTABSTRIP_NAV(msg);
+      sendResponse(res);
     }
     else if (msg.cmd === 'TABSTRIP_ACTIVATE') {
-      const { tabId, windowId } = msg;
-      try {
-        // Bring window to front (if different), then activate the tab
-        if (windowId !== undefined) {
-          await chrome.windows.update(windowId, { focused: true });
-        }
-
-        const isAlreadyInjected = await ensureContent(tabId);
-
-        if (isAlreadyInjected) {
-          await chrome.storage.local.set({ tabstripForceOpen: 'reopen' });
-          await chrome.tabs.sendMessage(tabId, { cmd: 'GLOBAL_CLICK_SUPPRESS' });
-        } else {
-          await chrome.storage.local.set({ tabstripForceOpen: 'initial' });
-        }
-
-        await chrome.tabs.update(tabId, { active: true }); // switches tabs
-
-        sendResponse({ ok: true });
-      } catch (e) {
-        sendResponse({ ok: false, error: e?.message });
-      }
+      const res = await handleTABSTRIP_ACTIVATE(msg);
+      sendResponse(res);
     }
     else if (msg.cmd === 'TABSTRIP_NEW_TAB') {
-      try {
-        const created = await createNewTab();
-        sendResponse({ ok: true, tabId: created.id });
-      } catch (e) {
-        sendResponse({ ok: false, error: e?.message });
-      }
+      const res = await handleTABSTRIP_NEW_TAB();
+      sendResponse(res);
     }
     else if (msg.cmd === 'TABSTRIP_CLOSE') {
-      const { tabId } = msg;
-      try {
-        // If closing the active tab, proactively suppress clicks in the replacement
-        const filtered = await getFilteredCurrentWindowTabs();
-        const idx = filtered.findIndex(t => t.id === tabId);
-        if (idx !== -1 && filtered[idx].active) {
-          const replacement = filtered[idx + 1] || filtered[idx - 1];
-          if (replacement) {
-            const injected = await ensureContent(replacement.id);
-            if (injected) {
-              await chrome.tabs.sendMessage(replacement.id, { cmd: 'GLOBAL_CLICK_SUPPRESS' });
-              await chrome.storage.local.set({ tabstripForceOpen: 'reopen' });
-            } else {
-              await chrome.storage.local.set({ tabstripForceOpen: 'initial' });
-            }
-          }
-        }
-        await chrome.tabs.remove(tabId); // close after suppression
-        sendResponse({ ok: true });
-      } catch (e) {
-        sendResponse({ ok: false, error: e?.message });
-      }
-    }
-    else if (msg.cmd === 'TABSTRIP_NAVIGATE') {
-      try {
-        const { action } = msg; // 'back' | 'forward' | 'reload'
-        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!activeTab?.id) return sendResponse({ ok: false, error: 'No active tab' });
-
-        // soften any pending gesture click
-        try {
-          await chrome.tabs.sendMessage(activeTab.id, { cmd: 'GLOBAL_CLICK_SUPPRESS' });
-        } catch {
-          /* Tab has no listener or is non-scriptable; ignore */
-        }
-
-        if (action === 'back') {
-          await chrome.tabs.goBack(activeTab.id);
-        } else if (action === 'forward') {
-          await chrome.tabs.goForward(activeTab.id);
-        } else if (action === 'reload') {
-          await chrome.tabs.reload(activeTab.id);
-        }
-        // keep the island visible after nav
-        // await chrome.storage.local.set({ tabstripForceOpen: 'reopen' });
-        sendResponse({ ok: true });
-      } catch (e) {
-        // No-op if back/forward not available; API simply rejects.
-        sendResponse({ ok: false, error: e?.message });
-      }
+      const res = await handleTABSTRIP_CLOSE(msg);
+      sendResponse(res);
     }
     else if (msg.cmd === 'TABSTRIP_OPEN_URL') {
-      try {
-        const q = (msg.q || '').trim();
-        if (!q) return sendResponse({ ok: false, error: 'Empty query' });
-
-        // URL heuristics → otherwise Google search
-        const looksURL = /^(https?:|file:)/i.test(q) || (/^[\w-]+(\.[\w-]+)+([/?#].*)?$/i.test(q) && !/\s/.test(q));
-        const finalUrl = looksURL ? (/^(https?:|file:)/i.test(q) ? q : `https://${q}`)
-          : `https://www.google.com/search?q=${encodeURIComponent(q)}`;
-
-        const created = await chrome.tabs.create({ url: finalUrl, active: true });
-
-        // Slide to show the brand new tab at the far right
-        await slideTabWindowRight(created);
-
-        sendResponse({ ok: true, tabId: created.id });
-      } catch (e) {
-        sendResponse({ ok: false, error: e?.message });
-      }
+      const res = await handleTABSTRIP_OPEN_URL(msg);
+      sendResponse(res);
     }
   })();
   return true;
