@@ -2,6 +2,12 @@
 window.initializeState = function () {
   if (typeof window !== 'undefined' && !window.state) {
     window.state = {
+      // ms between allowed clicks
+      CLICK_COOLDOWN: 1000,
+
+      // Head-tracking cursor
+      sprite: null,
+
       // Calibration state
       readyToTrack: false,
 
@@ -56,6 +62,19 @@ window.initializeState = function () {
       lastHeadY: null,
       cursorX: null,
       cursorY: null,
+
+      // Last click time
+      lastClickTime: 0,
+
+      // Click-assist state
+      activeInteractiveEl: null,
+      anchorX: null,
+      anchorY: null,
+      lockStartTime: null,
+
+      // Dwell-click state
+      dwellAnchorX: null,
+      dwellAnchorY: null,
 
       // Edge-scrolling state
       boundaryTimer: null,

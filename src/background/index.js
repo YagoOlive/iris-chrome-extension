@@ -2,11 +2,17 @@
 
 import stateScript from '../content/state.js?script';
 import trackerScript from '../content/tracker.js?script';
+import cursorScript from '../content/cursor.js?script';
 
 import scrollScript from '../content/scroll.js?script';
 import clickScoreScript from '../content/click-score.js?script';
 import settingsScript from '../content/settings.js?script';
 import tabstripScript from '../content/tabstrip.js?script';
+
+import clickScript from '../content/click.js?script';
+import dwellClickScript from '../content/dwell-click.js?script';
+import hoverScript from '../content/hover.js?script';
+
 
 const OFFSCREEN_DOCUMENT_PATH = chrome.runtime.getURL('src/offscreen/index.html');
 
@@ -134,6 +140,10 @@ async function injectContent(tabId) {
       target: { tabId: tabId },
       files: [
         stateScript,
+        cursorScript,
+        dwellClickScript,
+        clickScript,
+        hoverScript,
         trackerScript,
         scrollScript,
         clickScoreScript,
