@@ -21,10 +21,16 @@ import getClickScore from './click-score';
 
   let port = null;
 
-  // Create element to remove/restore the default cursor
-  const style = document.createElement('style');
-  // Append it into <head> (or document.documentElement for document_start)
-  (document.head || document.documentElement).appendChild(style);
+  let scaleX = 1
+  let scaleY = 1;
+
+  function recomputeScale() {
+    const w = window.innerWidth, h = window.innerHeight;
+    scaleX = state.calibrationWidth ? (w / state.calibrationWidth) : 1;
+    scaleY = state.calibrationHeight ? (h / state.calibrationHeight) : 1;
+  }
+
+  window.addEventListener('resize', () => { recomputeScale(); });
 
   /* Life-cycle helpers */
   function connectPort() {
@@ -45,6 +51,7 @@ import getClickScore from './click-score';
     window.state.transformationMatrices.sixPoint2d = config.sixPoint2d;
     window.state.transformationMatrices.threePoint3d = config.threePoint3d;
     window.state.transformationMatrices.sixPoint3d = config.sixPoint3d;
+    recomputeScale();
     window.state.configInit = true;
   }
 
@@ -135,8 +142,8 @@ import getClickScore from './click-score';
 
       // Apply filtering and update cursor position
       applyFilteringAndUpdateCursor(
-        headPositionX * (window.innerWidth / state.calibrationWidth),
-        headPositionY * (window.innerHeight / state.calibrationHeight)
+        headPositionX * scaleX,
+        headPositionY * scaleY
       );
     } catch (error) {
       console.error("Matrix multiplication error in 2D mode:", error);
@@ -278,7 +285,7 @@ import getClickScore from './click-score';
   });
 
   window.addEventListener('pagehide', (e) => {
-    if (e.persisted) {      
+    if (e.persisted) {
       window.state.readyToTrack = false;
     }
   });

@@ -7,14 +7,14 @@ export default function getClickScore(blends) {
     const smileL = blends[44]?.score ?? 0; // 44 = mouthSmileLeft 
     const smileR = blends[45]?.score ?? 0; // 45 = mouthSmileRight
 
-    return (smileL + smileR) / 2;
+    return (smileL + smileR) * 0.5;
 
   } else if (clickAction === "browUp") {
 
     const browUpL = blends[4]?.score ?? 0; // 4 = browOuterUpLeft 
     const browUpR = blends[5]?.score ?? 0; // 5 = browOuterUpRight
 
-    return (browUpL + browUpR) / 2;
+    return (browUpL + browUpR) * 0.5;
 
   } else if (clickAction === "jawOpen") {
 
