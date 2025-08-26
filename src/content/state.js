@@ -26,7 +26,7 @@ window.initializeState = function () {
         coordinateSystem: "2d",
         landmarkPoints: "3", // Default to 3 points
         filterType: "exponential",
-        exponentialSmoothingFactor: 0.95,
+        exponentialSmoothingFactor: 0.9025, // 0.95 ** 2
         scrolling: {
           thresholdMs: 1000, // ms dwell before scrolling
           speedUp: 10, // px per interval when at top

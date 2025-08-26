@@ -7,9 +7,11 @@ const clickThresholdAction = {
   jawOpen: 0.6,
 }
 
+const exponentialSmoothingAdjustment = 2;
+
 export function initSettings(items) {
   if (typeof items.exponentialSmoothingFactor === 'number') {
-    window.state.config.exponentialSmoothingFactor = items.exponentialSmoothingFactor;
+    window.state.config.exponentialSmoothingFactor = items.exponentialSmoothingFactor ** exponentialSmoothingAdjustment;
     console.log('Loaded smoothing factor:', items.exponentialSmoothingFactor);
   }
   if (typeof items.clickAction === 'string') {
@@ -47,7 +49,7 @@ export function updateSettings(msg) {
     if (setting === 'cmd') {
       continue;
     } else if (setting === 'exponentialSmoothingFactor' && typeof msg.exponentialSmoothingFactor === 'number') {
-      window.state.config.exponentialSmoothingFactor = msg.exponentialSmoothingFactor;
+      window.state.config.exponentialSmoothingFactor = msg.exponentialSmoothingFactor ** exponentialSmoothingAdjustment;
       console.log('Smoothing factor set to: ', msg.exponentialSmoothingFactor);
     } else if (setting === 'clickAction' && typeof msg.clickAction === 'string') {
       window.state.config.actions.click = msg.clickAction;

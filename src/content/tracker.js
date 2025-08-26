@@ -170,9 +170,8 @@ import getClickScore from './click-score';
       return;
     }
 
-    const k = 2;
     // Apply direct exponential smoothing without relative movements
-    let smoothing = (state.config.exponentialSmoothingFactor ** k) || 0.95; // Uses configurable value
+    let smoothing = state.config.exponentialSmoothingFactor || 0.9025; // Uses configurable value
 
     // Apply smoothing directly to cursor position
     if (state.cursorX === null) {
