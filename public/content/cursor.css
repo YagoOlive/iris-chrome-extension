@@ -74,6 +74,22 @@ a.ht-hover {
   cursor: pointer;
 }
 
+/* Ensure GPU-friendly moves */
+#ht-cursor { will-change: transform; }
+
+/* When the cursor is a popover, wipe the UA's default popover chrome */
+#ht-cursor[popover],
+#ht-cursor:popover-open {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+  outline: none;
+}
+
 /* -------- Dwell Click Visual Ring -------- */
 #ht-cursor .dwell-ring {
   position: absolute;

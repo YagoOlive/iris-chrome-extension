@@ -34,26 +34,47 @@
 
   function createSprite() {
     if (state.sprite) return;
-    window.state.sprite = document.createElement('div');
+
+    const sprite = document.createElement('div');
+    sprite.id = 'ht-cursor';
+
+    // Make it a popover so it lives in the top layer.
+    if ('showPopover' in sprite) {
+      sprite.setAttribute('popover', 'manual');
+    }
+
+    document.documentElement.appendChild(sprite);
+    state.sprite = sprite;
+
     inner = document.createElement('div');
     notch = document.createElement('div');
-    window.state.sprite.id = 'ht-cursor';
     inner.classList.add('cursor-inner');
     notch.classList.add('cursor-notch');
-    document.documentElement.appendChild(state.sprite);
-    window.state.sprite.appendChild(inner);
-    window.state.sprite.appendChild(notch);
+    sprite.appendChild(inner);
+    sprite.appendChild(notch);
 
     window.HTDwellClick?.createDwellRing();
     createWaitRing();
 
-    // Round for display
-    const roundedX = Math.round(window.innerWidth / 2);
-    const roundedY = Math.round(window.innerHeight / 2);
+    // Center initially via transform (no layout/overflow conflicts)
+    const x = Math.round(window.innerWidth / 2);
+    const y = Math.round(window.innerHeight / 2);
+    sprite.style.transform = `translate3d(${x}px, ${y}px, 0)`;
 
-    // Initialize cursor at the center of the screen
-    window.state.sprite.style.left = `${roundedX}px`;
-    window.state.sprite.style.top = `${roundedY}px`;
+    // Enter the top layer
+    try { sprite.showPopover?.(); } catch { /* */ }
+
+    // Keep cursor above any newly opened top-layer element
+    const bumpToTopLayer = () => {
+      if (state.sprite?.matches?.(':popover-open')) {
+        try { state.sprite.hidePopover(); state.sprite.showPopover(); } catch { /* */ }
+      }
+    };
+    const mo = new MutationObserver(() => {
+      if (document.querySelector('dialog[open], [popover]:popover-open')) bumpToTopLayer();
+    });
+    mo.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['open', 'popover'] });
+
   }
 
   function destroySprite() {

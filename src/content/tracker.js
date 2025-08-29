@@ -199,8 +199,11 @@ import getClickScore from './click-score';
     const roundedY = Math.round(state.cursorY);
 
     // Update cursor position
-    cursorWithClipping.style.left = `${roundedX}px`;
-    cursorWithClipping.style.top = `${roundedY}px`;
+    // cursorWithClipping.style.left = `${roundedX}px`;
+    // cursorWithClipping.style.top = `${roundedY}px`;
+
+    const t = `translate3d(${roundedX}px, ${roundedY}px, 0)`;
+    if (state.sprite.style.transform !== t) state.sprite.style.transform = t;
 
     // Dynamic-Tabstrip trigger
     if ((!state.tabstrip && roundedY <= TOP_TRIGGER_PX) ||
