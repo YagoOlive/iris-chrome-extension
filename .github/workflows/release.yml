@@ -41,8 +41,8 @@ jobs:
             PREV="$(git show "$BEFORE:manifest.json" | jq -r '.version // empty')"
           fi
 
-          echo "PREV: $PREV"
-          echo "CURR: $CURR"
+          echo "Previous Version: $PREV"
+          echo "Current Version: $CURR"
 
           # Default: do not publish
           SHOULD="false"

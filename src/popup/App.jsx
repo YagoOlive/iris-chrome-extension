@@ -41,6 +41,16 @@ export default function App() {
     checkStatus();
   }, []);
 
+  useEffect(() => {
+    const onMsg = (msg) => {
+      if (msg?.cmd === 'CLOSE_POPUP_IF_OPEN') {
+        window.close();
+      }
+    };
+    chrome.runtime.onMessage.addListener(onMsg);
+    return () => chrome.runtime.onMessage.removeListener(onMsg);
+  }, []);
+
   return (
     <div className="popup">
       {view === 'loading' && <p>Loading...</p>}

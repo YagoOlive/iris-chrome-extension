@@ -177,18 +177,23 @@ async function toggleTracking() {
 
   if (isTrackingActive) {
     await handleSTOP_TRACKING();
-    return;
+  } else {
+    const { state } = await navigator.permissions.query({ name: 'camera' });
+
+    // Need setup? Take user to popup.
+    if (!config || !calibrationCsvName || !calibrationCsvContent || state !== 'granted') {
+      await chrome.action.openPopup();
+      return;
+    }
+    await handleSTART_TRACKING({ config: config });
   }
 
-  const { state } = await navigator.permissions.query({ name: 'camera' });
-
-  // Need setup? Take user to popup.
-  if (!config || !calibrationCsvName || !calibrationCsvContent || state !== 'granted') {
-    await chrome.action.openPopup();
-    return;
+  // If the popup is currently open, tell it to close itself.
+  try {
+    await chrome.runtime.sendMessage({ cmd: 'CLOSE_POPUP_IF_OPEN' });
+  } catch {
+    // ignore: no listener (popup not open)
   }
-
-  await handleSTART_TRACKING({ config: config });
 }
 
 // Listen for keyboard shortcuts.
