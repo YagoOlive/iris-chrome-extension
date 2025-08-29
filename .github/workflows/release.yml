@@ -12,6 +12,7 @@ jobs:
     outputs:
       version:  ${{ steps.vars.outputs.version }}
       zip_name: ${{ steps.zip.outputs.name }}
+      should_publish:  ${{ steps.vars.outputs.should_publish }}
 
     steps:
       # 1 — checkout with full history so tags work
@@ -19,34 +20,66 @@ jobs:
         with:
           fetch-depth: 0 # pull tags & previous commits
 
-      # 2 — detect version bump anywhere in this push range
+      # 2 — compute version delta & guard against existing releases
       - id: vars
+        env:
+          BEFORE:  ${{ github.event.before }}
+          OWNER:   ${{ github.repository_owner }}
+          PUBLIC:  head-tracking-pointer-public
+          # tokens for gh cli (private uses GITHUB_TOKEN; public uses your PAT)
+          GH_TOKEN: ${{ github.token }}
+          PUBLIC_TOKEN: ${{ secrets.PUBLIC_REPO_PAT }}
         run: |
-          VERSION=$(jq -r '.version' manifest.json)
-          CHANGED=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -c '^manifest.json$' || true)
-          if [ "$CHANGED" -eq 0 ]; then 
-            VERSION=""
+          set -euo pipefail
+
+          # Current version from working tree
+          CURR="$(jq -r '.version // empty' manifest.json)"
+
+          # Previous version from the commit before this push (may be empty on first push)
+          PREV=""
+          if git cat-file -e "$BEFORE:manifest.json" 2>/dev/null; then
+            PREV="$(git show "$BEFORE:manifest.json" | jq -r '.version // empty')"
           fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          echo "PREV: $PREV"
+          echo "CURR: $CURR"
+
+          # Default: do not publish
+          SHOULD="false"
+
+          if [ -n "$CURR" ] && [ "$CURR" != "$PREV" ]; then
+            SHOULD="true"
+            # hard guard: if tag/release already exists in private OR public, abort publish
+            if gh release view "v$CURR" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              SHOULD="false"
+              echo "Private release v$CURR already exists; skipping."
+            elif [ -n "${PUBLIC_TOKEN:-}" ] && GH_TOKEN="$PUBLIC_TOKEN" gh release view "v$CURR" -R "$OWNER/$PUBLIC" >/dev/null 2>&1; then
+              SHOULD="false"
+              echo "Public release v$CURR already exists; skipping."
+            fi
+          fi
+
+          echo "version=$CURR"           >> "$GITHUB_OUTPUT"
+          echo "should_publish=$SHOULD"  >> "$GITHUB_OUTPUT"
 
       # 3 — stop early if not a release (keeps job green, sets output to '')
       - name: Skip job if not a release
-        if: ${{ steps.vars.outputs.version == '' }}
+        if: ${{ steps.vars.outputs.should_publish != 'true' }}
         run: echo "No version bump detected."
 
       # 4 — build
       - uses: actions/setup-node@v4
-        if: ${{ steps.vars.outputs.version != '' }}
+        if: ${{ steps.vars.outputs.should_publish == 'true' }}
         with:
           node-version: '20'
-      - if: ${{ steps.vars.outputs.version != '' }}
+      - if: ${{ steps.vars.outputs.should_publish == 'true' }}
         run: |
           npm ci
           npm run build
 
       # 5 — zip ./dist
       - id: zip
-        if: ${{ steps.vars.outputs.version != '' }}
+        if: ${{ steps.vars.outputs.should_publish == 'true' }}
         run: |
           NAME="head-tracking-chrome-extension-v${{ steps.vars.outputs.version }}.zip"
           zip -r "$NAME" dist
@@ -54,7 +87,7 @@ jobs:
 
       # 6 — create tag (idempotent)
       - name: Create git tag
-        if: ${{ steps.vars.outputs.version != '' }}
+        if: ${{ steps.vars.outputs.should_publish == 'true' }}
         env:
           VERSION: ${{ steps.vars.outputs.version }}
         run: |
@@ -69,7 +102,7 @@ jobs:
 
       # 7 — slice the CHANGELOG for this version
       - name: Generate release notes
-        if: ${{ steps.vars.outputs.version != '' }}
+        if: ${{ steps.vars.outputs.should_publish == 'true' }}
         env:
           VERSION: ${{ steps.vars.outputs.version }}
         run: |
@@ -77,7 +110,7 @@ jobs:
 
       # 8 — publish private repo Release
       - name: Publish GitHub Release
-        if: ${{ steps.vars.outputs.version != '' }}
+        if: ${{ steps.vars.outputs.should_publish == 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name:  "v${{ steps.vars.outputs.version }}"
@@ -87,7 +120,7 @@ jobs:
 
       # 9 — upload artifacts for downstream job
       - name: Upload release artifacts
-        if: ${{ steps.vars.outputs.version != '' }}
+        if: ${{ steps.vars.outputs.should_publish == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: release-assets
@@ -95,10 +128,9 @@ jobs:
             ${{ steps.zip.outputs.name }}
             release_notes.md
 
-
   public-release:
     needs: release # waits for the build & private-release job
-    if: ${{ needs.release.outputs.version != '' }}
+    if: ${{ needs.release.outputs.should_publish == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -113,64 +113,102 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
   });
 });
 
+async function handleSTART_TRACKING({ config }) {
+  // 1. Get a guaranteed connection to the offscreen port
+  const port = await getOffscreenPort();
+
+  // 2. Send the command to start the camera
+  port.postMessage({ cmd: 'START_CAMERA' });
+
+  // 3. Save state and inject content scripts
+  await chrome.storage.local.set({ isTrackingActive: true });
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab) {
+    let check = null; // 0 = non-scriptable, 1 = first injection, 2 = already injected
+    try {
+      const res = await chrome.tabs.sendMessage(tab.id, { cmd: 'PING' });
+      if (res?.ok) check = 2; // already injected
+    } catch {
+      const injectable = await injectContent(tab.id);
+      check = injectable ? 1 : 0;
+    }
+    if (check === 2) {
+      await chrome.tabs.sendMessage(tab.id, {
+        cmd: 'START_TRACKING',
+        config: config,
+      });
+    } else if (check === 0) {
+      // If user clicks "Start Tracking" on a non-scriptable tab, open a new tab for the user
+      await createNewTab();
+    }
+  }
+  return { ok: true, message: 'Tracking started.' };
+}
+
+async function handleSTOP_TRACKING() {
+  // 1. Get the port (it should already exist) and send the stop command
+  const offscreenPort = getOffscreenPortRef();
+  if (offscreenPort) offscreenPort.postMessage({ cmd: 'STOP_CAMERA' });
+  await closeOffscreenIfAny();
+
+  // 2. Update state and tell the content script to clean up, stop the tracking process
+  await chrome.storage.local.set({ isTrackingActive: false });
+  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+  for (const tab of tabs) {
+    try {
+      await chrome.tabs.sendMessage(tab.id, { cmd: 'STOP_TRACKING' });
+    } catch {
+      // This error is expected on pages where the content script is not injected.
+      // Likely non-scriptable (chrome:// etc.) – safe to ignore.
+    }
+  };
+
+  // 3. Remove tabstripStart keys from chrome.storage.local
+  if (keysToClear().length) await clearKeys();
+
+  return { ok: true, message: 'Tracking stopped.' };
+}
+
+// Helper to start/stop tracking using your existing message handlers.
+async function toggleTracking() {
+  const { isTrackingActive, config, calibrationCsvName, calibrationCsvContent } =
+    await chrome.storage.local.get(['isTrackingActive', 'config', 'calibrationCsvName', 'calibrationCsvContent']);
+
+  if (isTrackingActive) {
+    await handleSTOP_TRACKING();
+    return;
+  }
+
+  const { state } = await navigator.permissions.query({ name: 'camera' });
+
+  // Need setup? Take user to popup.
+  if (!config || !calibrationCsvName || !calibrationCsvContent || state !== 'granted') {
+    await chrome.action.openPopup();
+    return;
+  }
+
+  await handleSTART_TRACKING({ config: config });
+}
+
+// Listen for keyboard shortcuts.
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'toggle-tracking') {
+    toggleTracking();
+  }
+});
+
 // 3. On Message: Handle all communication
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     // This is for messages from the popup and content scripts
     if (msg.cmd === 'START_TRACKING') {
-      // 1. Get a guaranteed connection to the offscreen port
-      const port = await getOffscreenPort();
-
-      // 2. Send the command to start the camera
-      port.postMessage({ cmd: 'START_CAMERA' });
-
-      // 3. Save state and inject content scripts
-      await chrome.storage.local.set({ isTrackingActive: true });
-
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) {
-        let check = null; // 0 = non-scriptable, 1 = first injection, 2 = already injected
-        try {
-          const res = await chrome.tabs.sendMessage(tab.id, { cmd: 'PING' });
-          if (res?.ok) check = 2; // already injected
-        } catch {
-          const injectable = await injectContent(tab.id);
-          check = injectable ? 1 : 0;
-        }
-        if (check === 2) {
-          await chrome.tabs.sendMessage(tab.id, {
-            cmd: 'START_TRACKING',
-            config: msg.config,
-          });
-        } else if (check === 0) {
-          // If user clicks "Start Tracking" on a non-scriptable tab, open a new tab for the user
-          await createNewTab();
-        }
-      }
-      sendResponse({ ok: true, message: 'Tracking started.' });
+      const res = await handleSTART_TRACKING(msg);
+      sendResponse(res);
     }
     else if (msg.cmd === 'STOP_TRACKING') {
-      // 1. Get the port (it should already exist) and send the stop command
-      const offscreenPort = getOffscreenPortRef();
-      if (offscreenPort) offscreenPort.postMessage({ cmd: 'STOP_CAMERA' });
-      await closeOffscreenIfAny();
-
-      // 2. Update state and tell the content script to clean up, stop the tracking process
-      await chrome.storage.local.set({ isTrackingActive: false });
-      const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
-      for (const tab of tabs) {
-        try {
-          await chrome.tabs.sendMessage(tab.id, { cmd: 'STOP_TRACKING' });
-        } catch {
-          // This error is expected on pages where the content script is not injected.
-          // Likely non-scriptable (chrome:// etc.) – safe to ignore.
-        }
-      };
-
-      // 3. Remove tabstripStart keys from chrome.storage.local
-      if (keysToClear().length) await clearKeys();
-
-      sendResponse({ ok: true, message: 'Tracking stopped.' });
+      const res = await handleSTOP_TRACKING();
+      sendResponse(res);
     }
     else if (msg.cmd === 'UPDATE_SETTINGS') {
       console.log('Updating Settings...');
