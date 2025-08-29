@@ -56,6 +56,8 @@ jobs:
             elif [ -n "${PUBLIC_TOKEN:-}" ] && GH_TOKEN="$PUBLIC_TOKEN" gh release view "v$CURR" -R "$OWNER/$PUBLIC" >/dev/null 2>&1; then
               SHOULD="false"
               echo "Public release v$CURR already exists; skipping."
+            else
+              echo "Version bump found. Publishing release..."
             fi
           fi
 
