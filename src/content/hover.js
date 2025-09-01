@@ -154,6 +154,11 @@
     } else {
       // Click Assist off: ensure halo is hidden
       hideHighlight();
+      // if (isInteractive && candidateInteractive) {
+      //   showHighlightFor(candidateInteractive);
+      // } else {
+      //   hideHighlight();
+      // }
       state.activeInteractiveEl = null;
     }
 

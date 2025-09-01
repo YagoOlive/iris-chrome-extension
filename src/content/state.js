@@ -38,7 +38,7 @@ window.initializeState = function () {
           clickThreshold: 0.8,
         },
         clickAssist: false,
-        clickAssistTimeout: 1000,
+        clickAssistTimeout: 2000,
         clickAssistRadius: 100,
 
         dwellClick: false,
