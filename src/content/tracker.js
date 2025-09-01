@@ -13,7 +13,7 @@ import getClickScore from './click-score';
   window.__htCursorInjected = true;
 
   // Call the initializer from state.js immediately
-  initializeState();
+  window.HTState.initializeState();
 
   const TOP_TRIGGER_PX = 0; // tabstrip top edge trigger zone
   const TABSTRIP_KEEP_ALIVE_PX = 112 // tabstrip remains open if cursor dwells within 112px of the top boundary
