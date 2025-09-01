@@ -4,7 +4,14 @@
 const clickThresholdAction = {
   smile: 0.8,
   browUp: 0.8,
+  browDown: 0.6,
   jawOpen: 0.6,
+  showTeeth: 0.8,
+  lookLeft: 0.8,
+  lookRight: 0.8,
+  lookUp: 0.6,
+  lookDown: 0.6,
+  mouthPucker: 0.8,
 }
 
 const exponentialSmoothingAdjustment = 2;

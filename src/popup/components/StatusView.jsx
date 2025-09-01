@@ -4,8 +4,17 @@ import '../styles/StatusView.css';
 const clickActionDescriptions = {
   "": "Select a facial gesture to trigger a left-click.",
   smile: "Smile to perform a left-click.",
+  smileLeft: "Smile to the left only to click.",
+  smileRight: "Smile to the right only to click.",
   browUp: "Raise your eyebrows to click.",
+  browDown: "Lower your eyebrows to click.",
   jawOpen: "Open your mouth wide to click.",
+  showTeeth: "Show all of your teeth to click.",
+  lookLeft: "Look to the left with your eyes to click.",
+  lookRight: "Look to the right with your eyes to click.",
+  lookUp: "Look up with your eyes to click.",
+  lookDown: "Look down with your eyes to click.",
+  mouthPucker: "Pucker by squeezing your lips together.",
 };
 
 // --- Status View Component ---
@@ -255,8 +264,17 @@ export default function StatusView({ onStop }) {
           >
             <option value="">None</option>
             <option value="smile">Smile</option>
+            <option value="smileLeft">Smile Left</option>
+            <option value="smileRight">Smile Right</option>
             <option value="browUp">Raise Eyebrows</option>
+            <option value="browDown">Lower Eyebrows</option>
             <option value="jawOpen">Open Jaw</option>
+            <option value="mouthPucker">Mouth Pucker</option>
+            <option value="showTeeth">Show Teeth</option>
+            <option value="lookLeft">Look Left</option>
+            <option value="lookRight">Look Right</option>
+            <option value="lookUp">Look Up</option>
+            <option value="lookDown">Look Down</option>
           </select>
         </div>
 
