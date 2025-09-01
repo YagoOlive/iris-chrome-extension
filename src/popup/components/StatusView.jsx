@@ -21,7 +21,7 @@ const clickActionDescriptions = {
 export default function StatusView({ onStop }) {
 
   const [factor, setFactor] = useState(0.95);
-  const [clickAction, setClickAction] = useState('');
+  const [clickAction, setClickAction] = useState('smile');
 
   const [clickAssist, setClickAssist] = useState(false);
   const [clickTimeout, setClickTimeout] = useState(2000) // default: 2s

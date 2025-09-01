@@ -34,7 +34,7 @@ window.initializeState = function () {
           intervalMs: 16, // ~60fps scroll interval
         },
         actions: {
-          click: "browUp", // "smile" | "browUp" | "jawOpen"
+          click: "smile",
           clickThreshold: 0.8,
         },
         clickAssist: false,
