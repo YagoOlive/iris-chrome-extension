@@ -238,6 +238,7 @@ import getClickScore from './click-score';
     port = null;
     window.HTCursor?.destroySprite();
     window.HTDwellClick?.destroyDwellRing();
+    window.HTHover?.destroyHighlight();
     window.__htCursorInjected = false;
     window.state.configInit = false;
     window.HTTabstrip?.hide?.(0);

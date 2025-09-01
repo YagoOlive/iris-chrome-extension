@@ -74,6 +74,54 @@ a.ht-hover {
   cursor: pointer;
 }
 
+/* -------- Lock Highlight (Click-Assist “halo”) -------- */
+#ht-lock-highlight {
+  position: fixed;
+  left: 0;
+  top: 0;
+  transform: translate3d(-9999px, -9999px, 0);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2147483646;
+  border-radius: 8px;
+  /* Dual ring for visibility on any background (light + dark) */
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.98),
+    0 0 0 5px rgba(0,0,0,0.55),
+    0 8px 24px rgba(0,0,0,0.25);
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    width 120ms ease,
+    height 120ms ease,
+    border-radius 120ms ease;
+}
+
+#ht-lock-highlight.is-visible { opacity: 1; }
+#ht-lock-highlight.is-locked { animation: ht-halo-pulse 1.2s ease-in-out infinite; }
+
+@keyframes ht-halo-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px rgba(255,255,255,0.98),
+      0 0 0 5px rgba(0,0,0,0.55),
+      0 8px 24px rgba(0,0,0,0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(255,255,255,1),
+      0 0 0 7px rgba(0,0,0,0.7),
+      0 10px 30px rgba(0,0,0,0.35);
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  #ht-lock-highlight.is-locked { animation: none; }
+}
+
 /* Ensure GPU-friendly moves */
 #ht-cursor { will-change: transform; }
 
