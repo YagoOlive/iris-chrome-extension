@@ -91,7 +91,7 @@ Because the head-tracked cursor cannot interact with Chrome’s native tabstrip 
 
 ### ⚙️ Settings
 
-Open the popup again while tracking will to configure the following:
+Open the popup again while tracking to configure the following:
 1. Smoothing Factor. 
 
     Adjust the cursor responsiveness:
@@ -104,8 +104,17 @@ Open the popup again while tracking will to configure the following:
 
     The facial gesture you can perform to left-click. Choose between:
       - Smile
+      - Smile to the left
+      - Smile to the right
       - Raising your eyebrows
+      - Lowering your eyebrows
       - Open mouth wide
+      - Mouth Pucker (by squeezing your lips together)
+      - Show all your teeth
+      - Look left with your eyes
+      - Look right with your eyes
+      - Look up with your eyes
+      - Look down with your eyes
 
 3. 🧲 Click Assist. 
 
@@ -119,7 +128,7 @@ Open the popup again while tracking will to configure the following:
       - Click Assist Timeout (in milliseconds):
         The amount of time the cursor will remain locked after leaving the element (0.1–10 seconds). 
         
-        **Default:** 1s
+        **Default:** 2s
     
 4. ⏱️ Dwell Click 
 
@@ -139,5 +148,31 @@ Open the popup again while tracking will to configure the following:
 
 ✅ All settings are automatically saved and persist across sessions.
 
+### ⌨️ Keyboard Shortcuts
+
+The extension supports **configurable keyboard shortcuts**, which you can manage at: `chrome://extensions/shortcuts`
+
+1. **Activate The Extension**
+
+    **Default**: <kbd>Alt</kbd> + <kbd>Q</kbd>
+    
+    **MacOS**: <kbd>Option</kbd> + <kbd>Q</kbd>
 
 
+    This is equivalent to opening the extension popup (same as clicking the extension icon in Chrome).
+
+2. **Start / Stop Head Tracking**
+
+    **Default**: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd>
+
+    **MacOS**: <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd>
+
+    This is equivalent to opening the extension popup and clicking on "Start Head Tracking" or "Stop Head Tracking", depending if head-tracking is active or not.
+
+    Behavior:
+
+    - If tracking is **inactive**, the shortcut starts the head tracking process.
+
+    - If tracking is **active**, the shortcut stops the head tracking process.  
+
+    ⚠️ If you haven’t yet uploaded a valid calibration file or granted camera permissions, the shortcut will instead open the popup so you can complete setup first.
