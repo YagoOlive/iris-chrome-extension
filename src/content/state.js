@@ -34,15 +34,20 @@
             speedDown: 10, // px per interval when at bottom
             intervalMs: 16, // ~60fps scroll interval
           },
-          actions: {
-            click: "smile",
-            clickThreshold: 0.8,
-          },
-          clickAssist: false,
-          clickAssistTimeout: 2000,
-          clickAssistRadius: 100,
+        actions: {
+          click: "smile",
+          clickThreshold: 0.8,
+        },
+        keyboard: {
+          enabled: false,
+          action: "",
+          actionThreshold: 0.8,
+        },
+        clickAssist: false,
+        clickAssistTimeout: 2000,
+        clickAssistRadius: 100,
 
-          dwellClick: false,
+        dwellClick: false,
           dwellTime: 1000, // ms dwell before clicking
           dwellArea: 15 // px dwell movement threshold
         },
@@ -82,6 +87,11 @@
         boundaryTimer: null,
         scrollInterval: null,
         lastBoundary: null, // "top" | "bottom" | null
+
+        // On-screen keyboard state
+        keyboardVisible: false,
+        keyboardHideTimer: null,
+        lastKeyboardGestureTime: 0,
       };
       console.log("running state.js....window.state has been initialized!");
     }

@@ -10,8 +10,9 @@ import tabstripScript from '../content/tabstrip.js?script';
 import clickScript from '../content/click.js?script';
 import dwellClickScript from '../content/dwell-click.js?script';
 import hoverScript from '../content/hover.js?script';
+import keyboardScript from '../content/keyboard.js?script';
 
-const CSS_FILES = ['content/cursor.css', 'content/tabstrip.css'];
+const CSS_FILES = ['content/cursor.css', 'content/tabstrip.css', 'content/keyboard.css'];
 
 const CONTENT_SCRIPTS_ORDERED = [
   stateScript,
@@ -19,6 +20,7 @@ const CONTENT_SCRIPTS_ORDERED = [
   dwellClickScript,
   clickScript,
   hoverScript,
+  keyboardScript,
   trackerScript,
   scrollScript,
   clickScoreScript,

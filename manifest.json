@@ -28,6 +28,7 @@
       "resources": [
         "content/cursor.css",
         "content/tabstrip.css",
+        "content/keyboard.css",
         "vendor/tasks-vision/wasm/*",
         "vendor/models/face_landmarker.task"
       ],

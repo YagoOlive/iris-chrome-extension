@@ -4,7 +4,7 @@ import * as math from 'mathjs';
 
 import { controlScroll, stopScroll } from './scroll';
 import { initSettings, updateSettings } from './settings';
-import getClickScore from './click-score';
+import getClickScore, { getGestureScore } from './click-score';
 
 // Use an IIFE to avoid polluting the global scope and run immediately
 (() => {
@@ -73,6 +73,10 @@ import getClickScore from './click-score';
       }
     });
     window.state.readyToTrack = true;
+    window.state.lastKeyboardGestureTime = Date.now();
+    window.state.keyboardHideTimer = null;
+    window.state.keyboardVisible = false;
+    window.HTKeyboard?.hide?.();
   }
 
   console.log('Head-tracking content script injected and state initialized.');
@@ -85,6 +89,7 @@ import getClickScore from './click-score';
     }
 
     window.HTClick?.maybeClick(getClickScore(blends));
+    maybeTriggerKeyboard(blends);
 
     // Get current landmark configuration
     const currentConfig = state.config.landmarkPoints; // default is 3 points, else 6 points
@@ -147,6 +152,19 @@ import getClickScore from './click-score';
       );
     } catch (error) {
       console.error("Matrix multiplication error in 2D mode:", error);
+    }
+  }
+
+  function maybeTriggerKeyboard(blends) {
+    const keyboardConfig = state.config.keyboard;
+    if (!keyboardConfig?.enabled || !keyboardConfig.action) return;
+    const now = Date.now();
+    if (now - state.lastKeyboardGestureTime < state.CLICK_COOLDOWN) return;
+    const score = getGestureScore(keyboardConfig.action, blends);
+    const threshold = keyboardConfig.actionThreshold ?? 0.8;
+    if (score >= threshold) {
+      window.state.lastKeyboardGestureTime = now;
+      window.HTKeyboard?.show();
     }
   }
 
@@ -220,6 +238,7 @@ import getClickScore from './click-score';
 
     window.HTHover?.updateHover();
     window.HTDwellClick?.handleDwellClick();
+    window.HTKeyboard?.handleCursorMove(roundedX, roundedY);
 
     // Edge-scrolling logic
     controlScroll(cursorSize);
@@ -243,6 +262,10 @@ import getClickScore from './click-score';
     window.state.configInit = false;
     window.HTTabstrip?.hide?.(0);
     window.HTTabstrip?.destroy?.();
+    window.HTKeyboard?.hide?.();
+    window.HTKeyboard?.destroy?.();
+    window.state.keyboardVisible = false;
+    window.state.lastKeyboardGestureTime = Date.now();
   }
 
   // --- MESSAGE LISTENER ---
@@ -308,6 +331,7 @@ import getClickScore from './click-score';
   //  --- SETTINGS ---
   chrome.storage.local.get(
     ['exponentialSmoothingFactor', 'clickAction', 'clickAssist', 'clickTimeout', 'clickRadius',
+      'keyboardEnabled', 'keyboardAction',
       'dwellClick', 'dwellTime', 'dwellArea'],
     (items) => {
       initSettings(items);

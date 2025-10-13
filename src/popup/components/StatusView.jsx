@@ -29,6 +29,8 @@ export default function StatusView({ onStop }) {
   const [clickRadiusError, setClickRadiusError] = useState(false);
   const [clickTimeoutError, setClickTimeoutError] = useState(false);
 
+  const [keyboardEnabled, setKeyboardEnabled] = useState(false);
+  const [keyboardAction, setKeyboardAction] = useState('jawOpen');
 
   const [dwellClick, setDwellClick] = useState(false);
   const [dwellTime, setDwellTime] = useState(4000); // default: 4s
@@ -45,11 +47,13 @@ export default function StatusView({ onStop }) {
         'clickAssist',
         'clickTimeout',
         'clickRadius',
+        'keyboardEnabled',
+        'keyboardAction',
         'dwellClick',
         'dwellTime',
         'dwellArea'],
       ({ exponentialSmoothingFactor, clickAction, clickAssist, clickTimeout, clickRadius,
-        dwellClick, dwellTime, dwellArea }) => {
+        keyboardEnabled, keyboardAction, dwellClick, dwellTime, dwellArea }) => {
         if (typeof exponentialSmoothingFactor === 'number') setFactor(exponentialSmoothingFactor);
         if (typeof clickAction === 'string') setClickAction(clickAction);
         if (clickAssist) setClickAssist(true);
@@ -57,6 +61,8 @@ export default function StatusView({ onStop }) {
         if (typeof clickRadius === 'number') setClickRadius(clickRadius);
         if (clickTimeout < 100 || clickTimeout > 10000) setClickTimeoutError(true);
         if (clickRadius < 30 || clickRadius > 500) setClickRadiusError(true);
+        if (keyboardEnabled) setKeyboardEnabled(true);
+        if (typeof keyboardAction === 'string' && keyboardAction) setKeyboardAction(keyboardAction);
         if (dwellClick) setDwellClick(true);
         if (typeof dwellTime === 'number') setDwellTime(dwellTime);
         if (typeof dwellArea === 'number') setDwellArea(dwellArea);
@@ -87,6 +93,36 @@ export default function StatusView({ onStop }) {
     chrome.runtime.sendMessage({
       cmd: 'UPDATE_SETTINGS',
       dwellClick: wantOn
+    });
+  }
+
+  const handleToggleKeyboard = (e) => {
+    const wantOn = e.target.checked;
+    setKeyboardEnabled(wantOn);
+    chrome.storage.local.set({ keyboardEnabled: wantOn });
+    chrome.runtime.sendMessage({
+      cmd: 'UPDATE_SETTINGS',
+      keyboardEnabled: wantOn
+    });
+
+    if (wantOn && !keyboardAction) {
+      const defaultAction = 'jawOpen';
+      setKeyboardAction(defaultAction);
+      chrome.storage.local.set({ keyboardAction: defaultAction });
+      chrome.runtime.sendMessage({
+        cmd: 'UPDATE_SETTINGS',
+        keyboardAction: defaultAction
+      });
+    }
+  }
+
+  const handleKeyboardActionChange = (e) => {
+    const val = e.target.value;
+    setKeyboardAction(val);
+    chrome.storage.local.set({ keyboardAction: val });
+    chrome.runtime.sendMessage({
+      cmd: 'UPDATE_SETTINGS',
+      keyboardAction: val
     });
   }
 
@@ -277,6 +313,42 @@ export default function StatusView({ onStop }) {
             <option value="lookDown">Look Down</option>
           </select>
         </div>
+
+        {/* Keyboard Toggle */}
+        <div className="setting-block toggle-setting">
+          <span className="setting-toggle-label">Enable On-Screen Keyboard</span>
+          <label className="switch-label switch-right">
+            <input type="checkbox" checked={keyboardEnabled} onChange={handleToggleKeyboard} />
+            <span className="switch-slider"></span>
+          </label>
+        </div>
+
+        {keyboardEnabled && (
+          <div className="setting-block animate-in">
+            <div className="setting-label">Keyboard Gesture</div>
+            <div className="setting-description">
+              {clickActionDescriptions[keyboardAction] || 'Choose a facial gesture to open the keyboard.'}
+            </div>
+            <select
+              value={keyboardAction}
+              onChange={handleKeyboardActionChange}
+              className="dropdown"
+            >
+              <option value="smile">Smile</option>
+              <option value="smileLeft">Smile Left</option>
+              <option value="smileRight">Smile Right</option>
+              <option value="browUp">Raise Eyebrows</option>
+              <option value="browDown">Lower Eyebrows</option>
+              <option value="jawOpen">Open Jaw</option>
+              <option value="mouthPucker">Mouth Pucker</option>
+              <option value="showTeeth">Show Teeth</option>
+              <option value="lookLeft">Look Left</option>
+              <option value="lookRight">Look Right</option>
+              <option value="lookUp">Look Up</option>
+              <option value="lookDown">Look Down</option>
+            </select>
+          </div>
+        )}
 
         {/* Click Assist Toggle */}
         <div className="setting-block toggle-setting">

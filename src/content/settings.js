@@ -1,7 +1,7 @@
 // src/content/settings.js
 
 // Click threshold value for each click action
-const clickThresholdAction = {
+const gestureThresholds = {
   smile: 0.8,
   browUp: 0.8,
   browDown: 0.6,
@@ -24,8 +24,21 @@ export function initSettings(items) {
   if (typeof items.clickAction === 'string') {
     window.state.config.actions.click = items.clickAction;
     console.log('Loaded click action:', items.clickAction);
-    window.state.config.actions.clickThreshold = clickThresholdAction[items.clickAction] || 1.0;
+    window.state.config.actions.clickThreshold = gestureThresholds[items.clickAction] || 1.0;
     console.log('Click action threshold:', state.config.actions.clickThreshold);
+  }
+
+  if (typeof items.keyboardEnabled === 'boolean') {
+    window.state.config.keyboard.enabled = items.keyboardEnabled;
+    console.log(`On-screen keyboard: ${items.keyboardEnabled ? 'ON' : 'OFF'}`);
+    if (!items.keyboardEnabled) {
+      window.HTKeyboard?.hide?.();
+    }
+  }
+  if (typeof items.keyboardAction === 'string') {
+    window.state.config.keyboard.action = items.keyboardAction;
+    window.state.config.keyboard.actionThreshold = gestureThresholds[items.keyboardAction] || 1.0;
+    console.log('Keyboard gesture set to:', items.keyboardAction);
   }
 
   window.state.config.clickAssist = items.clickAssist ? true : false;
@@ -61,8 +74,18 @@ export function updateSettings(msg) {
     } else if (setting === 'clickAction' && typeof msg.clickAction === 'string') {
       window.state.config.actions.click = msg.clickAction;
       console.log('Click action set to:', msg.clickAction);
-      window.state.config.actions.clickThreshold = clickThresholdAction[msg.clickAction] || 1.0;
+      window.state.config.actions.clickThreshold = gestureThresholds[msg.clickAction] || 1.0;
       console.log('Click action threshold set to:', state.config.actions.clickThreshold);
+    } else if (setting === 'keyboardEnabled') {
+      window.state.config.keyboard.enabled = msg.keyboardEnabled ? true : false;
+      console.log(`On-screen keyboard set to: ${msg.keyboardEnabled ? 'ON' : 'OFF'}`);
+      if (!msg.keyboardEnabled) {
+        window.HTKeyboard?.hide?.();
+      }
+    } else if (setting === 'keyboardAction' && typeof msg.keyboardAction === 'string') {
+      window.state.config.keyboard.action = msg.keyboardAction;
+      window.state.config.keyboard.actionThreshold = gestureThresholds[msg.keyboardAction] || 1.0;
+      console.log('Keyboard gesture set to:', msg.keyboardAction);
     } else if (setting === 'clickAssist') {
       window.state.config.clickAssist = msg.clickAssist ? true : false;
       console.log(`Click Assist set to: ${msg.clickAssist ? 'ON' : 'OFF'}`);
