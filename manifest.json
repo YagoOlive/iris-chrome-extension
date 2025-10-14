@@ -23,6 +23,13 @@
     "service_worker": "src/background/index.js",
     "type": "module"
   },
+ "content_scripts": [
+    {
+      "matches": ["https://head-control-website.vercel.app/*"],
+      "js": ["src/content/calibration-bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
   "web_accessible_resources": [
     {
       "resources": [

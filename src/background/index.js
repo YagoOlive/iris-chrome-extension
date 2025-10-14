@@ -14,6 +14,8 @@ import {
   clearKeys,
 } from './tabstrip.js';
 
+import handleCalibrationUpload from '../popup/utils/calibration.js';
+
 // A map to hold all active connections from content scripts
 const contentScriptPorts = new Map();
 
@@ -214,6 +216,46 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     else if (msg.cmd === 'STOP_TRACKING') {
       const res = await handleSTOP_TRACKING();
       sendResponse(res);
+    }
+    else if (msg.cmd === 'EXTERNAL_SAVE_CALIBRATION') {
+      try {
+        const { filename, csv } = msg;
+
+        // 1) Parse to the same config shape you store on manual upload
+        const config = await handleCalibrationUpload(csv);
+
+        if (!config) {
+          sendResponse({ ok: false, error: 'Invalid or unprocessable CSV' });
+          return;
+        }
+
+        // Stop tracking if currently active with new calibration file
+        const { isTrackingActive } = await chrome.storage.local.get('isTrackingActive');
+
+        if (isTrackingActive) {
+          await handleSTOP_TRACKING();
+        }
+
+        // 2) Persist exactly like manual upload
+        await chrome.storage.local.set({
+          isTrackingActive: false,
+          calibrationCsvContent: csv,
+          calibrationCsvName: filename || 'calibration.csv',
+          config,
+          // lastCalibrationSavedAt: Date.now(),
+          // calibrationSource: 'website'
+        });
+
+        // 3) Broadcast to open setup popup (if it’s open) so it refreshes UI
+        try {
+          await chrome.runtime.sendMessage({ cmd: 'CALIBRATION_UPDATED' });
+        } catch { /* popup likely not open, ignore */ }
+
+        sendResponse({ ok: true });
+      } catch (err) {
+        console.error('EXTERNAL_SAVE_CALIBRATION failed:', err);
+        sendResponse({ ok: false, error: err?.message || 'Unknown error' });
+      }
     }
     else if (msg.cmd === 'UPDATE_SETTINGS') {
       console.log('Updating Settings...');

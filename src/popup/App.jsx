@@ -45,6 +45,8 @@ export default function App() {
     const onMsg = (msg) => {
       if (msg?.cmd === 'CLOSE_POPUP_IF_OPEN') {
         window.close();
+      } else if (msg?.cmd === 'CALIBRATION_UPDATED') {
+        checkStatus(); // pull the newly saved file/config
       }
     };
     chrome.runtime.onMessage.addListener(onMsg);
