@@ -312,7 +312,7 @@
       if (!primaryEl) return;
       if (secondaryEl) {
         if (def.shift) {
-          secondaryEl.textContent = def.shift;
+          secondaryEl.textContent = shiftActive ? def.base : def.shift;
           secondaryEl.hidden = false;
         } else {
           secondaryEl.textContent = '';
