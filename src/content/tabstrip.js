@@ -64,7 +64,7 @@ const icons = (() => {
   const CONTAINER_ID = 'ht-tabstrip';
   const LIST_ID = 'ht-tabstrip-list';
   const HIDE_DELAY_DEFAULT = 2000;
-  const TRANSITION_DELAY_DEFAULT = 1010;
+  const TRANSITION_DELAY_DEFAULT = 510;
 
   let container, list, hideTimer;
 
