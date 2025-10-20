@@ -17,6 +17,22 @@ const clickActionDescriptions = {
   mouthPucker: "Pucker by squeezing your lips together.",
 };
 
+const keyboardActionDescriptions = {
+  "": "Select a facial gesture to open the keyboard.",
+  smile: "Smile to open the keyboard.",
+  smileLeft: "Smile to the left only to open the keyboard.",
+  smileRight: "Smile to the right only to open the keyboard.",
+  browUp: "Raise your eyebrows to open the keyboard.",
+  browDown: "Lower your eyebrows to open the keyboard.",
+  jawOpen: "Open your mouth wide to open the keyboard.",
+  showTeeth: "Show all of your teeth to open the keyboard.",
+  lookLeft: "Look to the left with your eyes to open the keyboard.",
+  lookRight: "Look to the right with your eyes to open the keyboard.",
+  lookUp: "Look up with your eyes to open the keyboard.",
+  lookDown: "Look down with your eyes to open the keyboard.",
+  mouthPucker: "Pucker by squeezing your lips together.",
+};
+
 // --- Status View Component ---
 export default function StatusView({ onStop }) {
 
@@ -327,7 +343,7 @@ export default function StatusView({ onStop }) {
           <div className="setting-block animate-in">
             <div className="setting-label">Keyboard Gesture</div>
             <div className="setting-description">
-              {clickActionDescriptions[keyboardAction] || 'Choose a facial gesture to open the keyboard.'}
+              {keyboardActionDescriptions[keyboardAction] || 'Choose a facial gesture to open the keyboard.'}
             </div>
             <select
               value={keyboardAction}
