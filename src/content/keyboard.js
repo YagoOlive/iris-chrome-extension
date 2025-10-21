@@ -375,50 +375,6 @@
     }
   }
 
-  // function onPointerDown(e) {
-  //   const key = e.target?.closest?.('[data-key]');
-  //   if (key) {
-  //     e.preventDefault();
-  //   }
-  // }
-
-  // function onKeyClick(e) {
-  //   const keyEl = e.target?.closest?.('[data-key]');
-  //   if (!keyEl) return;
-  //   e.preventDefault();
-  //   e.stopPropagation();
-  //   const key = keyEl.dataset.key;
-  //   handleKeyPress(key);
-  // }
-
-  // function handleKeyPress(rawKey) {
-  //   if (!rawKey) return;
-  //   if (rawKey === 'Hide') {
-  //     hide(true);
-  //     return;
-  //   }
-  //   if (rawKey === 'Clear') {
-  //     clearActive();
-  //     return;
-  //   }
-
-  //   const target = document.activeElement;
-
-  //   if (!target) return;
-
-  //   if (rawKey === 'Backspace') {
-  //     backspace(target);
-  //     return;
-  //   }
-  //   if (rawKey === 'Enter') {
-  //     enter(target);
-  //     return;
-  //   }
-
-  //   const value = rawKey === 'Space' ? ' ' : rawKey;
-  //   insertText(target, value);
-  // }
-
   function isTextInput(el) {
     if (!el) return false;
     if (el.tagName === 'TEXTAREA') return true;
