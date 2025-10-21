@@ -44,7 +44,7 @@
           actionThreshold: 0.8,
         },
         clickAssist: false,
-        clickAssistTimeout: 2000,
+        clickAssistTimeout: 1000,
         clickAssistRadius: 100,
 
         dwellClick: false,
