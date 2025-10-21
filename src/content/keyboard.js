@@ -227,6 +227,7 @@
     const key = e.target?.closest?.('.ht-keyboard-key');
     if (key) {
       e.preventDefault();
+      window.HTTabstrip?.resetHideTimer?.();
     }
   }
 
@@ -235,6 +236,7 @@
     if (!keyEl) return;
     e.preventDefault();
     e.stopPropagation();
+    window.HTTabstrip?.resetHideTimer?.();
     const keyDef = keyEl.__keyDef;
     if (!keyDef) return;
     handleKeyPress(keyDef);
@@ -367,6 +369,7 @@
 
     if (within) {
       clearHideTimer();
+      window.HTTabstrip?.resetHideTimer?.();
     } else {
       scheduleHide();
     }

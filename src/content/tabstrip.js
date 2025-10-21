@@ -150,6 +150,7 @@ const icons = (() => {
     input.placeholder = 'Search or type a URL';
     input.autocomplete = 'off';
     input.spellcheck = false;
+    input.addEventListener('focus', onOmniboxFocus);
 
     const go = document.createElement('button');
     go.type = 'submit';
@@ -359,10 +360,18 @@ const icons = (() => {
       container.classList.add('is-visible');
       container.classList.remove('ht-hidden');
     }
-    container.querySelector('.ht-omnibox input')?.focus();
   }
 
   function hide(delay = HIDE_DELAY_DEFAULT, transitionTime = TRANSITION_DELAY_DEFAULT) {
+    scheduleHide(delay, transitionTime);
+  }
+
+  function resetHideTimer(delay = HIDE_DELAY_DEFAULT) {
+    if (!container) return;
+    scheduleHide(delay, TRANSITION_DELAY_DEFAULT);
+  }
+
+  function scheduleHide(delay, transitionTime) {
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
       if (!container) return;
@@ -392,6 +401,10 @@ const icons = (() => {
     host = null;
   }
 
+  function onOmniboxFocus() {
+    window.HTKeyboard?.show?.();
+  }
+
   // Expose controls
-  window.HTTabstrip = { show, hide, destroy };
+  window.HTTabstrip = { show, hide, destroy, resetHideTimer };
 })();
