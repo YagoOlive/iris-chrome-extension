@@ -46,7 +46,7 @@ export default function StatusView({ onStop }) {
   const [clickTimeoutError, setClickTimeoutError] = useState(false);
 
   const [keyboardEnabled, setKeyboardEnabled] = useState(false);
-  const [keyboardAction, setKeyboardAction] = useState('jawOpen');
+  const [keyboardAction, setKeyboardAction] = useState('');
 
   const [dwellClick, setDwellClick] = useState(false);
   const [dwellTime, setDwellTime] = useState(4000); // default: 4s
