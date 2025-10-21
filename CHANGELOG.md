@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0 (2025-10-20)
+
+Full Changelog: [v0.6.0...v0.7.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.6.0...v0.7.0)
+
+### Features
+- **On-Screen Keyboard:** Added an on-screen virtual keyboard, allowing users to type into input fields using the head-tracked cursor. Users can enable this feature by enabling the on-screen keyboard in settings and assigning a facial gesture to perform to open the keyboard (default: jawOpen). The keyboard will remain open while the cursor is hovering over or interacting with the keyboard, and will hide after 4 seconds of inactivity.
+- **Automatic Calibration File Sync:** After calibrating in the calibration website, the calibration file will automatically be saved to the chrome extension, obliviating the need for downloading the file and then re-uploading it.
+- Updated the default clickAssistTimeout setting back from 2s -> 1s.
+
+### Bug Fixes
+- Fixed a bug where the tabstrip would reopen immediately if the cursor went near the top of the screen, even though it was recently fully closed. The correct functionality of having the cursor touch the top of the window to reopen the tabstrip is now properly working.
+
+### Documentation
+- Added instructions on enabling and using the on-screen keyboard in the Settings section of the README.md.
+
 ## 0.6.0 (2025-09-02)
 
 Full Changelog: [v0.5.0...v0.6.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.5.0...v0.6.0)
