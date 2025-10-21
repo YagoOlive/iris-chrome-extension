@@ -37,8 +37,7 @@ To try the Chrome Extension locally:
 
       - Without a growing line: A more precise, fixed-point calibration.
  
-    Follow the instructions by moving your head to target each red dot on the screen, as if you were moving a cursor to each of the red dots.
-
+    Follow the instructions by moving your head to target each red dot on the screen, as if you were moving a cursor to each of the red dots. Once you are done, the calibration file will automatically be saved to the chrome extension.
 
 2. **Enable Camera Access**. 
 
@@ -92,7 +91,7 @@ Because the head-tracked cursor cannot interact with Chrome’s native tabstrip 
 ### ⚙️ Settings
 
 Open the popup again while tracking to configure the following:
-1. Smoothing Factor. 
+1. Smoothing Factor
 
     Adjust the cursor responsiveness:
 
@@ -115,8 +114,16 @@ Open the popup again while tracking to configure the following:
       - Look right with your eyes
       - Look up with your eyes
       - Look down with your eyes
+  
+3. ⌨️ On-Screen Keyboard
 
-3. 🧲 Click Assist. 
+    Provides a fully hands-free typing experience, allowing you to enter text using the head-tracked cursor. This feature is disabled by default.
+
+      - **Activation:** When enabled, perform your assigned facial gesture to open the on-screen keyboard. The default facial gesture that is assigned to this setting is "Open Mouth Wide".
+
+    The on-screen keyboard will remain open while the head-tracked cursor is interacting with the keyboard, and will hide after 4 seconds of inactivity.
+
+4. 🧲 Click Assist
 
     Helps reduce accidental cursor drift during a facial gesture. Once you have entered an interactive element, “Click Assist” locks the cursor to it, even if you move away from it (up to a certain distance and time). Allows for two additional configurable settings:
 
@@ -128,9 +135,9 @@ Open the popup again while tracking to configure the following:
       - Click Assist Timeout (in milliseconds):
         The amount of time the cursor will remain locked after leaving the element (0.1–10 seconds). 
         
-        **Default:** 2s
+        **Default:** 1s
     
-4. ⏱️ Dwell Click 
+5. ⏱️ Dwell Click 
 
     Triggers a click after the cursor remains within a small area for a specified duration. Allows for two additional configurable settings:
 
