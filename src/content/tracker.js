@@ -164,7 +164,11 @@ import getClickScore, { getGestureScore } from './click-score';
     const threshold = keyboardConfig.actionThreshold ?? 0.8;
     if (score >= threshold) {
       window.state.lastKeyboardGestureTime = now;
-      window.HTKeyboard?.show();
+      if (window.state.keyboardVisible) {
+        window.HTKeyboard?.hide?.();
+      } else {
+        window.HTKeyboard?.show?.();
+      }
     }
   }
 

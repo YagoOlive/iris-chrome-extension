@@ -100,6 +100,30 @@
   };
   const charKeyRefs = [];
 
+  function getActiveElement() {
+    let active = document.activeElement;
+    while (active?.shadowRoot?.activeElement) {
+      active = active.shadowRoot.activeElement;
+    }
+    if (active?.tagName === 'IFRAME') {
+      try {
+        const frameDoc = active.contentDocument;
+        if (frameDoc) {
+          let frameActive = frameDoc.activeElement;
+          while (frameActive?.shadowRoot?.activeElement) {
+            frameActive = frameActive.shadowRoot.activeElement;
+          }
+          if (frameActive) {
+            active = frameActive;
+          }
+        }
+      } catch {
+        /* ignore cross-origin iframe focus */
+      }
+    }
+    return active;
+  }
+
   function ensureUI() {
     if (host?.isConnected) {
       container = shadow.getElementById(CONTAINER_ID);
@@ -252,13 +276,13 @@
           clearActive();
           return;
         case 'backspace':
-          backspace(document.activeElement);
+          backspace();
           return;
         case 'enter':
-          enter(document.activeElement);
+          enter();
           return;
         case 'tab':
-          insertText(document.activeElement, '\t');
+          insertText('\t');
           applyShiftRelease();
           return;
         case 'caps':
@@ -272,18 +296,18 @@
           updateKeyLabels();
           return;
         case 'space':
-          insertText(document.activeElement, ' ');
+          insertText(' ');
           applyShiftRelease();
           return;
         default:
           return;
       }
     }
-    const target = document.activeElement;
+    const target = getActiveElement();
     if (!target) return;
     const char = resolveCharacter(def);
     if (!char) return;
-    insertText(target, char);
+    insertText(char, target);
     applyShiftRelease();
   }
 
@@ -385,7 +409,7 @@
     return false;
   }
 
-  function insertText(target, text) {
+  function insertText(text, target = getActiveElement()) {
     if (!target) return;
     if (isTextInput(target)) {
       const input = target;
@@ -410,7 +434,7 @@
     document.execCommand('insertText', false, text);
   }
 
-  function backspace(target) {
+  function backspace(target = getActiveElement()) {
     if (!target) return;
     if (isTextInput(target)) {
       const input = target;
@@ -438,10 +462,10 @@
     }
   }
 
-  function enter(target) {
+  function enter(target = getActiveElement()) {
     if (!target) return;
     if (target.tagName === 'TEXTAREA' || target.isContentEditable) {
-      insertText(target, '\n');
+      insertText('\n', target);
       applyShiftRelease();
       return;
     }
@@ -462,7 +486,7 @@
   }
 
   function clearActive() {
-    const target = document.activeElement;
+    const target = getActiveElement();
     if (!target) return;
     if (isTextInput(target)) {
       target.value = '';
