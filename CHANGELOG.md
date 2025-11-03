@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.3 (2025-11-03)
+
+Full Changelog: [v0.7.2...v0.7.3](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.2...v0.7.3)
+
+### Bug Fixes:
+- Fixed a critical issue where the progress ring in the dwell-based clicking option would break when loading a new site (e.g. after entering a url query, clicking a link to a new page, etc.).
+
 ## 0.7.2 (2025-11-03)
 
 Full Changelog: [v0.7.1...v0.7.2](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.1...v0.7.2)
