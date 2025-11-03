@@ -119,7 +119,7 @@ Open the popup again while tracking to configure the following:
 
     Provides a fully hands-free typing experience, allowing you to enter text using the head-tracked cursor. This feature is disabled by default.
 
-      - **Activation:** When enabled, perform your assigned facial gesture to open the on-screen keyboard. The default facial gesture that is assigned to this setting is "Open Mouth Wide".
+      - **Activation:** When enabled, you can perform your assigned facial gesture to open and close the on-screen keyboard. The default facial gesture that is assigned to this setting is "Open Mouth Wide".
 
     The on-screen keyboard will remain open while the head-tracked cursor is interacting with the keyboard, and will hide after 4 seconds of inactivity.
 
