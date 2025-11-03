@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.2 (2025-11-03)
+
+Full Changelog: [v0.7.1...v0.7.2](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.1...v0.7.2)
+
+### Features:
+- Performing the assigned facial gesture for the on-screen keyboard will now also close the keyboard if the keyboard is already open.
+
+### Bug Fixes:
+- Fixed a bug where clicking on the ‘Enter’ key through the on-screen keyboard did not trigger the submission of forms/queries (e.g. hitting enter when typing a url/query/text in an input field).
+
 ## 0.7.1 (2025-10-22)
 
 Full Changelog: [v0.7.0...v0.7.1](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.0...v0.7.1)
