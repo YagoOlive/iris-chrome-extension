@@ -2,7 +2,7 @@
 
 (() => {
   // --- Click synthesis that behaves like a human click (crossing shadow DOM) ---
-  function dispatchPointer(type, x, y, target) {
+  function dispatchPointer(type, x, y, target, detail = 0) {
     const ev = new PointerEvent(type, {
       bubbles: true,
       cancelable: true,
@@ -13,11 +13,12 @@
       clientX: x,
       clientY: y,
       buttons: type === 'pointerdown' ? 1 : 0,
+      detail,
     });
     return target.dispatchEvent(ev);
   }
 
-  function dispatchMouse(type, x, y, target) {
+  function dispatchMouse(type, x, y, target, detail = 1) {
     const ev = new MouseEvent(type, {
       bubbles: true,
       cancelable: true,
@@ -25,7 +26,8 @@
       view: window,
       clientX: x,
       clientY: y,
-      button: 0
+      button: 0,
+      detail,
     });
     return target.dispatchEvent(ev);
   }
@@ -34,21 +36,27 @@
    * Simulate a "real" left click: pointerdown → mousedown → pointerup → mouseup → click.
    * Returns true if the final click's default was NOT prevented.
    */
-  function synthesizeHumanClick(target, x, y) {
+  function synthesizeHumanClick(target, x, y, detail = 1) {
     // order matters
     dispatchPointer('pointerover', x, y, target);
-    dispatchMouse('mouseover', x, y, target);
+    dispatchMouse('mouseover', x, y, target, 0);
     dispatchPointer('pointerenter', x, y, target);
-    dispatchMouse('mouseenter', x, y, target);
+    dispatchMouse('mouseenter', x, y, target, 0);
 
-    dispatchPointer('pointerdown', x, y, target);
-    dispatchMouse('mousedown', x, y, target);
-    dispatchPointer('pointerup', x, y, target);
-    dispatchMouse('mouseup', x, y, target);
+    dispatchPointer('pointerdown', x, y, target, detail);
+    dispatchMouse('mousedown', x, y, target, detail);
+    dispatchPointer('pointerup', x, y, target, detail);
+    dispatchMouse('mouseup', x, y, target, detail);
 
     const clickEv = new MouseEvent('click', {
-      bubbles: true, cancelable: true, composed: true, view: window,
-      clientX: x, clientY: y, button: 0
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      view: window,
+      clientX: x,
+      clientY: y,
+      button: 0,
+      detail,
     });
     return target.dispatchEvent(clickEv); // false => defaultPrevented
   }
@@ -79,8 +87,8 @@
     if (!candidateEl || state.loading) return;
 
     focusEditable(candidateEl);
-    synthesizeHumanClick(candidateEl, state.cursorX, state.cursorY);
-    synthesizeHumanClick(candidateEl, state.cursorX, state.cursorY);
+    synthesizeHumanClick(candidateEl, state.cursorX, state.cursorY, 1);
+    synthesizeHumanClick(candidateEl, state.cursorX, state.cursorY, 2);
 
     const dblClickEvent = new MouseEvent('dblclick', {
       bubbles: true,
