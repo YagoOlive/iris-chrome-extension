@@ -27,6 +27,11 @@ export function initSettings(items) {
     window.state.config.actions.clickThreshold = gestureThresholds[items.clickAction] || 1.0;
     console.log('Click action threshold:', state.config.actions.clickThreshold);
   }
+  if (typeof items.doubleClickAction === 'string') {
+    window.state.config.actions.doubleClick = items.doubleClickAction;
+    window.state.config.actions.doubleClickThreshold = gestureThresholds[items.doubleClickAction] || 1.0;
+    console.log('Loaded double-click action:', items.doubleClickAction);
+  }
 
   if (typeof items.keyboardEnabled === 'boolean') {
     window.state.config.keyboard.enabled = items.keyboardEnabled;
@@ -76,6 +81,10 @@ export function updateSettings(msg) {
       console.log('Click action set to:', msg.clickAction);
       window.state.config.actions.clickThreshold = gestureThresholds[msg.clickAction] || 1.0;
       console.log('Click action threshold set to:', state.config.actions.clickThreshold);
+    } else if (setting === 'doubleClickAction' && typeof msg.doubleClickAction === 'string') {
+      window.state.config.actions.doubleClick = msg.doubleClickAction;
+      window.state.config.actions.doubleClickThreshold = gestureThresholds[msg.doubleClickAction] || 1.0;
+      console.log('Double-click action set to:', msg.doubleClickAction);
     } else if (setting === 'keyboardEnabled') {
       window.state.config.keyboard.enabled = msg.keyboardEnabled ? true : false;
       console.log(`On-screen keyboard set to: ${msg.keyboardEnabled ? 'ON' : 'OFF'}`);

@@ -89,6 +89,8 @@ import getClickScore, { getGestureScore } from './click-score';
     }
 
     window.HTClick?.maybeClick(getClickScore(blends));
+    const doubleClickScore = getGestureScore(state.config.actions.doubleClick, blends);
+    window.HTClick?.maybeDoubleClick?.(doubleClickScore);
     maybeTriggerKeyboard(blends);
 
     // Get current landmark configuration
@@ -334,7 +336,7 @@ import getClickScore, { getGestureScore } from './click-score';
 
   //  --- SETTINGS ---
   chrome.storage.local.get(
-    ['exponentialSmoothingFactor', 'clickAction', 'clickAssist', 'clickTimeout', 'clickRadius',
+    ['exponentialSmoothingFactor', 'clickAction', 'doubleClickAction', 'clickAssist', 'clickTimeout', 'clickRadius',
       'keyboardEnabled', 'keyboardAction',
       'dwellClick', 'dwellTime', 'dwellArea'],
     (items) => {

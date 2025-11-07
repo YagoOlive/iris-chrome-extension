@@ -17,6 +17,22 @@ const clickActionDescriptions = {
   mouthPucker: "Pucker by squeezing your lips together.",
 };
 
+const doubleClickActionDescriptions = {
+  "": "Select a facial gesture to trigger a double-click.",
+  smile: "Smile to perform a double-click.",
+  smileLeft: "Smile to the left only to double-click.",
+  smileRight: "Smile to the right only to double-click.",
+  browUp: "Raise your eyebrows to double-click.",
+  browDown: "Lower your eyebrows to double-click.",
+  jawOpen: "Open your mouth wide to double-click.",
+  showTeeth: "Show all of your teeth to double-click.",
+  lookLeft: "Look to the left with your eyes to double-click.",
+  lookRight: "Look to the right with your eyes to double-click.",
+  lookUp: "Look up with your eyes to double-click.",
+  lookDown: "Look down with your eyes to double-click.",
+  mouthPucker: "Pucker by squeezing your lips together.",
+};
+
 const keyboardActionDescriptions = {
   "": "Select a facial gesture to open the keyboard.",
   smile: "Smile to open the keyboard.",
@@ -38,6 +54,7 @@ export default function StatusView({ onStop }) {
 
   const [factor, setFactor] = useState(0.95);
   const [clickAction, setClickAction] = useState('smile');
+  const [doubleClickAction, setDoubleClickAction] = useState('');
 
   const [clickAssist, setClickAssist] = useState(false);
   const [clickTimeout, setClickTimeout] = useState(1000) // default: 1s
@@ -60,6 +77,7 @@ export default function StatusView({ onStop }) {
     chrome.storage.local.get(
       ['exponentialSmoothingFactor',
         'clickAction',
+        'doubleClickAction',
         'clickAssist',
         'clickTimeout',
         'clickRadius',
@@ -68,10 +86,11 @@ export default function StatusView({ onStop }) {
         'dwellClick',
         'dwellTime',
         'dwellArea'],
-      ({ exponentialSmoothingFactor, clickAction, clickAssist, clickTimeout, clickRadius,
+      ({ exponentialSmoothingFactor, clickAction, doubleClickAction, clickAssist, clickTimeout, clickRadius,
         keyboardEnabled, keyboardAction, dwellClick, dwellTime, dwellArea }) => {
         if (typeof exponentialSmoothingFactor === 'number') setFactor(exponentialSmoothingFactor);
         if (typeof clickAction === 'string') setClickAction(clickAction);
+        if (typeof doubleClickAction === 'string') setDoubleClickAction(doubleClickAction);
         if (clickAssist) setClickAssist(true);
         if (typeof clickTimeout === 'number') setClickTimeout(clickTimeout);
         if (typeof clickRadius === 'number') setClickRadius(clickRadius);
@@ -149,6 +168,16 @@ export default function StatusView({ onStop }) {
     chrome.runtime.sendMessage({
       cmd: 'UPDATE_SETTINGS',
       clickAction: val
+    });
+  }
+
+  const handleDoubleClickActionChange = (e) => {
+    const val = e.target.value;
+    setDoubleClickAction(val);
+    chrome.storage.local.set({ doubleClickAction: val });
+    chrome.runtime.sendMessage({
+      cmd: 'UPDATE_SETTINGS',
+      doubleClickAction: val
     });
   }
 
@@ -312,6 +341,33 @@ export default function StatusView({ onStop }) {
           <select
             value={clickAction}
             onChange={handleClickActionChange}
+            className="dropdown"
+          >
+            <option value="">None</option>
+            <option value="smile">Smile</option>
+            <option value="smileLeft">Smile Left</option>
+            <option value="smileRight">Smile Right</option>
+            <option value="browUp">Raise Eyebrows</option>
+            <option value="browDown">Lower Eyebrows</option>
+            <option value="jawOpen">Open Jaw</option>
+            <option value="mouthPucker">Mouth Pucker</option>
+            <option value="showTeeth">Show Teeth</option>
+            <option value="lookLeft">Look Left</option>
+            <option value="lookRight">Look Right</option>
+            <option value="lookUp">Look Up</option>
+            <option value="lookDown">Look Down</option>
+          </select>
+        </div>
+
+        {/* Double Click Action Selection */}
+        <div className="setting-block">
+          <div className="setting-label">Double Click Action</div>
+          <div className="setting-description">
+            {doubleClickActionDescriptions[doubleClickAction] || doubleClickActionDescriptions[""]}
+          </div>
+          <select
+            value={doubleClickAction}
+            onChange={handleDoubleClickActionChange}
             className="dropdown"
           >
             <option value="">None</option>

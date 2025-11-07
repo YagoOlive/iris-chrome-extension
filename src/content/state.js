@@ -37,6 +37,8 @@
           actions: {
             click: "smile",
             clickThreshold: 0.8,
+            doubleClick: "",
+            doubleClickThreshold: 1.0,
           },
           keyboard: {
             enabled: false,
