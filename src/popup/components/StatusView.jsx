@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react';
 import '../styles/StatusView.css';
 
+const gestureOptions = [
+  { value: 'smile', label: 'Smile' },
+  { value: 'smileLeft', label: 'Smile Left' },
+  { value: 'smileRight', label: 'Smile Right' },
+  { value: 'browUp', label: 'Raise Eyebrows' },
+  { value: 'browDown', label: 'Lower Eyebrows' },
+  { value: 'jawOpen', label: 'Open Jaw' },
+  { value: 'mouthPucker', label: 'Mouth Pucker' },
+  { value: 'showTeeth', label: 'Show Teeth' },
+  { value: 'lookLeft', label: 'Look Left' },
+  { value: 'lookRight', label: 'Look Right' },
+  { value: 'lookUp', label: 'Look Up' },
+  { value: 'lookDown', label: 'Look Down' },
+];
+
 const clickActionDescriptions = {
   "": "Select a facial gesture to trigger a left-click.",
   smile: "Smile to perform a left-click.",
@@ -181,6 +196,18 @@ export default function StatusView({ onStop }) {
     });
   }
 
+  useEffect(() => {
+    if (!clickAction || !doubleClickAction) return;
+    if (clickAction === doubleClickAction) {
+      setDoubleClickAction('');
+      chrome.storage.local.set({ doubleClickAction: '' });
+      chrome.runtime.sendMessage({
+        cmd: 'UPDATE_SETTINGS',
+        doubleClickAction: ''
+      });
+    }
+  }, [clickAction, doubleClickAction]);
+
   const handleClickTimeoutChange = (e) => {
     if (e.target.value === "") {
       setClickTimeout("");
@@ -344,18 +371,11 @@ export default function StatusView({ onStop }) {
             className="dropdown"
           >
             <option value="">None</option>
-            <option value="smile">Smile</option>
-            <option value="smileLeft">Smile Left</option>
-            <option value="smileRight">Smile Right</option>
-            <option value="browUp">Raise Eyebrows</option>
-            <option value="browDown">Lower Eyebrows</option>
-            <option value="jawOpen">Open Jaw</option>
-            <option value="mouthPucker">Mouth Pucker</option>
-            <option value="showTeeth">Show Teeth</option>
-            <option value="lookLeft">Look Left</option>
-            <option value="lookRight">Look Right</option>
-            <option value="lookUp">Look Up</option>
-            <option value="lookDown">Look Down</option>
+            {gestureOptions
+              .filter((opt) => opt.value !== doubleClickAction)
+              .map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
           </select>
         </div>
 
@@ -371,18 +391,11 @@ export default function StatusView({ onStop }) {
             className="dropdown"
           >
             <option value="">None</option>
-            <option value="smile">Smile</option>
-            <option value="smileLeft">Smile Left</option>
-            <option value="smileRight">Smile Right</option>
-            <option value="browUp">Raise Eyebrows</option>
-            <option value="browDown">Lower Eyebrows</option>
-            <option value="jawOpen">Open Jaw</option>
-            <option value="mouthPucker">Mouth Pucker</option>
-            <option value="showTeeth">Show Teeth</option>
-            <option value="lookLeft">Look Left</option>
-            <option value="lookRight">Look Right</option>
-            <option value="lookUp">Look Up</option>
-            <option value="lookDown">Look Down</option>
+            {gestureOptions
+              .filter((opt) => opt.value !== clickAction)
+              .map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
           </select>
         </div>
 
