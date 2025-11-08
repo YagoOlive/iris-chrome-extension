@@ -82,7 +82,7 @@ export default function StatusView({ onStop }) {
   const [keyboardAction, setKeyboardAction] = useState('');
 
   const [dwellClick, setDwellClick] = useState(false);
-  const [dwellTime, setDwellTime] = useState(4000); // default: 4s
+  const [dwellTime, setDwellTime] = useState(3000); // default: 3s
   const [dwellArea, setDwellArea] = useState(40); // default: 40px
   const [dwellTimeError, setDwellTimeError] = useState(false);
   const [dwellAreaError, setDwellAreaError] = useState(false);
@@ -316,8 +316,8 @@ export default function StatusView({ onStop }) {
         chrome.storage.local.set({ dwellTime: dwellTime });
         chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellTime: dwellTime });
       } else {
-        chrome.storage.local.set({ dwellTime: 4000 }); // set to default dwell time of 4s
-        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellTime: 4000 });
+        chrome.storage.local.set({ dwellTime: 3000 }); // set to default dwell time of 3s
+        chrome.runtime.sendMessage({ cmd: 'UPDATE_SETTINGS', dwellTime: 3000 });
       }
     }, 500);
 
