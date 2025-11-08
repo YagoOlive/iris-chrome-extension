@@ -336,7 +336,7 @@ import getClickScore, { getGestureScore } from './click-score';
 
   //  --- SETTINGS ---
   chrome.storage.local.get(
-    ['exponentialSmoothingFactor', 'clickAction', 'doubleClickAction', 'clickAssist', 'clickTimeout', 'clickRadius',
+    ['exponentialSmoothingFactor', 'clickAction', 'doubleClickAction', 'clickAssist', 'clickTimeout', 'clickRadius', 'cursorSprite',
       'keyboardEnabled', 'keyboardAction',
       'dwellClick', 'dwellTime', 'dwellArea'],
     (items) => {

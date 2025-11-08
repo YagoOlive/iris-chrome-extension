@@ -68,6 +68,7 @@ const keyboardActionDescriptions = {
 export default function StatusView({ onStop }) {
 
   const [factor, setFactor] = useState(0.95);
+  const [cursorSprite, setCursorSprite] = useState('arrow');
   const [clickAction, setClickAction] = useState('smile');
   const [doubleClickAction, setDoubleClickAction] = useState('');
 
@@ -91,6 +92,7 @@ export default function StatusView({ onStop }) {
   useEffect(() => {
     chrome.storage.local.get(
       ['exponentialSmoothingFactor',
+        'cursorSprite',
         'clickAction',
         'doubleClickAction',
         'clickAssist',
@@ -101,9 +103,10 @@ export default function StatusView({ onStop }) {
         'dwellClick',
         'dwellTime',
         'dwellArea'],
-      ({ exponentialSmoothingFactor, clickAction, doubleClickAction, clickAssist, clickTimeout, clickRadius,
+      ({ exponentialSmoothingFactor, cursorSprite, clickAction, doubleClickAction, clickAssist, clickTimeout, clickRadius,
         keyboardEnabled, keyboardAction, dwellClick, dwellTime, dwellArea }) => {
         if (typeof exponentialSmoothingFactor === 'number') setFactor(exponentialSmoothingFactor);
+        if (typeof cursorSprite === 'string') setCursorSprite(cursorSprite);
         if (typeof clickAction === 'string') setClickAction(clickAction);
         if (typeof doubleClickAction === 'string') setDoubleClickAction(doubleClickAction);
         if (clickAssist) setClickAssist(true);
@@ -173,6 +176,17 @@ export default function StatusView({ onStop }) {
     chrome.runtime.sendMessage({
       cmd: 'UPDATE_SETTINGS',
       keyboardAction: val
+    });
+  }
+
+  const handleCursorSpriteChange = (next) => {
+    const value = next === 'disc' ? 'disc' : 'arrow';
+    if (value === cursorSprite) return;
+    setCursorSprite(value);
+    chrome.storage.local.set({ cursorSprite: value });
+    chrome.runtime.sendMessage({
+      cmd: 'UPDATE_SETTINGS',
+      cursorSprite: value
     });
   }
 
@@ -339,6 +353,32 @@ export default function StatusView({ onStop }) {
       {/* SETTINGS */}
       <section className="settings">
         <h3 className="settings-heading">Settings</h3>
+
+        {/* Cursor Style Toggle */}
+        <div className="setting-block">
+          <div className="setting-label">Cursor Style</div>
+          <div className="setting-description">
+            Pick the type of cursor you want to see.
+          </div>
+          <div className="cursor-style-toggle" role="group" aria-label="Cursor style">
+            <button
+              type="button"
+              className={`cursor-style-option ${cursorSprite === 'arrow' ? 'is-active' : ''}`}
+              aria-pressed={cursorSprite === 'arrow'}
+              onClick={() => handleCursorSpriteChange('arrow')}
+            >
+              Pointer
+            </button>
+            <button
+              type="button"
+              className={`cursor-style-option ${cursorSprite === 'disc' ? 'is-active' : ''}`}
+              aria-pressed={cursorSprite === 'disc'}
+              onClick={() => handleCursorSpriteChange('disc')}
+            >
+              Disc
+            </button>
+          </div>
+        </div>
 
         {/* Smoothing Filter Slider */}
         <div className="setting-block">

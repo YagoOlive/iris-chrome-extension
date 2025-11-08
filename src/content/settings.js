@@ -21,6 +21,9 @@ export function initSettings(items) {
     window.state.config.exponentialSmoothingFactor = items.exponentialSmoothingFactor ** exponentialSmoothingAdjustment;
     console.log('Loaded smoothing factor:', items.exponentialSmoothingFactor);
   }
+  if (typeof items.cursorSprite === 'string') {
+    window.state.config.cursorSprite = items.cursorSprite;
+  }
   if (typeof items.clickAction === 'string') {
     window.state.config.actions.click = items.clickAction;
     console.log('Loaded click action:', items.clickAction);
@@ -45,6 +48,8 @@ export function initSettings(items) {
     window.state.config.keyboard.actionThreshold = gestureThresholds[items.keyboardAction] || 1.0;
     console.log('Keyboard gesture set to:', items.keyboardAction);
   }
+
+  window.HTCursor?.setSpriteVariant?.(window.state.config.cursorSprite || 'arrow');
 
   window.state.config.clickAssist = items.clickAssist ? true : false;
   console.log(`Click Assist: ${items.clickAssist ? 'ON' : 'OFF'}`);
@@ -76,6 +81,10 @@ export function updateSettings(msg) {
     } else if (setting === 'exponentialSmoothingFactor' && typeof msg.exponentialSmoothingFactor === 'number') {
       window.state.config.exponentialSmoothingFactor = msg.exponentialSmoothingFactor ** exponentialSmoothingAdjustment;
       console.log('Smoothing factor set to: ', msg.exponentialSmoothingFactor);
+    } else if (setting === 'cursorSprite' && typeof msg.cursorSprite === 'string') {
+      window.state.config.cursorSprite = msg.cursorSprite;
+      window.HTCursor?.setSpriteVariant?.(msg.cursorSprite);
+      console.log('Cursor sprite set to:', msg.cursorSprite);
     } else if (setting === 'clickAction' && typeof msg.clickAction === 'string') {
       window.state.config.actions.click = msg.clickAction;
       console.log('Click action set to:', msg.clickAction);

@@ -64,6 +64,45 @@
   background: var(--cursor-fill, white);
 }
 
+#ht-cursor .cursor-disc {
+  position: absolute;
+  left: -6px;
+  top: -1px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  pointer-events: none;
+  display: none;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(240,240,240,0.9) 45%, rgba(20,20,20,0.5) 100%);
+  /* border: 2px solid rgba(0,0,0,0.9); */
+  box-shadow:
+    0 1px 4px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(0,0,0,0.25);
+}
+
+/* #ht-cursor .cursor-disc::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.35);
+  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(180,180,180,0.4) 80%, rgba(0,0,0,0.2) 100%);
+} */
+
+#ht-cursor.sprite-disc .cursor-disc {
+  display: block;
+}
+
+#ht-cursor.sprite-disc .cursor-inner,
+#ht-cursor.sprite-disc .cursor-notch {
+  opacity: 0;
+}
+
+#ht-cursor.sprite-arrow .cursor-inner,
+#ht-cursor.sprite-arrow .cursor-notch {
+  opacity: 1;
+}
+
 #ht-cursor.hovering-link {
   --cursor-fill: limegreen;
 }
@@ -194,6 +233,7 @@ a.ht-hover {
 
 #ht-cursor.is-waiting .cursor-inner,
 #ht-cursor.is-waiting .cursor-notch,
+#ht-cursor.is-waiting .cursor-disc,
 #ht-cursor.is-waiting .dwell-ring { opacity: 0; }
 
 #ht-cursor .wait-ring .wait-track {

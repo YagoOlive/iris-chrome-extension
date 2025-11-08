@@ -3,6 +3,7 @@
 (() => {
   let inner = null;
   let notch = null;
+  let disc = null;
 
   let waitRing = null;
   let waitTrack = null;
@@ -32,6 +33,15 @@
     window.state.sprite.appendChild(waitRing);
   }
 
+  function applySpriteVariant(variant = 'arrow') {
+    const next = variant === 'disc' ? 'disc' : 'arrow';
+    window.state.config.cursorSprite = next;
+    const sprite = window.state.sprite;
+    if (!sprite) return;
+    sprite.classList.toggle('sprite-disc', next === 'disc');
+    sprite.classList.toggle('sprite-arrow', next !== 'disc');
+  }
+
   function createSprite() {
     if (state.sprite) return;
 
@@ -53,8 +63,13 @@
     sprite.appendChild(inner);
     sprite.appendChild(notch);
 
+    disc = document.createElement('div');
+    disc.classList.add('cursor-disc');
+    sprite.appendChild(disc);
+
     window.HTDwellClick?.createDwellRing();
     createWaitRing();
+    applySpriteVariant(window.state.config.cursorSprite || 'arrow');
 
     // Center initially via transform (no layout/overflow conflicts)
     const x = Math.round(window.innerWidth / 2);
@@ -80,10 +95,12 @@
   function destroySprite() {
     notch?.remove();
     inner?.remove();
+    disc?.remove();
     window.state.sprite?.remove();
     window.state.sprite = null;
     inner = null;
     notch = null;
+    disc = null;
   }
 
   function showWait() {
@@ -100,5 +117,9 @@
     if (document.visibilityState === 'hidden') hideWait();
   });
 
-  window.HTCursor = { createSprite, destroySprite, showWait, hideWait };
+  const setSpriteVariant = (variant) => {
+    applySpriteVariant(variant);
+  };
+
+  window.HTCursor = { createSprite, destroySprite, showWait, hideWait, setSpriteVariant };
 })();

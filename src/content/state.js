@@ -34,6 +34,7 @@
             speedDown: 10, // px per interval when at bottom
             intervalMs: 16, // ~60fps scroll interval
           },
+          cursorSprite: 'arrow',
           actions: {
             click: "smile",
             clickThreshold: 0.8,
