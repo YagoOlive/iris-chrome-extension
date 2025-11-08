@@ -360,7 +360,13 @@ export default function StatusView({ onStop }) {
           <div className="setting-description">
             Pick the type of cursor you want to see.
           </div>
-          <div className="cursor-style-toggle" role="group" aria-label="Cursor style">
+          <div
+            className="cursor-style-toggle"
+            role="group"
+            aria-label="Cursor style"
+            data-active={cursorSprite}
+          >
+            <span className="cursor-style-thumb" aria-hidden="true" />
             <button
               type="button"
               className={`cursor-style-option ${cursorSprite === 'arrow' ? 'is-active' : ''}`}
