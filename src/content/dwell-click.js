@@ -10,7 +10,7 @@
   let dwellCircumference = 0;
 
   // Show the dwell ring only after this fraction of dwellTime has elapsed
-  const DWELL_VISUAL_THRESHOLD = 0.40;
+  const DWELL_VISUAL_THRESHOLD = 0.20;
 
   function ensureDwellRing() {
     const sprite = window.state?.sprite;
