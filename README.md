@@ -91,7 +91,11 @@ Because the head-tracked cursor cannot interact with Chrome’s native tabstrip 
 ### ⚙️ Settings
 
 Open the popup again while tracking to configure the following:
-1. Smoothing Factor
+1. Cursor Style
+
+    Choose between a pointer (default) and a circle for the cursor appearance.
+
+2. Smoothing Factor
 
     Adjust the cursor responsiveness:
 
@@ -99,7 +103,7 @@ Open the popup again while tracking to configure the following:
 
     - Higher values → smoother, more stable cursor
 
-2. 😄 Click Action (Facial Gesture)
+3. 😄 Click Action
 
     The facial gesture you can perform to left-click. Choose between:
       - Smile
@@ -114,8 +118,12 @@ Open the popup again while tracking to configure the following:
       - Look right with your eyes
       - Look up with your eyes
       - Look down with your eyes
+
+4. 😄 Double Click Action
+
+    The facial gesture you can perform to double-click (same options as above). Note that you cannot assign the same facial gesture to two different actions.
   
-3. ⌨️ On-Screen Keyboard
+4. ⌨️ On-Screen Keyboard
 
     Provides a fully hands-free typing experience, allowing you to enter text using the head-tracked cursor. This feature is disabled by default.
 
@@ -123,7 +131,7 @@ Open the popup again while tracking to configure the following:
 
     The on-screen keyboard will remain open while the head-tracked cursor is interacting with the keyboard, and will hide after 4 seconds of inactivity.
 
-4. 🧲 Click Assist
+5. 🧲 Click Assist
 
     Helps reduce accidental cursor drift during a facial gesture. Once you have entered an interactive element, “Click Assist” locks the cursor to it, even if you move away from it (up to a certain distance and time). Allows for two additional configurable settings:
 
@@ -137,7 +145,7 @@ Open the popup again while tracking to configure the following:
         
         **Default:** 1s
     
-5. ⏱️ Dwell Click 
+6. ⏱️ Dwell Click 
 
     Triggers a click after the cursor remains within a small area for a specified duration. Allows for two additional configurable settings:
 
@@ -149,9 +157,9 @@ Open the popup again while tracking to configure the following:
       - Dwell Time (in milliseconds):
         Time to remain within the dwell area before clicking (300–5000 ms).
 
-        **Default:** 4s
+        **Default:** 3s
 
-    Once 40% of the dwell time has elapsed, a visual progress ring indicator will show the time remaining until a click is triggered.
+    Once 20% of the dwell time has elapsed, a visual progress ring indicator will show the time remaining until a click is triggered.
 
 ✅ All settings are automatically saved and persist across sessions.
 
