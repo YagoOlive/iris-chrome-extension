@@ -1,20 +1,30 @@
 # Changelog
 
+## 0.8.0 (2025-11-09)
+
+Full Changelog: [v0.7.3...v0.8.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.3...v0.8.0)
+
+### Features:
+- **Double Click:** Added an option in the settings page to assign a facial gesture to perform a double click.
+- **Cursor Sprite:** Added an option to change the appearance of the cursor sprite. There are two options: the pointer (default option, shape of a typical arrow mouse pointer), and a disc (circle).
+- **Dwell Click:** Updated the dwell click visual progress ring to begin showing in the UI once 20% of the dwellTime has elapsed (from 40%).
+- Updated the default dwellTime setting from 4s -> 3s.
+
 ## 0.7.3 (2025-11-03)
 
 Full Changelog: [v0.7.2...v0.7.3](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.2...v0.7.3)
 
-### Bug Fixes:
+### Bug Fixes
 - Fixed a critical issue where the progress ring in the dwell-based clicking option would break when loading a new site (e.g. after entering a url query, clicking a link to a new page, etc.).
 
 ## 0.7.2 (2025-11-03)
 
 Full Changelog: [v0.7.1...v0.7.2](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.1...v0.7.2)
 
-### Features:
+### Features
 - Performing the assigned facial gesture for the on-screen keyboard will now also close the keyboard if the keyboard is already open.
 
-### Bug Fixes:
+### Bug Fixes
 - Fixed a bug where clicking on the ‘Enter’ key through the on-screen keyboard did not trigger the submission of forms/queries (e.g. hitting enter when typing a url/query/text in an input field).
 
 ## 0.7.1 (2025-10-22)
