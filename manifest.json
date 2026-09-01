@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Head-Controlled Cursor",
-  "version": "0.8.0",
-  "description": "Move a virtual cursor with head-pose tracking.",
+  "name": "Íris",
+  "version": "1.0.0",
+  "description": "Controle o cursor do navegador com movimentos da cabeça e gestos faciais.",
   "permissions": [
     "scripting",
     "storage",
@@ -23,19 +23,18 @@
     "service_worker": "src/background/index.js",
     "type": "module"
   },
- "content_scripts": [
+  "content_scripts": [
     {
-      "matches": ["https://head-control-website.vercel.app/*"],
-      "js": ["src/content/calibration-bridge.js"],
-      "run_at": "document_start"
+      "matches": ["http://*/*", "https://*/*", "file:///*"],
+      "js": ["src/content/boot.js"],
+      "run_at": "document_start",
+      "all_frames": false
     }
   ],
   "web_accessible_resources": [
     {
       "resources": [
         "content/cursor.css",
-        "content/tabstrip.css",
-        "content/keyboard.css",
         "vendor/tasks-vision/wasm/*",
         "vendor/models/face_landmarker.task"
       ],
@@ -50,14 +49,14 @@
         "default": "Alt+Q",
         "mac": "Alt+Q"
       },
-      "description": "Activate the Extension"
+      "description": "Abrir o popup do Íris"
     },
     "toggle-tracking": {
       "suggested_key": {
         "default": "Ctrl+Shift+X",
         "mac": "Command+Shift+X"
       },
-      "description": "Start/Stop Head Tracking"
+      "description": "Iniciar / parar o rastreamento"
     }
   }
 }

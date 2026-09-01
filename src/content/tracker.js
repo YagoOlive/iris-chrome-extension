@@ -8,20 +8,16 @@ import getClickScore, { getGestureScore } from './click-score';
 
 // Use an IIFE to avoid polluting the global scope and run immediately
 (() => {
-  // Prevent double-injection
+  // Prevent double-injection — mas esta flag é resetada antes de cada reinício
   if (window.__htCursorInjected) return;
   window.__htCursorInjected = true;
 
-  // Call the initializer from state.js immediately
+  // Inicializar estado limpo
   window.HTState.initializeState();
-
-  const TOP_TRIGGER_PX = 0; // tabstrip top edge trigger zone
-  const TABSTRIP_KEEP_ALIVE_PX = 112 // tabstrip remains open if cursor dwells within 112px of the top boundary
-  const TABSTRIP_HIDE_DELAY = 2000; // ms until the tabstrip hides after leaving the keep alive zone
 
   let port = null;
 
-  let scaleX = 1
+  let scaleX = 1;
   let scaleY = 1;
 
   function recomputeScale() {
@@ -33,11 +29,26 @@ import getClickScore, { getGestureScore } from './click-score';
   window.addEventListener('resize', () => { recomputeScale(); });
 
   /* Life-cycle helpers */
+  let reconnectTimer = null;
+
   function connectPort() {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
     if (port) return;
-    port = chrome.runtime.connect({ name: 'pose' });
+    try {
+      port = chrome.runtime.connect({ name: 'pose' });
+    } catch {
+      // Contexto da extensão invalidado (ex.: extensão recarregada) — desiste.
+      return;
+    }
     port.onMessage.addListener(handlePacket);
-    port.onDisconnect.addListener(() => (port = null));
+    port.onDisconnect.addListener(() => {
+      port = null;
+      // O service worker pode ter sido reciclado. Enquanto o rastreamento
+      // estiver ativo nesta página, reconecta para retomar o fluxo de landmarks.
+      if (window.state?.readyToTrack && !reconnectTimer) {
+        reconnectTimer = setTimeout(connectPort, 250);
+      }
+    });
   }
 
   function initConfig(config) {
@@ -56,33 +67,23 @@ import getClickScore, { getGestureScore } from './click-score';
   }
 
   function startTracking(config) {
+    // Reset apenas os campos de runtime — preserva config e matrizes já carregados
+    window.HTState.resetRuntimeState();
+
+    window.HTCursor?.destroySprite();
+    port?.disconnect();
+    port = null;
+
     window.HTCursor?.createSprite();
     window.HTCursor?.hideWait();
     connectPort();
     initConfig(config);
-    // If background requested a sticky-open (e.g., after tab-switch/new tab)
-    chrome.storage.local.get(['tabstripForceOpen'], ({ tabstripForceOpen }) => {
-      if (tabstripForceOpen) {
-        window.HTTabstrip?.show(false);
-        state.tabstrip = "open";
-        chrome.storage.local.remove('tabstripForceOpen'); // clear the flag so it doesn't keep opening on later pages
-      } else {
-        // normal behavior: brief peek, then hide
-        window.HTTabstrip?.show();
-        window.HTTabstrip?.hide?.(TABSTRIP_HIDE_DELAY);
-      }
-    });
     window.state.readyToTrack = true;
-    window.state.lastKeyboardGestureTime = Date.now();
-    window.state.keyboardHideTimer = null;
-    window.state.keyboardVisible = false;
-    window.HTKeyboard?.hide?.();
   }
 
   console.log('Head-tracking content script injected and state initialized.');
 
   function handlePacket({ landmarks, blends }) {
-
     if (!window.state.readyToTrack) {
       console.log("Not yet ready....");
       return;
@@ -91,7 +92,8 @@ import getClickScore, { getGestureScore } from './click-score';
     window.HTClick?.maybeClick(getClickScore(blends));
     const doubleClickScore = getGestureScore(state.config.actions.doubleClick, blends);
     window.HTClick?.maybeDoubleClick?.(doubleClickScore);
-    maybeTriggerKeyboard(blends);
+    const rightClickScore = getGestureScore(state.config.actions.rightClick, blends);
+    window.HTClick?.maybeRightClick?.(rightClickScore);
 
     // Get current landmark configuration
     const currentConfig = state.config.landmarkPoints; // default is 3 points, else 6 points
@@ -157,23 +159,6 @@ import getClickScore, { getGestureScore } from './click-score';
     }
   }
 
-  function maybeTriggerKeyboard(blends) {
-    const keyboardConfig = state.config.keyboard;
-    if (!keyboardConfig?.enabled || !keyboardConfig.action) return;
-    const now = Date.now();
-    if (now - state.lastKeyboardGestureTime < state.CLICK_COOLDOWN) return;
-    const score = getGestureScore(keyboardConfig.action, blends);
-    const threshold = keyboardConfig.actionThreshold ?? 0.8;
-    if (score >= threshold) {
-      window.state.lastKeyboardGestureTime = now;
-      if (window.state.keyboardVisible) {
-        window.HTKeyboard?.hide?.();
-      } else {
-        window.HTKeyboard?.show?.();
-      }
-    }
-  }
-
   // Helper function for applying filtering and updating cursor position
   function applyFilteringAndUpdateCursor(headPositionX, headPositionY) {
     // Exponential smoothing
@@ -195,56 +180,31 @@ import getClickScore, { getGestureScore } from './click-score';
     }
 
     // Apply direct exponential smoothing without relative movements
-    let smoothing = state.config.exponentialSmoothingFactor || 0.9025; // Uses configurable value
+    let smoothing = state.config.exponentialSmoothingFactor || 0.9025;
 
     // Apply smoothing directly to cursor position
     if (state.cursorX === null) {
       window.state.cursorX = headPositionX;
       window.state.cursorY = headPositionY;
     } else {
-      // Direct exponential smoothing
       window.state.cursorX = state.cursorX + (1 - smoothing) * (headPositionX - state.cursorX);
       window.state.cursorY = state.cursorY + (1 - smoothing) * (headPositionY - state.cursorY);
     }
 
     // Apply bounds
     const cursorSize = 24;
-    state.cursorX = Math.max(
-      0,
-      Math.min(window.innerWidth - cursorSize, state.cursorX)
-    );
-    state.cursorY = Math.max(
-      0,
-      Math.min(window.innerHeight - cursorSize, state.cursorY)
-    );
+    state.cursorX = Math.max(0, Math.min(window.innerWidth - cursorSize, state.cursorX));
+    state.cursorY = Math.max(0, Math.min(window.innerHeight - cursorSize, state.cursorY));
 
     // Round for display
     const roundedX = Math.round(state.cursorX);
     const roundedY = Math.round(state.cursorY);
 
-    // Update cursor position
-    // cursorWithClipping.style.left = `${roundedX}px`;
-    // cursorWithClipping.style.top = `${roundedY}px`;
-
     const t = `translate3d(${roundedX}px, ${roundedY}px, 0)`;
     if (state.sprite.style.transform !== t) state.sprite.style.transform = t;
 
-    // Dynamic-Tabstrip trigger
-    if ((!state.tabstrip && roundedY <= TOP_TRIGGER_PX) ||
-      ((state.tabstrip === "inactive") && roundedY <= TABSTRIP_KEEP_ALIVE_PX)) {
-      window.HTTabstrip?.show();
-      state.tabstrip = "open";
-    } else if (state.tabstrip === "open" && roundedY > TABSTRIP_KEEP_ALIVE_PX) {
-      state.tabstrip = "inactive";
-      window.HTTabstrip?.hide(TABSTRIP_HIDE_DELAY);
-    } else if (state.tabstrip === "closing" && roundedY <= TABSTRIP_KEEP_ALIVE_PX) {
-      state.tabstrip = "reopen";
-      window.HTTabstrip?.show();
-    }
-
     window.HTHover?.updateHover();
     window.HTDwellClick?.handleDwellClick();
-    window.HTKeyboard?.handleCursorMove(roundedX, roundedY);
 
     // Edge-scrolling logic
     controlScroll(cursorSize);
@@ -259,88 +219,76 @@ import getClickScore, { getGestureScore } from './click-score';
     console.log('Cleaning up tracker script on this page.');
     stopScroll();
     window.state.readyToTrack = false;
-    port?.disconnect(); // Close the connection to the background script
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    port?.disconnect();
     port = null;
     window.HTCursor?.destroySprite();
     window.HTDwellClick?.destroyDwellRing();
     window.HTHover?.destroyHighlight();
     window.__htCursorInjected = false;
     window.state.configInit = false;
-    window.HTTabstrip?.hide?.(0);
-    window.HTTabstrip?.destroy?.();
-    window.HTKeyboard?.hide?.();
-    window.HTKeyboard?.destroy?.();
-    window.state.keyboardVisible = false;
-    window.state.lastKeyboardGestureTime = Date.now();
   }
 
-  // --- MESSAGE LISTENER ---
-  const messageListener = (msg, sender, sendResponse) => {
-    switch (msg.cmd) {
-      case 'PING':
-        return sendResponse({ ok: true }); // lets background know we’re injected
-      case 'START_TRACKING':
-        startTracking(msg.config);
-        return sendResponse({ ok: true });
-      case 'STOP_TRACKING':
-        stopTracking();
-        return sendResponse({ ok: true });
-      case 'UPDATE_SETTINGS':
-        updateSettings(msg);
-        return sendResponse({ ok: true });
-      case 'GLOBAL_CLICK_SUPPRESS':
-        window.state.lastClickTime = Date.now();
-        return sendResponse({ ok: true });
-    }
-  };
+  // --- BFCACHE LIFECYCLE ---
+  window.addEventListener('pageshow', async (e) => {
+    if (!e.persisted) return;
+    console.log('Head-tracking: página restaurada do bfcache — reiniciando.');
+    const { isTrackingActive, config } = await chrome.storage.local.get(['isTrackingActive', 'config']);
+    if (!isTrackingActive || !config) return;
 
-  chrome.runtime.onMessage.addListener(messageListener);
+    // Reset de runtime sem perder config/matrizes
+    window.__htCursorInjected = false;
+    window.HTState.resetRuntimeState();
+    window.__htCursorInjected = true;
+    port?.disconnect();
+    port = null;
 
-  // --- BFCache / history navigation handling ---
-  // If the page is restored from BFCache, ports are closed and content scripts
-  // don't re-execute. Use pageshow to reconnect and restart tracking.
-  window.addEventListener('pageshow', (e) => {
-    // Back/forward restore or a BFCache restore (persisted = true)
-    const nav = performance.getEntriesByType('navigation')[0];
-    console.log(e);
-    console.log(nav);
-    const isBackForward =
-      (nav && nav.type === 'back_forward') || e.persisted === true;
-
-    if (isBackForward) {
-      window.state.lastClickTime = Date.now();
-      chrome.storage.local.get(['config'], ({ config }) => {
-        stopTracking();
-        if (config) startTracking(config);
-      });
-    }
+    chrome.storage.local.get(
+      ['exponentialSmoothingFactor', 'cursorSprite', 'clickAction', 'doubleClickAction',
+        'rightClickAction', 'clickAssist', 'clickTimeout', 'clickRadius',
+        'dwellClick', 'dwellTime', 'dwellArea'],
+      (items) => {
+        initSettings(items);
+        startTracking(config);
+      }
+    );
   });
 
   window.addEventListener('pagehide', (e) => {
-    if (e.persisted) {
-      window.state.readyToTrack = false;
-    }
+    if (!e.persisted) return;
+    console.log('Head-tracking: página congelando no bfcache — fazendo teardown.');
+    stopTracking();
+    window.__htCursorInjected = false;
   });
 
-
-  // --- INITIALIZATION ---
-  chrome.storage.local.get(['config'], ({ config }) => {
-    if (config) {
-      startTracking(config);
-    } else {
-      console.error('Could not find calibration data in storage. Stopping.');
+  // --- MESSAGE LISTENER ---
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg.cmd === 'PING') {
+      sendResponse({ ok: true });
+    } else if (msg.cmd === 'START_TRACKING') {
+      chrome.storage.local.get(
+        ['exponentialSmoothingFactor', 'cursorSprite', 'clickAction', 'doubleClickAction',
+          'rightClickAction', 'clickAssist', 'clickTimeout', 'clickRadius',
+          'dwellClick', 'dwellTime', 'dwellArea'],
+        (items) => {
+          initSettings(items);
+          // Idempotente: se já estamos rastreando com o sprite e a porta vivos,
+          // apenas garante a conexão — não derruba/reconstrói tudo a cada
+          // sinal repetido (onUpdated + ENSURE_TRACKING + START_TRACKING).
+          if (window.state.readyToTrack && window.state.sprite?.isConnected) {
+            connectPort();
+          } else {
+            startTracking(msg.config);
+          }
+        }
+      );
+      sendResponse({ ok: true });
+    } else if (msg.cmd === 'STOP_TRACKING') {
       stopTracking();
+      sendResponse({ ok: true });
+    } else if (msg.cmd === 'UPDATE_SETTINGS') {
+      updateSettings(msg);
+      sendResponse({ ok: true });
     }
-    window.state.lastClickTime = Date.now();
   });
-
-  //  --- SETTINGS ---
-  chrome.storage.local.get(
-    ['exponentialSmoothingFactor', 'clickAction', 'doubleClickAction', 'clickAssist', 'clickTimeout', 'clickRadius', 'cursorSprite',
-      'keyboardEnabled', 'keyboardAction',
-      'dwellClick', 'dwellTime', 'dwellArea'],
-    (items) => {
-      initSettings(items);
-    });
-
 })();

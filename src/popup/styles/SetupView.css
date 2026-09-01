@@ -112,3 +112,47 @@
     transform: rotate(360deg);
   }
 }
+
+/* -------- Video preview -------- */
+.video-preview {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: #000;
+}
+
+/* -------- Calibration status badge -------- */
+.calibration-status {
+  display: flex;
+  justify-content: center;
+}
+
+.status-badge {
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.status-badge--ok {
+  background: rgba(46, 125, 50, 0.25);
+  color: #81c784;
+  border: 1px solid #388e3c;
+}
+
+.status-badge--warn {
+  background: rgba(245, 124, 0, 0.2);
+  color: #ffb74d;
+  border: 1px solid #f57c00;
+}
+
+/* -------- Secondary button -------- */
+.popup .btn-secondary {
+  background-color: var(--button-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.popup .btn-secondary:hover:not(:disabled) {
+  background-color: var(--button-hover);
+}

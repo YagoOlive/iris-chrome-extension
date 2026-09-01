@@ -23,7 +23,12 @@
   position: absolute;
   top: 0;
   left: 0;
-  filter: drop-shadow(10px 10px 10px rgba(0, 0, 0, 0.5));
+  /* Sombra dupla: branca para contraste em fundos escuros, preta para fundos claros */
+  filter:
+    drop-shadow(0 0 1.5px #fff)
+    drop-shadow(0 0 1.5px #fff)
+    drop-shadow(1px 1px 3px rgba(0,0,0,0.9))
+    drop-shadow(-1px -1px 3px rgba(0,0,0,0.9));
 }
 
 #ht-cursor .cursor-inner::after {
@@ -73,11 +78,12 @@
   border-radius: 50%;
   pointer-events: none;
   display: none;
-  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(240,240,240,0.9) 45%, rgba(20,20,20,0.5) 100%);
-  /* border: 2px solid rgba(0,0,0,0.9); */
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.98) 0%, rgba(220,220,220,0.95) 45%, rgba(20,20,20,0.6) 100%);
+  /* Borda dupla: branca interna + preta externa — visível em qualquer fundo */
   box-shadow:
-    0 1px 4px rgba(0,0,0,0.45),
-    0 0 0 1px rgba(0,0,0,0.25);
+    0 0 0 2px rgba(255,255,255,0.95),
+    0 0 0 4px rgba(0,0,0,0.85),
+    0 2px 8px rgba(0,0,0,0.6);
 }
 
 /* #ht-cursor .cursor-disc::after {
@@ -177,43 +183,34 @@ a.ht-hover {
   outline: none;
 }
 
-/* -------- Dwell Click Visual Ring -------- */
-#ht-cursor .dwell-ring {
+/* -------- Dwell Click Countdown Timer -------- */
+#ht-cursor .dwell-timer {
   position: absolute;
-  width: 26px;
-  height: 38px;
-  left: -8.5px;
-  top: -9.5px;
+  left: 22px;
+  top: -6px;
+  min-width: 22px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 50%;
   pointer-events: none;
   opacity: 0;
   transition: opacity 120ms ease;
+  user-select: none;
 }
 
-#ht-cursor.dwell-active .dwell-ring {
+#ht-cursor.dwell-active .dwell-timer {
   opacity: 1;
 }
 
 :root {
-  --dwell-track: rgba(0, 0, 0, 0.25);
-  --dwell-progress: rgb(253, 194, 3);
-  --dwell-near-done: #f80c8e;
   --wait-track:  #0373f3;
   --wait-stroke: #06f3fb;
-}
-
-#ht-cursor .dwell-ring circle.track {
-  fill: none;
-  stroke: var(--dwell-track);
-  stroke-width: 3.5;
-}
-
-#ht-cursor .dwell-ring circle.progress {
-  fill: none;
-  stroke: var(--dwell-progress);
-  stroke-linecap: round;
-  stroke-width: 3.5;
-  transform: rotate(-90deg);
-  transform-origin: 50% 50%;
 }
 
 /* --- Wait spinner --- */
@@ -234,7 +231,7 @@ a.ht-hover {
 #ht-cursor.is-waiting .cursor-inner,
 #ht-cursor.is-waiting .cursor-notch,
 #ht-cursor.is-waiting .cursor-disc,
-#ht-cursor.is-waiting .dwell-ring { opacity: 0; }
+#ht-cursor.is-waiting .dwell-timer { opacity: 0; }
 
 #ht-cursor .wait-ring .wait-track {
   fill: none;

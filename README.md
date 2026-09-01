@@ -1,193 +1,313 @@
-# Head-Tracking Pointer - Chrome Extension
+# Íris
 
-This public repository contains development releases of a personalized head-tracking system, implemented as a Chrome Extension. This system was developed in the [UCSC Computer Vision Lab](https://vision.soe.ucsc.edu/welcome-ucsc-computer-vision-lab) under the supervision of Professor Roberto Manduchi, and is inspired by the insights and research presented in the paper [_Towards Personalized Head-Tracking Pointing_](https://escholarship.org/content/qt26z6d0t4/qt26z6d0t4.pdf) by Muratcan Cicek and Roberto Manduchi.
+**Íris** é uma extensão para o Google Chrome que permite controlar um cursor no
+navegador usando **movimentos da cabeça** e **gestos faciais**, sem precisar das
+mãos. Ela foi pensada para pessoas com mobilidade reduzida dos membros
+superiores, como alternativa a mousesticks, ponteiros de cabeça e outros
+dispositivos físicos.
 
-Head-tracking pointing is an effective interface for those with limited hand mobility, such as those with upper limb motor impairment, who cannot use their hands to operate a mouse. This elimiates the need for physical pointing tools such as mouthsticks or head-mounted styluses. Instead, users can control a virtual pointer on the computer screen through natural head movements. The goal of this new system is to address the following issues:
+Todo o processamento acontece **no seu computador**: a imagem da câmera é
+analisada localmente e **nenhuma imagem ou dado da câmera é enviado para a
+internet**.
 
-1. 🎯 Personalization — Traditional head-pointer systems often require users to adapt to a pre-defined control algorithm mapping head motion to cursor movement. Because different individuals may prefer to adopt different head motion patterns to accomplish the same goal, this can result in poor pointing performance. Our system instead learns from a user’s own natural motion patterns, which is critical for users with constrained or imprecise motor control.
+> **Contexto acadêmico.** O Íris é o Trabalho de Conclusão de Curso de
+> **Yago Oliveira**. Ele foi construído a partir da extensão de código aberto
+> [head-tracking-chrome-extension](https://github.com/thshao2/head-tracking-chrome-extension)
+> (licença MIT, de Timothy Shao, desenvolvida no
+> [UCSC Computer Vision Lab](https://vision.soe.ucsc.edu/welcome-ucsc-computer-vision-lab)
+> sob orientação do Prof. Roberto Manduchi), inspirada no artigo
+> [_Towards Personalized Head-Tracking Pointing_](https://escholarship.org/content/qt26z6d0t4/qt26z6d0t4.pdf).
+> O Íris reescreve boa parte da arquitetura e do fluxo de uso — em especial a
+> calibração, agora totalmente integrada à extensão — e disponibiliza uma interface em português.
 
-2. 🌐 Accessibility — For many users who use the Chrome Browser to perform many of their tasks, a browser extension that implements this functionality would allow for greater accessibility and convenience. Deploying the system as a Chrome Extension provides seamless support for web-based tasks without requiring external software.
+---
 
-3. ⚡ Accuracy — Unfortunately, using current technology, typical interaction tasks are substantially slower and less accurate with head pointing than with a hand-controlled mouse, as shown in multiple previous studies. The goal of this head-tracking pointing system is to allow for higher accuracy and faster completion of pointing tasks.
+## Sumário
 
-## Setup
+- [Requisitos](#requisitos)
+- [Instalação](#instalação)
+- [Primeiro uso](#primeiro-uso)
+- [Como usar no dia a dia](#como-usar-no-dia-a-dia)
+- [Configurações](#configurações)
+- [Atalhos de teclado](#atalhos-de-teclado)
+- [Como o Íris funciona por dentro](#como-o-íris-funciona-por-dentro)
+- [Privacidade](#privacidade)
+- [Limitações atuais](#limitações-atuais)
+- [Desenvolvimento](#desenvolvimento)
+- [Licença](#licença)
 
-To try the Chrome Extension locally:
+---
 
-1. Download the latest .zip file from the _Releases_ section of this repository.
-2. Unzip the file on your computer.
-3. On your chrome browser, navigate to `chrome://extensions` and enable **Developer Mode**.
-4. On the top left of the page: Click **Load unpacked**, then select the `/dist` folder from the extracted files.
-  
-    ⚠️ Make sure to upload the actual `/dist` folder — uploading the parent directory will result in an error.
+## Requisitos
 
-## Usage
+- **Google Chrome** (ou navegador baseado em Chromium) atualizado.
+- Uma **webcam** funcional.
+- Ambiente com **iluminação razoável**, com o rosto visível para a câmera.
+- Para gerar a extensão a partir do código: **Node.js 20+** e **npm**.
 
-### 📁 Initial Setup
+---
 
-1. **Upload a Calibration File**
+## Instalação
 
-    This .csv file maps your personal head movement to cursor motion. If you don’t have one:
+O Íris ainda não está publicado na Chrome Web Store. A instalação é feita em
+**modo desenvolvedor**, a partir do código.
 
-    - Click “Run calibration site” in the extension popup.
+### 1. Gerar a build
 
-    - You’ll be taken to a guided calibration tool with two options:
+Na pasta do projeto:
 
-      - With a growing line: Recommended for first-time users.
+```bash
+npm install
+npm run build
+```
 
-      - Without a growing line: A more precise, fixed-point calibration.
- 
-    Follow the instructions by moving your head to target each red dot on the screen, as if you were moving a cursor to each of the red dots. Once you are done, the calibration file will automatically be saved to the chrome extension.
+Isso cria a pasta **`dist/`** com a extensão pronta.
 
-2. **Enable Camera Access**. 
+### 2. Carregar no Chrome
 
-    If not already granted, click “Enable Camera” in the popup. You will be prompted to give the extension permission:
+1. Abra `chrome://extensions`.
+2. Ative o **Modo do desenvolvedor** (canto superior direito).
+3. Clique em **Carregar sem compactação**.
+4. Selecione a pasta **`dist/`**.
 
-      - Select “Allow while visiting this site” — this ensures persistent access.
+   ⚠️ Selecione a pasta `dist/` em si. Apontar para a pasta pai causa erro de
+   carregamento.
 
-      - ⚠️ Do not select “Allow this time”, as it won’t grant sufficient access.
+Sempre que o código mudar, rode `npm run build` de novo e clique em **Atualizar**
+no card da extensão. Se você alterar o `manifest.json` (por exemplo, os
+_content scripts_), **remova e carregue a extensão novamente** em vez de só
+atualizar.
 
+---
 
-3. Click **"Start Head Tracking"** to begin using the system.
+## Primeiro uso
 
-### Head Tracking & Cursor Behavior
+Clique no ícone do Íris na barra do Chrome para abrir o **popup**. A tela de
+configuração tem três passos:
 
-- A cursor will appear on every page you visit, which will be highlighted green when there is a clickable element.
-- To **scroll**:
-  - Move the cursor to the top or bottom edge of the page and hold it there. 
-- To **click**:
-  - Use facial gestures (see settings), or enable dwell click (see settings).
-- To **stop**, open the popup and click **“Stop Head Tracking”**.
-- Cursor interaction is restricted to webpage content only (due to Chrome extension limitations).
+### 1. Ativar a câmera
 
+Clique em **Ativar Câmera**. Na primeira vez, o Chrome vai pedir permissão:
 
-### Cursor Features
+- Escolha **"Permitir ao visitar este site"**.
+- **Não** escolha "Permitir apenas desta vez" — isso não concede acesso
+  persistente e o rastreamento não vai funcionar depois.
 
-- To scroll up and down a page, move the cursor to the very top or bottom the page, respectively. Hold in place to begin a smooth scroll up or down.
-- The cursor will be highlighted green every time it hovers over a clickable element in the page.
-- You can perform a specific facial gesture (configured in tracking settings, see below) to perform a left-click, or turn on dwell click.
+Se a permissão estiver bloqueada, vá em `chrome://extensions` → **Detalhes** da
+extensão → **Configurações do site** → **Câmera** → **Permitir**.
 
-### Custom Tabstrip
+### 2. Executar a calibração
 
-Because the head-tracked cursor cannot interact with Chrome’s native tabstrip (due to browser security restrictions), the extension provides its own custom tabstrip for seamless, hands-free tab management.
+Clique em **Executar Calibração**. Uma aba em tela cheia se abre com **9 pontos**,
+mostrados um de cada vez.
 
-- **Show the tabstrip:** Move the cursor to the very top edge of the page. The tabstrip will appear and automatically hide after 2 seconds of inactivity.
-- **Mangage Tabs**:
-  - Open new tabs
-  - Switch between tabs
-  - Close tabs
-- **Tab limits:** The tabstrip displays up to a maximum of **9 tabs** at once. If more are open, use the paging arrows on either side to view the next/previous set of tabs.
-  
-    ⚠️ For best performance, it is not recommended to have more than 9 tabs open at once.
-  
-- **Navigation controls:** Use the built-in Back and Forward buttons on the custom tabstrip.
+- Olhe diretamente para cada ponto por **3 segundos**, movendo a cabeça como se
+  estivesse levando o cursor até ele.
+- Mantenha o rosto **centralizado** na câmera durante todo o processo.
 
-    ❗Clicks using the head-tracking cursor may not register on Chrome’s native back/forward buttons.
+Ao final, o Íris calcula o seu perfil de movimento e **salva automaticamente** na
+extensão. Você pode refazer isso quando quiser pelo botão **Recalibrar**.
 
-- **Search**: Use the input box to type a search query or a website address.
-  - Press <kbd>Enter</kbd> or click the **Search** icon.
-  - A new tab will open with either search results (if you typed a query) or the requested website.
+### 3. Iniciar o rastreamento
 
-### ⚙️ Settings
+Clique em **Iniciar Rastreamento**. O popup fecha e um cursor passa a aparecer
+nas páginas web.
 
-Open the popup again while tracking to configure the following:
-1. Cursor Style
+---
 
-    Choose between a pointer (default) and a circle for the cursor appearance.
+## Como usar no dia a dia
 
-2. Smoothing Factor
+- **Mover o cursor:** mova a cabeça. O cursor acompanha o movimento de acordo com
+  a sua calibração.
+- **Elemento clicável:** o cursor fica **verde** quando está sobre um link, botão
+  ou campo em que dá para clicar.
+- **Clicar:** faça o **gesto facial** configurado (veja
+  [Configurações](#configurações)) ou ative o **Clique por Pausa**.
+- **Rolar a página:** leve o cursor até a **borda superior** (rola para cima) ou
+  **borda inferior** (rola para baixo) e **segure** ali por cerca de 1 segundo. O
+  movimento para assim que o cursor sai da borda.
+- **Parar:** abra o popup e clique em **Parar Rastreamento** (ou use o atalho de
+  teclado).
 
-    Adjust the cursor responsiveness:
+O cursor continua funcionando ao trocar de aba e ao navegar entre páginas.
 
-    - Lower values → faster, more sensitive cursor
+---
 
-    - Higher values → smoother, more stable cursor
+## Configurações
 
-3. 😄 Click Action
+Abra o popup **durante o rastreamento** para ajustar. Tudo é salvo
+automaticamente e vale para todas as páginas.
 
-    The facial gesture you can perform to left-click. Choose between:
-      - Smile
-      - Smile to the left
-      - Smile to the right
-      - Raising your eyebrows
-      - Lowering your eyebrows
-      - Open mouth wide
-      - Mouth Pucker (by squeezing your lips together)
-      - Show all your teeth
-      - Look left with your eyes
-      - Look right with your eyes
-      - Look up with your eyes
-      - Look down with your eyes
+| Configuração | O que faz |
+|---|---|
+| **Estilo do Cursor** | Alterna entre **Ponteiro** (seta) e **Disco** (círculo). |
+| **Filtro de Suavização** (0,50–0,99) | Controla a estabilidade do cursor. Valores **menores** = resposta mais rápida e sensível. Valores **maiores** = movimento mais suave e estável (bom para tremores). |
+| **Gesto de Clique** | Gesto facial que dispara um clique. Opções: sorrir, sorrir só para a esquerda, sorrir só para a direita, levantar sobrancelhas, abaixar sobrancelhas, abrir a boca, franzir os lábios, mostrar os dentes, olhar para a esquerda/direita/cima/baixo. |
+| **Gesto de Clique Duplo** | Mesmo conjunto de gestos, para clique duplo. |
+| **Gesto de Clique Direito** | Mesmo conjunto de gestos, para abrir o menu de contexto. |
+| **Assistência de Clique** | Ao entrar em um elemento clicável, "trava" o cursor nele por um tempo, mesmo que a cabeça se mexa um pouco durante o gesto. Ajustável: **raio** (30–500 px) e **tempo limite** (0,1–10 s). |
+| **Clique por Pausa** | Dispara um clique quando o cursor fica parado dentro de uma pequena área. Ajustável: **área** (3–100 px) e **tempo** (0,3–5 s). Um anel de progresso aparece depois de 20% do tempo. |
 
-4. 😄 Double Click Action
+> ⚠️ Um mesmo gesto **não pode** ser usado em duas ações diferentes. Ao escolher
+> um gesto já usado, o outro é liberado automaticamente.
 
-    The facial gesture you can perform to double-click (same options as above). Note that you cannot assign the same facial gesture to two different actions.
-  
-4. ⌨️ On-Screen Keyboard
+**Dica:** escolha para clique um gesto que você **não faz sem querer** enquanto
+usa o computador, para evitar cliques acidentais.
 
-    Provides a fully hands-free typing experience, allowing you to enter text using the head-tracked cursor. This feature is disabled by default.
+---
 
-      - **Activation:** When enabled, you can perform your assigned facial gesture to open and close the on-screen keyboard. The default facial gesture that is assigned to this setting is "Open Mouth Wide".
+## Atalhos de teclado
 
-    The on-screen keyboard will remain open while the head-tracked cursor is interacting with the keyboard, and will hide after 4 seconds of inactivity.
+Podem ser alterados em `chrome://extensions/shortcuts`.
 
-5. 🧲 Click Assist
+| Ação | Padrão |
+|---|---|
+| Abrir o popup do Íris | <kbd>Alt</kbd> + <kbd>Q</kbd> |
+| Iniciar / parar o rastreamento | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> (no macOS, <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd>) |
 
-    Helps reduce accidental cursor drift during a facial gesture. Once you have entered an interactive element, “Click Assist” locks the cursor to it, even if you move away from it (up to a certain distance and time). Allows for two additional configurable settings:
+Se você ainda não calibrou ou não deu permissão de câmera, o atalho de
+iniciar/parar apenas abre o popup para você concluir a configuração.
+
+---
 
-      - Click Assist Radius (in pixels):
-        The distance from the element in which the cursor will remain locked (30–500px). 
-       
-        **Default:** 100px
-      
-      - Click Assist Timeout (in milliseconds):
-        The amount of time the cursor will remain locked after leaving the element (0.1–10 seconds). 
-        
-        **Default:** 1s
-    
-6. ⏱️ Dwell Click 
+## Como o Íris funciona por dentro
 
-    Triggers a click after the cursor remains within a small area for a specified duration. Allows for two additional configurable settings:
+### Visão geral
 
-      - Dwell Area (in pixels):
-        Allowed movement range while dwelling (3–100 px). Enables clicks without needing the cursor to be perfectly still.
+1. Um **documento offscreen** (invisível) abre a câmera e roda o modelo
+   [MediaPipe FaceLandmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker),
+   que detecta ~478 pontos do rosto e dezenas de _blendshapes_ (medidas de
+   expressão facial) a cada quadro, cerca de 60 vezes por segundo.
+2. O **service worker** (script de fundo) recebe esses dados e os encaminha para
+   a aba ativa.
+3. Um **content script** em cada página converte a posição do rosto em uma
+   posição de cursor, desenha o cursor e trata cliques e rolagem.
+4. O **popup** em React é a interface de configuração e status.
 
-        **Default:** 40px
+### Da cabeça para o cursor
 
-      - Dwell Time (in milliseconds):
-        Time to remain within the dwell area before clicking (300–5000 ms).
+Durante a calibração, para cada um dos 9 pontos o Íris grava a posição média de
+3 marcos do rosto (ponta do nariz e os cantos externos dos dois olhos) e a
+posição conhecida do ponto na tela. Com esses pares, ele resolve por **mínimos
+quadrados** uma **matriz de transformação** que mapeia "configuração do rosto" →
+"posição na tela" (incluindo termos quadráticos, para capturar a não
+linearidade do movimento).
 
-        **Default:** 3s
+Durante o uso, a cada quadro essa matriz é aplicada à posição atual do rosto, o
+resultado é reescalado para o tamanho da janela e passa por uma **suavização
+exponencial** (o "Filtro de Suavização") antes de mover o cursor.
 
-    Once 20% of the dwell time has elapsed, a visual progress ring indicator will show the time remaining until a click is triggered.
+### Cliques por gesto
 
-✅ All settings are automatically saved and persist across sessions.
+Os _blendshapes_ do MediaPipe (por exemplo `mouthSmileLeft`, `browInnerUp`,
+`jawOpen`) são combinados em uma pontuação por gesto. Quando a pontuação do gesto
+configurado passa de um limiar, o Íris **sintetiza** os eventos de mouse
+(`pointerdown`, `mousedown`, `mouseup`, `click`, etc.) sobre o elemento sob o
+cursor, atravessando inclusive _shadow DOM_.
 
-### ⌨️ Keyboard Shortcuts
+### Resiliência
 
-The extension supports **configurable keyboard shortcuts**, which you can manage at: `chrome://extensions/shortcuts`
+Extensões Manifest V3 têm um _service worker_ que o Chrome **desliga quando fica
+ocioso**. Para o rastreamento não "travar" ao navegar:
 
-1. **Activate The Extension**
+- O documento offscreen **reconecta sozinho** quando o service worker reinicia.
+- Um _content script_ declarativo mínimo (`boot.js`) roda em **toda navegação**
+  (inclusive páginas pré-renderizadas e restauradas do cache) e pede ao fundo
+  para retomar o rastreamento.
+- Ao parar, o Íris garante que a câmera e o documento offscreen sejam
+  encerrados.
 
-    **Default**: <kbd>Alt</kbd> + <kbd>Q</kbd>
-    
-    **MacOS**: <kbd>Option</kbd> + <kbd>Q</kbd>
+---
 
+## Privacidade
 
-    This is equivalent to opening the extension popup (same as clicking the extension icon in Chrome).
+- A câmera é usada **somente** enquanto o rastreamento (ou a calibração) está
+  ativo.
+- O vídeo é processado **localmente**, quadro a quadro. **Nada é gravado, salvo
+  ou enviado** para nenhum servidor.
+- O que fica salvo no seu navegador (`chrome.storage.local`) são apenas: o seu
+  perfil de calibração (números da matriz) e as suas preferências.
 
-2. **Start / Stop Head Tracking**
+---
 
-    **Default**: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd>
+## Limitações atuais
 
-    **MacOS**: <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd>
+### Onde o cursor **não** funciona
 
-    This is equivalent to opening the extension popup and clicking on "Start Head Tracking" or "Stop Head Tracking", depending if head-tracking is active or not.
+- **Interface do Chrome:** o cursor não alcança a barra de abas, a barra de
+  endereço, os botões de voltar/avançar, menus do navegador nem extensões.
+- **Páginas internas:** `chrome://…`, `chrome-extension://…`, a Chrome Web Store,
+  a página de nova aba e a tela de erro não aceitam extensões — nessas páginas o
+  cursor não aparece. Ao iniciar o rastreamento numa aba dessas, o Íris abre uma
+  nova aba comum.
+- **Conteúdo especial:** PDFs abertos no visualizador do Chrome, o editor do
+  Google Docs/Planilhas e páginas feitas inteiramente em `<canvas>` podem não
+  responder ao cursor. A rolagem por borda também não funciona nesses casos.
+- **Arquivos locais (`file://`):** só funcionam se você habilitar
+  "Permitir acesso a URLs de arquivo" nos detalhes da extensão.
 
-    Behavior:
+### Cliques sintéticos
 
-    - If tracking is **inactive**, the shortcut starts the head tracking process.
+Os cliques são **simulados** por software. Ações que o navegador só permite a
+partir de um clique "real" do usuário **não** são acionadas pelo Íris, por
+exemplo: abrir a janela de **seleção de arquivo** (`<input type="file">`), entrar
+em **tela cheia**, acessar a **área de transferência** e responder a **pop-ups de
+permissão** do navegador.
 
-    - If tracking is **active**, the shortcut stops the head tracking process.  
+### Sobre precisão e uso
 
-    ⚠️ If you haven’t yet uploaded a valid calibration file or granted camera permissions, the shortcut will instead open the popup so you can complete setup first.
+- Apontar com a cabeça é, com a tecnologia atual, **mais lento e menos preciso**
+  que um mouse. Melhorar isso é justamente o objetivo do projeto.
+- É necessário **rosto visível, centralizado e boa iluminação**. Contraluz,
+  rosto muito de lado ou parcialmente fora do quadro degradam o rastreamento.
+- O modelo acompanha **um rosto** por vez.
+- Ao trocar de **monitor ou de resolução**, o Íris reescala a calibração pelas
+  dimensões salvas, mas o resultado é aproximado — **recalibrar** é recomendado.
+- O perfil de calibração **não sincroniza** entre computadores ou perfis do
+  Chrome.
+- O rastreamento usa **CPU/GPU de forma contínua** enquanto está ativo (câmera +
+  inferência a ~60 fps).
+
+### Navegação dentro de um site (SPA)
+
+Sites que trocam de conteúdo sem recarregar a página (por exemplo, passar de um
+vídeo para outro no YouTube) podem, em alguns casos, exigir um **recarregar**
+para o cursor voltar a se comportar corretamente.
+
+### Ainda não implementado
+
+- **Comando de voz** (planejado como evolução).
+- **Teclado virtual na tela** para digitação sem as mãos.
+- Publicação na Chrome Web Store.
+
+---
+
+## Desenvolvimento
+
+```bash
+npm run dev      # ambiente de desenvolvimento (Vite + crxjs)
+npm run build    # build de produção em dist/
+npm run lint     # ESLint
+```
+
+### Estrutura
+
+| Pasta | Papel |
+|---|---|
+| `src/offscreen/` | Documento offscreen — único ponto com acesso à câmera; roda o MediaPipe e transmite os marcos do rosto. |
+| `src/background/` | Service worker — roteia os dados, injeta os content scripts, gerencia o ciclo de vida. |
+| `src/content/` | Scripts injetados nas páginas: `boot.js` (bootstrap declarativo), `tracker.js` (núcleo), além de cursor, hover, rolagem e cliques. |
+| `src/popup/` | Interface React — configuração, status e ajustes. |
+| `src/calibration/` | Página de calibração de 9 pontos (aba dedicada). |
+| `public/` | Recursos estáticos: CSS do cursor, modelo `.task` e binários WASM do MediaPipe. |
+
+### Tecnologias
+
+Vite, `@crxjs/vite-plugin`, React 19, `@mediapipe/tasks-vision`, `mathjs`.
+
+---
+
+## Licença
+
+MIT — veja [LICENSE](LICENSE). O aviso de copyright do projeto que serviu de base
+é mantido, conforme exige a licença MIT.

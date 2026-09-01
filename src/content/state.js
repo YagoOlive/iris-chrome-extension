@@ -2,103 +2,90 @@
 
 (() => {
   function initializeState() {
-    if (typeof window !== 'undefined' && !window.state) {
-      window.state = {
-        // ms between allowed clicks
-        CLICK_COOLDOWN: 1000,
-
-        // Head-tracking cursor
-        sprite: null,
-
-        // Calibration state
-        readyToTrack: false,
-
-        // Wait state (disable/enable cursor click)
-        loading: false,
-
-        // Tabstrip state
-        tabstrip: null, // "open" | "inactive" | "closing" | "reopen" | null
-
-        // Configuration state
-        configInit: false,
-
-        // Application configuration
-        config: {
-          coordinateSystem: "2d",
-          landmarkPoints: "3", // Default to 3 points
-          filterType: "exponential",
-          exponentialSmoothingFactor: 0.9025, // 0.95 ** 2
-          scrolling: {
-            thresholdMs: 1000, // ms dwell before scrolling
-            speedUp: 10, // px per interval when at top
-            speedDown: 10, // px per interval when at bottom
-            intervalMs: 16, // ~60fps scroll interval
-          },
-          cursorSprite: 'arrow',
-          actions: {
-            click: "smile",
-            clickThreshold: 0.8,
-            doubleClick: "",
-            doubleClickThreshold: 1.0,
-          },
-          keyboard: {
-            enabled: false,
-            action: "",
-            actionThreshold: 0.8,
-          },
-          clickAssist: false,
-          clickAssistTimeout: 1000,
-          clickAssistRadius: 100,
-
-          dwellClick: false,
-          dwellTime: 1000, // ms dwell before clicking
-          dwellArea: 15 // px dwell movement threshold
+    if (typeof window === 'undefined') return;
+    // Só cria se não existir — o reset explícito é feito pelo tracker quando necessário
+    if (window.state) return;
+    window.state = {
+      CLICK_COOLDOWN: 1000,
+      sprite: null,
+      readyToTrack: false,
+      loading: false,
+      configInit: false,
+      config: {
+        coordinateSystem: "2d",
+        landmarkPoints: "3",
+        filterType: "exponential",
+        exponentialSmoothingFactor: 0.9025,
+        scrolling: {
+          thresholdMs: 1000,
+          speedUp: 10,
+          speedDown: 10,
+          intervalMs: 16,
         },
-
-        // Transformation matrices for all configurations (2D/3D, 3/6 facial landmarks)
-        transformationMatrices: {
-          threePoint2d: null,
-          sixPoint2d: null,
-          threePoint3d: null,
-          sixPoint3d: null,
+        cursorSprite: 'arrow',
+        actions: {
+          click: "smile",
+          clickThreshold: 0.8,
+          doubleClick: "",
+          doubleClickThreshold: 1.0,
+          rightClick: "",
+          rightClickThreshold: 0.8,
         },
-
-        // Calibration width and height
-        calibrationWidth: null,
-        calibrationHeight: null,
-
-        // Cursor tracking state
-        lastHeadX: null,
-        lastHeadY: null,
-        cursorX: null,
-        cursorY: null,
-
-        // Last click time
-        lastClickTime: 0,
-
-        // Click-assist state
-        activeInteractiveEl: null,
-        anchorX: null,
-        anchorY: null,
-        lockStartTime: null,
-
-        // Dwell-click state
-        dwellAnchorX: null,
-        dwellAnchorY: null,
-
-        // Edge-scrolling state
-        boundaryTimer: null,
-        scrollInterval: null,
-        lastBoundary: null, // "top" | "bottom" | null
-
-        // On-screen keyboard state
-        keyboardVisible: false,
-        keyboardHideTimer: null,
-        lastKeyboardGestureTime: 0,
-      };
-      console.log("running state.js....window.state has been initialized!");
-    }
+        clickAssist: false,
+        clickAssistTimeout: 1000,
+        clickAssistRadius: 100,
+        dwellClick: false,
+        dwellTime: 3000,
+        dwellArea: 15,
+      },
+      transformationMatrices: {
+        threePoint2d: null,
+        sixPoint2d: null,
+        threePoint3d: null,
+        sixPoint3d: null,
+      },
+      calibrationWidth: null,
+      calibrationHeight: null,
+      lastHeadX: null,
+      lastHeadY: null,
+      cursorX: null,
+      cursorY: null,
+      lastClickTime: 0,
+      activeInteractiveEl: null,
+      anchorX: null,
+      anchorY: null,
+      lockStartTime: null,
+      dwellAnchorX: null,
+      dwellAnchorY: null,
+      boundaryTimer: null,
+      scrollInterval: null,
+      lastBoundary: null,
+    };
+    console.log("window.state initialized.");
   }
 
-  window.HTState = { initializeState };
+  // Reseta apenas os campos de runtime, preservando config e matrizes
+  function resetRuntimeState() {
+    if (!window.state) { initializeState(); return; }
+    window.state.sprite = null;
+    window.state.readyToTrack = false;
+    window.state.loading = false;
+    window.state.configInit = false;
+    window.state.lastHeadX = null;
+    window.state.lastHeadY = null;
+    window.state.cursorX = null;
+    window.state.cursorY = null;
+    window.state.lastClickTime = 0;
+    window.state.activeInteractiveEl = null;
+    window.state.anchorX = null;
+    window.state.anchorY = null;
+    window.state.lockStartTime = null;
+    window.state.dwellAnchorX = null;
+    window.state.dwellAnchorY = null;
+    window.state.boundaryTimer = null;
+    window.state.scrollInterval = null;
+    window.state.lastBoundary = null;
+  }
+
+  window.HTState = { initializeState, resetRuntimeState };
 })();

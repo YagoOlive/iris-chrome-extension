@@ -12,7 +12,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        offscreen: resolve(__dirname, 'src/offscreen/index.html'),
+        offscreen:   resolve(__dirname, 'src/offscreen/index.html'),
+        calibration: resolve(__dirname, 'src/calibration/index.html'),
       },
     },
   },

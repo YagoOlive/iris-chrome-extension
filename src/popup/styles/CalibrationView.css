@@ -1,0 +1,192 @@
+/* src/popup/styles/CalibrationView.css */
+
+/* ── Full-screen overlay ─────────────────────────────────────────────── */
+.cal-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0a;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ── Centred panel (intro / processing / done / error) ──────────────── */
+.cal-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px 32px;
+  max-width: 480px;
+  text-align: center;
+  color: #f0f0f0;
+}
+
+.cal-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.cal-desc {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #aaaaaa;
+  line-height: 1.6;
+}
+
+.cal-desc strong {
+  color: #ffffff;
+}
+
+.cal-desc--error {
+  color: #ff6b6b;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.cal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.cal-btn {
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+  width: 100%;
+}
+
+.cal-btn--primary {
+  background: #2196f3;
+  color: #ffffff;
+}
+
+.cal-btn--primary:hover {
+  background: #42a5f5;
+}
+
+.cal-btn--ghost {
+  background: transparent;
+  color: #aaaaaa;
+  border: 1px solid #333;
+}
+
+.cal-btn--ghost:hover {
+  background: rgba(255,255,255,0.05);
+  color: #f0f0f0;
+}
+
+/* ── Instruction banner (during collection) ──────────────────────────── */
+.cal-banner {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 8px 24px;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.cal-banner-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #f0f0f0;
+}
+
+/* ── Calibration dots ────────────────────────────────────────────────── */
+.cal-dot {
+  position: fixed;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.cal-dot--done {
+  background: #2e7d32;
+  border-color: #4caf50;
+}
+
+/* Active dot: larger, bright, pulsing */
+.cal-dot--active {
+  width: 28px;
+  height: 28px;
+  background: #2196f3;
+  border-color: #90caf9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cal-pulse 1s ease-in-out infinite;
+}
+
+@keyframes cal-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.6); }
+  50%       { box-shadow: 0 0 0 10px rgba(33, 150, 243, 0); }
+}
+
+/* Countdown number inside active dot */
+.cal-dot-countdown {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Processing spinner ──────────────────────────────────────────────── */
+.cal-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255,255,255,0.15);
+  border-top-color: #2196f3;
+  border-radius: 50%;
+  animation: cal-spin 0.8s linear infinite;
+}
+
+@keyframes cal-spin { to { transform: rotate(360deg); } }
+
+/* ── Success / error icons ───────────────────────────────────────────── */
+.cal-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #2e7d32;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.cal-error-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #b71c1c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: #ffffff;
+  font-weight: 700;
+}
