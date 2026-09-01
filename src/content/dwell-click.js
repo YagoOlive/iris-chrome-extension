@@ -3,109 +3,79 @@
 (() => {
   let dwellStartTime = null;
 
-  // Dwell ring elements
-  let dwellRing = null;
-  let dwellTrack = null;
-  let dwellProg = null;
-  let dwellCircumference = 0;
+  // Countdown timer element
+  let dwellTimer = null;
 
-  // Show the dwell ring only after this fraction of dwellTime has elapsed
-  const DWELL_VISUAL_THRESHOLD = 0.20;
+  // Show the countdown only after this fraction of dwellTime has elapsed
+  const DWELL_VISUAL_THRESHOLD = 0.10;
 
-  function ensureDwellRing() {
+  // Total dwell duration in ms (fixed at 3 seconds)
+  const DWELL_DURATION_MS = 3000;
+
+  function ensureDwellTimer() {
     const sprite = window.state?.sprite;
     if (!sprite) return false;
 
-    if (dwellRing && dwellRing.parentNode && dwellRing.parentNode !== sprite) {
+    if (dwellTimer && dwellTimer.parentNode && dwellTimer.parentNode !== sprite) {
       destroyDwellRing();
     }
 
-    if (!dwellRing) {
-      // 36x36 viewbox, radius 16 for a tidy ring with 3.5px stroke
-      dwellRing = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      dwellRing.setAttribute("class", "dwell-ring");
-      dwellRing.setAttribute("viewBox", "0 0 36 36");
-
-      dwellTrack = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      dwellTrack.setAttribute("class", "track");
-      dwellTrack.setAttribute("cx", "18");
-      dwellTrack.setAttribute("cy", "18");
-      dwellTrack.setAttribute("r", "16");
-
-      dwellProg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      dwellProg.setAttribute("class", "progress");
-      dwellProg.setAttribute("cx", "18");
-      dwellProg.setAttribute("cy", "18");
-      dwellProg.setAttribute("r", "16");
-
-      dwellRing.appendChild(dwellTrack);
-      dwellRing.appendChild(dwellProg);
-
-      const r = 16;
-      dwellCircumference = 2 * Math.PI * r;
-    } else if (!dwellRing.isConnected) {
-      dwellTrack = dwellRing.querySelector('.track');
-      dwellProg = dwellRing.querySelector('.progress');
+    if (!dwellTimer) {
+      dwellTimer = document.createElement('div');
+      dwellTimer.className = 'dwell-timer';
+      dwellTimer.setAttribute('aria-hidden', 'true');
     }
 
-    if (!dwellRing.isConnected) {
-      sprite.appendChild(dwellRing);
+    if (!dwellTimer.isConnected) {
+      sprite.appendChild(dwellTimer);
     }
 
-    if (dwellProg) {
-      dwellProg.style.strokeDasharray = `${dwellCircumference}`;
-      dwellProg.style.strokeDashoffset = `${dwellCircumference}`;
-    }
-
-    return !!dwellProg;
+    return true;
   }
 
   function createDwellRing() {
-    if (dwellRing?.isConnected && dwellProg) return;
-    if (!ensureDwellRing()) {
-      destroyDwellRing();
-    }
+    if (dwellTimer?.isConnected) return;
+    ensureDwellTimer();
   }
 
   function destroyDwellRing() {
-    dwellRing?.remove();
-    dwellTrack?.remove();
-    dwellProg?.remove();
-    dwellRing = null;
-    dwellTrack = null;
-    dwellProg = null;
-    dwellCircumference = 0;
+    dwellTimer?.remove();
+    dwellTimer = null;
   }
 
   function setDwellProgress(p) {
-    if (!ensureDwellRing()) return;
+    if (!ensureDwellTimer()) return;
 
-    // p in [0,1]
-    const clamped = Math.max(0, Math.min(1, p));
-    const remaining = (1 - clamped) * dwellCircumference;
-    dwellProg.style.strokeDashoffset = `${remaining}`;
+    // p in [0,1] — derive remaining seconds from progress
+    const elapsed = p * DWELL_DURATION_MS;
+    const remaining = Math.max(0, DWELL_DURATION_MS - elapsed);
+    const seconds = Math.ceil(remaining / 1000);
 
-    // nudge color as you near completion
-    if (clamped > 0.75) {
-      dwellProg.style.stroke = getComputedStyle(document.documentElement)
-        .getPropertyValue('--dwell-near-done') || '#f80c8e';
+    // Display 3, 2, 1 — clamp to valid range
+    const display = Math.min(3, Math.max(1, seconds));
+    dwellTimer.textContent = display;
+
+    // Color shifts as time runs out
+    if (p > 0.66) {
+      dwellTimer.style.color = '#f80c8e';
+    } else if (p > 0.33) {
+      dwellTimer.style.color = '#fdc203';
     } else {
-      dwellProg.style.stroke = getComputedStyle(document.documentElement)
-        .getPropertyValue('--dwell-progress') || '#fdc203';
+      dwellTimer.style.color = '#ffffff';
     }
   }
 
   function showDwellRing(on) {
-    if (!ensureDwellRing()) return;
+    if (!ensureDwellTimer()) return;
 
     window.state.sprite.classList.toggle('dwell-active', !!on);
-    if (!on && dwellProg) {
-      dwellProg.style.strokeDashoffset = `${dwellCircumference}`;
+    if (!on && dwellTimer) {
+      dwellTimer.textContent = '';
     }
   }
 
   function startDwell() {
-    if (!ensureDwellRing()) return;
+    if (!ensureDwellTimer()) return;
 
     state.dwellAnchorX = state.cursorX;
     state.dwellAnchorY = state.cursorY;
@@ -115,7 +85,7 @@
   }
 
   function handleDwellClick() {
-    if (!ensureDwellRing()) return;
+    if (!ensureDwellTimer()) return;
 
     if (!state.config.dwellClick || !window.state.readyToTrack || state.boundaryTimer || state.loading) {
       showDwellRing(false);
@@ -147,11 +117,10 @@
     // ➍ inside circle: update progress
     const p = (now - dwellStartTime) / state.config.dwellTime;
 
-    // At/above threshold → show and map to [0..1] over remaining time
+    // Show countdown after visual threshold
     if (p >= DWELL_VISUAL_THRESHOLD) {
-      const q = (p - DWELL_VISUAL_THRESHOLD) / (1 - DWELL_VISUAL_THRESHOLD);
       showDwellRing(true);
-      setDwellProgress(q);
+      setDwellProgress(Math.min(p, 1));
     }
 
     if (p >= 1) {
@@ -161,5 +130,5 @@
     }
   }
 
-  window.HTDwellClick = { createDwellRing, destroyDwellRing, showDwellRing, handleDwellClick }
+  window.HTDwellClick = { createDwellRing, destroyDwellRing, showDwellRing, handleDwellClick };
 })();

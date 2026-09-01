@@ -1,0 +1,158 @@
+/* src/calibration/calibration.css */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  background: #0a0a0a;
+  color: #f0f0f0;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+}
+
+.cal-root {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Centred panel ── */
+.cal-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 48px 40px;
+  max-width: 520px;
+  text-align: center;
+}
+
+.cal-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.cal-desc {
+  font-size: 1rem;
+  color: #aaaaaa;
+  line-height: 1.7;
+}
+
+.cal-desc strong { color: #ffffff; }
+.cal-desc--error { color: #ff6b6b; }
+
+/* ── Buttons ── */
+.cal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.cal-btn {
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s ease;
+}
+
+.cal-btn--primary { background: #2196f3; color: #fff; }
+.cal-btn--primary:hover { background: #42a5f5; }
+.cal-btn--ghost { background: transparent; color: #aaa; border: 1px solid #333; }
+.cal-btn--ghost:hover { background: rgba(255,255,255,0.05); color: #f0f0f0; }
+
+/* ── Instruction banner ── */
+.cal-banner {
+  position: fixed;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.75);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 10px 28px;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #f0f0f0;
+}
+
+/* ── Calibration dots ── */
+.cal-dot {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.2);
+  pointer-events: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.cal-dot--done {
+  background: #2e7d32;
+  border-color: #4caf50;
+}
+
+.cal-dot--active {
+  width: 32px;
+  height: 32px;
+  background: #2196f3;
+  border-color: #90caf9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cal-pulse 1s ease-in-out infinite;
+}
+
+@keyframes cal-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(33,150,243,0.6); }
+  50%       { box-shadow: 0 0 0 12px rgba(33,150,243,0); }
+}
+
+.cal-dot-countdown {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  user-select: none;
+}
+
+/* ── Spinner ── */
+.cal-spinner {
+  width: 52px;
+  height: 52px;
+  border: 4px solid rgba(255,255,255,0.15);
+  border-top-color: #2196f3;
+  border-radius: 50%;
+  animation: cal-spin 0.8s linear infinite;
+}
+
+@keyframes cal-spin { to { transform: rotate(360deg); } }
+
+/* ── Icons ── */
+.cal-success-icon, .cal-error-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cal-success-icon { background: #2e7d32; }
+.cal-error-icon   { background: #b71c1c; }

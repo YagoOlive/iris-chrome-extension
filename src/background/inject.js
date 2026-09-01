@@ -6,13 +6,11 @@ import cursorScript from '../content/cursor.js?script';
 import scrollScript from '../content/scroll.js?script';
 import clickScoreScript from '../content/click-score.js?script';
 import settingsScript from '../content/settings.js?script';
-import tabstripScript from '../content/tabstrip.js?script';
 import clickScript from '../content/click.js?script';
 import dwellClickScript from '../content/dwell-click.js?script';
 import hoverScript from '../content/hover.js?script';
-import keyboardScript from '../content/keyboard.js?script';
 
-const CSS_FILES = ['content/cursor.css', 'content/tabstrip.css', 'content/keyboard.css'];
+const CSS_FILES = ['content/cursor.css'];
 
 const CONTENT_SCRIPTS_ORDERED = [
   stateScript,
@@ -20,12 +18,10 @@ const CONTENT_SCRIPTS_ORDERED = [
   dwellClickScript,
   clickScript,
   hoverScript,
-  keyboardScript,
   trackerScript,
   scrollScript,
   clickScoreScript,
   settingsScript,
-  tabstripScript,
 ];
 
 // Injects the content scripts and CSS into a specific tab

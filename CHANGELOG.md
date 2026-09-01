@@ -1,204 +1,37 @@
 # Changelog
 
-## 0.8.0 (2025-11-09)
+Todas as mudanças relevantes do **Íris** são registradas neste arquivo.
 
-Full Changelog: [v0.7.3...v0.8.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.3...v0.8.0)
+## 1.0.0 (2026-08-28)
 
-### Features:
-- **Double Click:** Added an option in the settings page to assign a facial gesture to perform a double click.
-- **Cursor Sprite:** Added an option to change the appearance of the cursor sprite. There are two options: the pointer (default option, shape of a typical arrow mouse pointer), and a disc (circle).
-- **Dwell Click:** Updated the dwell click visual progress ring to begin showing in the UI once 20% of the dwellTime has elapsed (from 40%).
-- Updated the default dwellTime setting from 4s -> 3s.
+Primeira versão do Íris. O projeto nasce a partir da extensão de código aberto
+[head-tracking-chrome-extension](https://github.com/thshao2/head-tracking-chrome-extension)
+(MIT, de Timothy Shao / UCSC Computer Vision Lab), usada como base, com uma
+reescrita ampla da arquitetura e do fluxo de uso.
 
-## 0.7.3 (2025-11-03)
+### Funcionalidades
+- **Rastreamento de cabeça:** cursor virtual controlado por movimentos da cabeça,
+  usando o MediaPipe FaceLandmarker (visão computacional executada localmente).
+- **Calibração integrada:** fluxo próprio dentro da extensão (aba dedicada de
+  9 pontos), sem depender de site externo nem de arquivo `.csv`.
+- **Cliques por gesto facial:** gestos configuráveis para clique, clique duplo e
+  clique direito (sorrir, levantar/abaixar sobrancelhas, abrir a boca, etc.).
+- **Clique por pausa (dwell):** clica após manter o cursor parado numa pequena
+  área, com anel de progresso visual.
+- **Assistência de clique:** trava o cursor no elemento interativo durante o gesto.
+- **Rolagem sem as mãos:** leve o cursor à borda superior/inferior da página.
+- **Configurações persistentes:** suavização, estilo do cursor e todos os gestos,
+  salvos automaticamente.
+- **Atalhos de teclado:** ativar a extensão e iniciar/parar o rastreamento.
+- Interface e calibração em português.
 
-Full Changelog: [v0.7.2...v0.7.3](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.2...v0.7.3)
+### Robustez
+- O pipeline de câmera sobrevive ao encerramento do service worker do MV3: o
+  documento offscreen reconecta a porta sozinho e o `boot.js` declarativo
+  garante que o rastreamento seja retomado em qualquer navegação (incluindo
+  pré-renderização e restauração de bfcache).
+- Encerramento limpo ao parar o rastreamento — sem documento offscreen órfão.
 
-### Bug Fixes
-- Fixed a critical issue where the progress ring in the dwell-based clicking option would break when loading a new site (e.g. after entering a url query, clicking a link to a new page, etc.).
-
-## 0.7.2 (2025-11-03)
-
-Full Changelog: [v0.7.1...v0.7.2](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.1...v0.7.2)
-
-### Features
-- Performing the assigned facial gesture for the on-screen keyboard will now also close the keyboard if the keyboard is already open.
-
-### Bug Fixes
-- Fixed a bug where clicking on the ‘Enter’ key through the on-screen keyboard did not trigger the submission of forms/queries (e.g. hitting enter when typing a url/query/text in an input field).
-
-## 0.7.1 (2025-10-22)
-
-Full Changelog: [v0.7.0...v0.7.1](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.7.0...v0.7.1)
-
-### Bug Fixes
-- Fixed a bug where performing the default assigned “open your mouth wide” facial gesture, after enabling the on-screen keyboard setting (if left unchanged), did not open the keyboard as expected.
-
-## 0.7.0 (2025-10-20)
-
-Full Changelog: [v0.6.0...v0.7.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.6.0...v0.7.0)
-
-### Features
-- **On-Screen Keyboard:** Added an on-screen virtual keyboard, allowing users to type into input fields using the head-tracked cursor. Users can enable this feature by enabling the on-screen keyboard in settings and assigning a facial gesture to perform to open the keyboard (default: jawOpen). The keyboard will remain open while the cursor is hovering over or interacting with the keyboard, and will hide after 4 seconds of inactivity.
-- **Automatic Calibration File Sync:** After calibrating in the calibration website, the calibration file will automatically be saved to the chrome extension, obliviating the need for downloading the file and then re-uploading it.
-- Updated the default clickAssistTimeout setting back from 2s -> 1s.
-
-### Bug Fixes
-- Fixed a bug where the tabstrip would reopen immediately if the cursor went near the top of the screen, even though it was recently fully closed. The correct functionality of having the cursor touch the top of the window to reopen the tabstrip is now properly working.
-
-### Documentation
-- Added instructions on enabling and using the on-screen keyboard in the Settings section of the README.md.
-
-## 0.6.0 (2025-09-02)
-
-Full Changelog: [v0.5.0...v0.6.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.5.0...v0.6.0)
-
-### Features
-- **Keyboard Shortcuts:** Added a configurable keyboard shortcut that when executed automatically starts or stops the head-tracking process. This is equivalent to opening the extension popup and clicking on "Start Head Tracking" or "Stop Head Tracking", depending on if head-tracking is active or not. Executing this shortcut to start the head-tracking process will only open the extension popup if the calibration file has not been uploaded (or has errors), or if camera permissions have not yet been granted. The default keyboard shortcut for this is <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd>. Additionally, a default keyboard shortcut for activating the extension (equivalent to opening the extension popup) was added: <kbd>Alt</kbd> + <kbd>Q</kbd>. Both of these options can be changed by the user by going to chrome://extensions/shortcuts.
-- **Visual Halo for Click Assist:** If the user has click assist turned on, a new visual halo will outline the interactive element that is locked onto the cursor. This will give the user a better indication of which interactive element the cursor is locked onto at all times.
-- **Additional Facial Gestures for Clicking:** Added 9 additional facial gesture options for clicking (click action): smile to the left, smile to the right, mouth pucker (squeezing one's lips together), show all your teeth, lower eyebrows, and look left/right/up/down with your eyes. The default click action has now been set to the "smile" facial gesture (previously was not set to anything), while allowing the click action to still be set to "None" for users who prefer to use the dwell-based clicking option.
-- **Click Assist**: Updated the default clickAssistTimeout setting from 1s -> 2s.
-
-### Bug Fixes
-- Fixed a bug where the cursor was not properly positioned above dialog and popup elements correctly (cursor would be hidden behind certain popup elements).
-
-### Chores
-- **internal**: refactor clicking, dwell clicking, and hover functions from tracker.js to separate content script files ([301f22b](https://github.com/thshao2/head-tracking-chrome-extension/commit/301f22b1b33893d0fef6d0162668a306d0a57f59))
-- **internal**: refactor offscreen, inject content, and tabstrip logic from main background script to separate files ([a712111](https://github.com/thshao2/head-tracking-chrome-extension/commit/a71211160bfe3aeaaf3ba0c15f6e9e82aa6ed851))
-- **internal**: code refactoring in src/content/state.js, restructure initializeState to be inside an IIFE ([1849933](https://github.com/thshao2/head-tracking-chrome-extension/commit/1849933c7149c01e6f11464c4f542eb3e9d6487b))
-- **ci**: Fix CI workflow to specifically compare version numbers from prev/current commit to determine whether to publish releases, add guardrails to prevent overwriting previously published releases ([e8986dc](https://github.com/thshao2/head-tracking-chrome-extension/commit/e8986dc588c2c256bf20bb22d7a864bae4994567)) ([221d5e8](https://github.com/thshao2/head-tracking-chrome-extension/commit/221d5e89c612dcfe4cf499cd36eab64a122fbc98))
-
-### Performance Improvements
-- Optimizations to ensure that the head-tracking process is less computationally demanding: switching to transform-based positioning of the cursor using `translate3D()` instead of top/left style positioning, pre-squaring the smoothing factor during settings initialization/update to remove per-frame exponent calculations, and pre-computing the window dimensions scaling factor (only updating it on window resize).
-
-### Documentation
-- Update README.md with new facial gesture options for clicking.
-- Update the _Usage_ section in the README.md to include details about using the keyboard shortcuts by the extension.
-
-## 0.5.0 (2025-08-22)
-
-Full Changelog: [v0.4.0...v0.5.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.4.0...v0.5.0)
-
-### Features
-- **Click Assist:** Updated the default clickAssistTimeout setting from 2s -> 1s, updated the range of accepted values of clickAssistTimeout from 500ms - 10000ms to 100ms - 10000ms.
-- **Dwell Click:** Updated the default dwellTime setting from 1s -> 4s and the default dwellArea setting from 20px -> 40px.
-- **NEW Custom Tabstrip:** A new custom tabstrip UI injected into each webpage was created to allow for an even more hands-free experience for the user. The custom tabstrip has two rows, just like the Chrome Browser:
-  - **First row:** The tabstrip displays all of the current active tabs open in the current window, allowing the user to switch between tabs, close specific tabs, and open a new tab. If the user clicks on the new tab button, the browser automatically loads up www.google.com in a new tab.
-    - **Note:** Switching and closing tabs may take a few seconds to finish. To alert the user that the background is processing a tab change/close, the head-tracking cursor will be replaced with a waiting ring, disabling all further interactivity with the webpage until the request is complete.
-  - **Second row:** The tabstrip displays “Go back”, “Go Forward”, and “Reload this page” buttons that allow the user to programmatically go back/forward in the browser tab session history, as well as refresh the page without needing to move the actual cursor to the real chrome tabstrip. It also has an input text bar that allows the user to type a url/query (automatically focused when the tabstrip opens). Hitting “Enter” or clicking on the search button opens a new tab with the search results or webpage of the url, depending on if the user entered a url or a search query.
-- **Trigger Tabstrip Zone:** To show the tabstrip, move the cursor to the top of the screen and hit the top boundary. This will prompt the custom tabstrip to come down, allowing you to interact with it. While the cursor is near the tabstrip, it will remain open. To have the tabstrip retract back to its hidden state, move the cursor away from the top of the screen and wait for 2-4 seconds.
-- **Tabs Displayed in Tabstrip:** To prevent overflow of too many tabs being displayed at once, a maximum of 9 tabs will be shown in the custom tabstrip at any time. If there are less than 9 tabs, each tab will expand to take up the remaining space, dynamically taking up the entire width of the tabstrip.
-- **More than 9 tabs?** In the case that the user has more than 9 tabs open, two “prev/next” buttons on the ends of the tabstrip will be enabled, allowing the user to move between windows of “9 tabs”. This ensures that the user can still access any tab as needed. However, it is not recommended to have more than 9 tabs at once to improve performance.
-- **Initialization:** If the user starts the head-tracking process on a page that is non-scriptable (e.g. the default new tab page in the Chrome Browser or anything that starts with chrome://, chrome-extension://), a new tab with www.google.com will be opened automatically.
-- The system-level cursor is no longer hidden from the page to allow for the user to regain control of the actual cursor at any time.
-
-### Bug Fixes
-- Fixed a bug where clicking on inputs or text boxes with the head-tracking cursor would not do anything because the element needed to be focused beforehand.
-- Fixed a bug where clicking on the “go back” or “go forward” buttons would cause the entire tracking process to halt, due to the port -> background script connection not being reconnected properly.
-
-### Documentation
-- Update README.md to include new defaults for click assist timeout, dwell time, and dwell area settings. 
-- Update the _Usage_ section in the README.md to include details about the new custom tabstrip provided by the extension.
-
-## 0.4.0 (2025-08-14)
-
-Full Changelog: [v0.3.0...v0.4.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.3.0...v0.4.0)
-
-### Features
-- **Click Assist**: Added two additional configurable settings for “Click Assist”:
-  - **The click assist radius (default stays at 100px):** This allows the user to change the click buffer radius (px) in which the cursor stays locked onto the interactive element. The value must be between 30-500px, or an error is shown.
-  - **The click assist timeout (ms):** Gives an “expiration” time to locked cursor once the cursor leaves an interactive element. Once the cursor is outside of the locked interactive for more than this amount of time, the cursor automatically unlocks from it. The value must be between 500ms and 10000ms, or else an error is shown. The default value is 2000ms.
-- **Click Assist:** The functionality of click assist has been improved so that it now accurately knows exactly where and when you have left an interactive element. This allows it to better determine the area (clickAssistRadius) and time (clickAssistTimeout) to which the cursor will stay locked onto the interactive element.
-- **Dwell Click:** Added a visual “progress ring” to show users the remaining dwell time needed until the cursor will perform a click. The visual progress ring will only show once 40% of the dwell time has already elapsed.
-- **File Upload:** Due to the fact that the handling of the file upload has been moved to the setup phase, a loading spinner has been added to show users that the file is being processed. In addition, a new and clear error message is displayed if the file upload is unsuccessful.
-
-### Bug Fixes
-- Fixed a bug where the dwell-click timer would still be activated while the user was scrolling up/down a webpage (through hands-free edge scrolling). This could lead to unintended clicks being executed during hands-free scrolling.
-
-### Chores
-- **internal:** Refactor scrolling, facial gesture recognition, and settings logic into separate content scripts ([80544e3](https://github.com/thshao2/head-tracking-chrome-extension/commit/80544e3eff016162202b38803c805a86c5a8afc6)) ([8879e6d](https://github.com/thshao2/head-tracking-chrome-extension/commit/8879e6d90f82307cc87b33327ced46771703bc5a)) ([2e9f19a](https://github.com/thshao2/head-tracking-chrome-extension/commit/2e9f19a5069bd0ed36a4b27fd8ebbfa0964a56b5))
-- **internal:** Refactor SetupView and StatusView into their own files in a new components/ folder in src/popup/* ([c024964](https://github.com/thshao2/head-tracking-chrome-extension/commit/c02496461ebeb14fc45f9526b9e6b3b49465982d))
-- **internal:** Move component-specific styles in src/popup/* into separate .css files in a new styles/ folder ([55c516c](https://github.com/thshao2/head-tracking-chrome-extension/commit/55c516c027eae036330e1ca4e4ef9981e0a99e4b))
-- **internal:** Code refactoring in tracker.js content script ([1c89e4b](https://github.com/thshao2/head-tracking-chrome-extension/commit/1c89e4b964374436a8a1b9cf7894c3b7f1e3eba6)) ([c89f9f5](https://github.com/thshao2/head-tracking-chrome-extension/commit/c89f9f5d5318016418790c6fcc724d2fba900349))
-- **ci:** Extend Github Actions CI/CD pipeline to publish new releases to the public repository, as well as push the following updated content: public/**, manifest.json, CHANGELOG.md, README.md ([0b9ae96](https://github.com/thshao2/head-tracking-chrome-extension/commit/0b9ae968ee3454bafacc57841fed7c03f3d37180)) ([4f5d17f](https://github.com/thshao2/head-tracking-chrome-extension/commit/4f5d17fae3fb4e0ae6184dccc4b86634ddfa950f)) ([c353c5c](https://github.com/thshao2/head-tracking-chrome-extension/commit/c353c5ce546f0db574cb4bd70619edf080240d43)) ([2d5faa3](https://github.com/thshao2/head-tracking-chrome-extension/commit/2d5faa3265499025263ffb0bd242e93725dd2a65))
-
-### Performance Upgrades
-- **Calibration File Upload:** The processing of the calibration file has now been moved to the setup phase. This prevents unnecessary/repeated processing of the calibration file every time the tracking process starts, even when the uploaded file remains the same. It also greatly reduces the time in which the tracking process starts from when the “Start Tracking” button is clicked, and prevents repeated processing of the calibration file in each new loaded webpage (refresh & new tab).
-
-### Documentation
-- Update README.md to include new settings for click assist, visual indicator for dwell-based clicking
-
-## 0.3.0 (2025-08-04)
-
-Full Changelog: [v0.2.2...v0.3.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.2.2...v0.3.0)
-
-### Features
-- **Increased Sensitivity:** Increased the sensitivity of the jawOpen (open your mouth wide) facial gesture.
-Dwell Click: Added a new setting to the settings section of the popup: “Enable Dwell Click” (toggle on/off). Turning this setting on will have the cursor generate a click action if the cursor dwells within a small px area (configured in the dwellArea setting) for more than some number of ms (configured in the dwellTime setting). The dwellArea setting allows the cursor to not have to be completely stopped to register a click action. If enabled, the user will be able to configure an additional two values:
-  - The dwell area (px): Small movement threshold around the exact position to be clicked, in pixels of the screen. This is the pointer movement allowed while dwelling, before a click action is generated. The value must be between 3 - 100px, or an error is shown.
-  - The dwell time (ms): Time to wait in ms before generating a click action. This value must be between 300 - 5000ms, or an error is shown.
-
-### Bug Fixes
-- **BREAKING CHANGE:** Fixed an issue where the calibration data did not scale properly to different screen dimensions, thus having the cursor experience erratic, unpredictable behavior. To resolve this issue, new metadata has been added to the calibration file, storing the width x height of the screen dimensions the user performed the calibration in. Using this metadata, appropriate scaling to the cursor movement/position is carried out if the user decides to use the same calibration on a different device (with a smaller/larger screen resolution). For users who do not reuse the calibration file on different devices, this change will not affect the behavior of the cursor. However, for other users using the calibration file on different devices, a re-calibration is necessary. 
-
-### Chores
-- **internal:** npm dependency internal version bump ([304f9c3](https://github.com/thshao2/head-tracking-chrome-extension/commit/304f9c3470ae72059f5b327be706d458db37ee0d))
-- **internal:** refactor eslint.config.js, move globals to languageOptions object, add ignores to public/** and vite.config.js ([304f9c3](https://github.com/thshao2/head-tracking-chrome-extension/commit/304f9c3470ae72059f5b327be706d458db37ee0d)) ([a763019](https://github.com/thshao2/head-tracking-chrome-extension/commit/a763019bbe3881d330bb20a85cde1ab696e6b359))
-- **internal:** fix all eslint warnings and errors, clean up unused functions in content scripts ([80cfc7d](https://github.com/thshao2/head-tracking-chrome-extension/commit/80cfc7d0dc4d388ccbe3c44bba8f0339760145a3)) ([289c767](https://github.com/thshao2/head-tracking-chrome-extension/commit/289c767f1c77a3daf31d7a15cecd22f56e53dea4))
-- **docs:** add CHANGELOG.md file to repo ([5adb457](https://github.com/thshao2/head-tracking-chrome-extension/commit/5adb4576185f16e99827c937caa45b12957b0a22))
-- **ci:** add GitHub Actions CI/CD pipeline for building and publishing new releases ([ffae8d4](https://github.com/thshao2/head-tracking-chrome-extension/commit/ffae8d4033a13bb658b777e0d41ea9887a708736))
-
-## 0.2.2 (2025-07-24)
-
-Full Changelog: [v0.2.1...v0.2.2](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.2.1...v0.2.2)
-
-### Features
-- When clicking on “Start Head Tracking”, the cursor is now initialized at the center of the screen. Previously, it was at the top left corner. 
-
-### Bug Fixes
-- Fixed an intermittent bug where the area and locations the cursor was allowed to move in were completely off once “Start Head Tracking” was clicked. This occurred due to a race condition in which the calibration file was still being processed under the hood, but the MediaPipe FaceLandmarker pipeline was already completed and sending facial landmark data. This resulted in a fallback algorithm being used that would attempt to control the cursor through a basic, uncalibrated mapping. This basic, uncalibrated algorithm caused unexpected behaviors to the location of the cursor even once the calibration file was fully processed.
-
-## 0.2.1 (2025-07-23)
-
-Full Changelog: [v0.2.0...v0.2.1](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.2.0...v0.2.1)
-
-### Bug Fixes
-- Fixed a UI bug where if the user selected “Raise Eyebrows” as a click action, an incorrect description was shown. The correct description of “Raise your eyebrows to click” is now shown correctly for this respective click action.
-- Fixed a bug where if a user opted to stop the head tracking process while a webpage was still scrolling, the page would continue to actively scroll.
-- Fixed a bug where starting the head tracking process a second time would not properly reinitialize the cursor on all active tabs (excluding the current focused tab).
-
-## 0.2.0 (2025-07-22)
-
-Full Changelog: [v0.1.0...v0.2.0](https://github.com/thshao2/head-tracking-chrome-extension/compare/v0.1.0...v0.2.0)
-
-### Features
-- **Increased Streaming Rate:** The rate at which the cursor’s position is updated has been increased from 30fps (30hz) -> 60fps (60hz). This allows for a smoother experience from the user.
-
-- **Camera:** Once the user has granted the chrome extension “Allow” permission to access the camera, future openings of the chrome extension popup will automatically enable the camera, saving the user one additional click in the setup phase. At this point, the only button the user will ever need to click to start the head-tracking process is the button “Start Head Tracking”.
-- **Settings:** Update the status page during head-tracking to include a “Settings” section. The settings section allows for the user to configure the following during tracking:
-  - The exponential smoothing factor. A slider will allow the user to choose a value between 0.5 -> 0.99 (0.95 is the default).
-  - An option to choose a click action to perform a “left-click” on a webpage. By default, no option is selected. The user can choose between three options (for now): smile, raise their eyebrows, and open your mouth wide.
-  - Click Assist (explained in further detail below): The user can turn it on/off (default is off).
-- **Auto-Save:** All settings are automatically saved by the Chrome Extension.
-- **Click Assist:** Performing facial gestures while keeping the cursor inside an interactive element can be difficult. “Click Assist” creates a 100px buffer that allows the cursor to still be highlighted green (indicating that a click can be performed) even after moving up to 100px away from the interactive element. Thus, once a cursor enters an interactive element, it will be locked to that element (even if it enters a new button < 100px away) to allow the user to click on that interactive element even if the cursor moves some px off of it. In order to have the cursor become “unclocked” from an element, the user must move > 100px, and then can lock on to another interactive element.
-- **Click Action:** Different users might find different facial gestures easier to perform, or better situated to the “clicking” use case (e.g. to prevent accidental clicking). Thus, a new option allows users to choose out of 3 facial gestures: smiling, raising their eyebrows, and opening their mouth/jaw, in order to perform a left-click. If the user may never need to perform a left-click, this feature can be turned off by setting the click action to “None”.
-
-
-### Bug Fixes
-
-- Update the Exponential Smoothing Factor to use a parameter of $0.95^k$, where k=2 to replicate the behavior observed in the original head tracking [website](https://head-control-website.vercel.app/).
-- **Camera Permissions Access:** Fixed a bug where if the user had the camera permission setting to “Ask (Default)”, an error message would still be displayed, forcing the user to have to navigate to the chrome extension settings and change the camera setting from “Ask (Default)” -> “Allow”. Now, if the user has the camera permission set to “Ask (Default)”, a new options tab will open, prompting the user the option to click on “Allow while visiting the site” and “Allow this time”. Unfortunately, due to how chrome extensions work, the user must click on “Allow while visiting this site” and NOT “Allow this time” to grant the chrome extension persistent access to the camera. New error alerts and clearer instructions have been added to ensure the user will not run into any issues/confusion in the setup phase.
-
-## 0.1.0 (2025-07-18)
-
-### Features
-- **Model:** MediaPipe [FaceLandmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) to collect landmark data and capture facial expressions.
-- **On Installation:** Users can upload their .csv configuration file to the popup, and click on “Enable Camera”. If the user does not have a file yet, a link that goes to https://head-control-website.vercel.app/ will allow the user to get the configuration file. The file uploaded will be saved permanently so that the user will not have to re-upload the file after turning off their computer or closing Chrome, while allowing for the user to change the file if needed. In order for “Enable Camera” to be activated, users must go to “Details -> Site Settings” in the extension page and set “Camera -> Allow”. Keeping camera permissions at “Ask (Default)” will not work. A preview of the camera will be shown, and users will be able to click on “Start Head Tracking”.
-- **Head-Tracking:** During the head-tracking process, a custom cursor will show up on the user’s current webpage, moving the cursor based on the user’s head movements. The user can click on “Stop Head Tracking” at any time to remove the cursor from the webpage and stop the tracking process. The cursor will be updated at a rate of 30fps (30hz).
-- **Click Action:** Raising your eyebrows up (sensitivity of 0.2) will trigger a “click” on the webpage.
-- **Cursor:** The cursor will be highlighted green every time it hovers over a link (indicating a clickable).
-- **Hands-Free Scrolling:** Moving the cursor down to the bottom or top of the screen and holding it for one second will begin a smooth scroll down or up, respectively. This only works for webpages and does not work for pdfs, Google Docs, etc.
-Tracking Configuration: The current system is default to a 2D coordinate system, 3 landmark points, and an exponential smoothing factor of 0.95 (not configurable as of now).
-- Opening a new tab and going to a new website will create a new custom cursor for each new webpage opened.
-- Navigating between current active tabs (that were open before clicking on “Start Head Tracking”) should also show the currently active custom cursor on each tab, although at this time it is still a little buggy.
-- _Limitations_: The cursor is unable to move up to the tabstrip, or access certain browser UI elements in Chrome.
+### Removido em relação ao projeto-base
+- Barra de abas customizada e teclado virtual na tela.
+- Importação de calibração via CSV / site externo.

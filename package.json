@@ -1,7 +1,7 @@
 {
-  "name": "head-tracking-extension",
+  "name": "iris",
   "private": true,
-  "version": "0.8.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,7 @@
   "dependencies": {
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/tasks-vision": "^0.10.22-rc.20250304",
-    "mathjs": "^14.5.3",
+    "mathjs": "^15.2.0",
     "papaparse": "^5.5.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

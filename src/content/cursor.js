@@ -43,6 +43,13 @@
   }
 
   function createSprite() {
+    // Limpa referência stale se o elemento foi desconectado do DOM (ex: bfcache)
+    if (state.sprite && !state.sprite.isConnected) {
+      state.sprite = null;
+      inner = null;
+      notch = null;
+      disc = null;
+    }
     if (state.sprite) return;
 
     const sprite = document.createElement('div');

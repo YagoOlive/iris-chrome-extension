@@ -1,25 +1,23 @@
 // src/background/index.js
 
-import { injectContent, ensureContent } from './inject.js';
+import { injectContent } from './inject.js';
 import { getOffscreenPort, getOffscreenPortRef, setOffscreenPortRef, closeOffscreenIfAny } from './offscreen.js';
-import {
-  handleTABSTRIP_ACTIVATE,
-  handleTABSTRIP_CLOSE,
-  handleTABSTRIP_NAV,
-  handleTABSTRIP_NEW_TAB,
-  handleTABSTRIP_OPEN_URL,
-  handleTABSTRIP_QUERY,
-  createNewTab,
-  keysToClear,
-  clearKeys,
-} from './tabstrip.js';
-
-import handleCalibrationUpload from '../popup/utils/calibration.js';
 
 // A map to hold all active connections from content scripts
 const contentScriptPorts = new Map();
 
+// Port for the calibration popup (CalibrationView)
+let calibrationPort = null;
+
 let activeTabId = null;
+
+// True while tracking OR calibration wants the camera pipeline alive. Also
+// persisted to storage so it survives a service-worker restart.
+async function offscreenWanted() {
+  const { isTrackingActive, calibrating } =
+    await chrome.storage.local.get(['isTrackingActive', 'calibrating']);
+  return !!isTrackingActive || !!calibrating;
+}
 
 // --- PORT MANAGEMENT ---
 
@@ -27,10 +25,15 @@ chrome.runtime.onConnect.addListener((port) => {
   if (port.name === 'pose') {
     const tabId = port.sender.tab.id;
     contentScriptPorts.set(tabId, port);
-    if (!activeTabId) activeTabId = tabId;
+    // Re-point the offscreen stream at this tab if it is the focused one, or
+    // if we currently have no target (e.g. right after a worker restart).
+    chrome.tabs.query({ active: true, currentWindow: true })
+      .then(([t]) => {
+        if (t?.id === tabId || activeTabId == null) activeTabId = tabId;
+      })
+      .catch(() => { if (activeTabId == null) activeTabId = tabId; });
     console.log(`Background: Port connected from content script in tab ${tabId}`);
     port.onDisconnect.addListener(() => {
-      // Only delete if this is the currently-tracked port for the tab.
       if (contentScriptPorts.get(tabId) === port) {
         contentScriptPorts.delete(tabId);
         console.log(`Background: Port from tab ${tabId} disconnected (current).`);
@@ -38,25 +41,47 @@ chrome.runtime.onConnect.addListener((port) => {
         console.log(`Background: Ignored stale disconnect from older port for tab ${tabId}.`);
       }
     });
+
+  } else if (port.name === 'calibration-pose') {
+    // Popup's CalibrationView connects here to receive landmark stream
+    calibrationPort = port;
+    console.log('Background: Calibration port connected from popup.');
+    port.onDisconnect.addListener(() => {
+      calibrationPort = null;
+      console.log('Background: Calibration port disconnected.');
+    });
+
   } else if (port.name === 'offscreen') {
     setOffscreenPortRef(port);
     console.log('Background: Port connected from offscreen document.');
+
+    // If nothing wants the camera anymore (e.g. a zombie document reconnected
+    // after Stop, or the worker restarted after Stop), shut it down.
+    offscreenWanted().then((wanted) => {
+      if (!wanted) {
+        console.log('Background: offscreen connected but nothing wants it — closing.');
+        try { port.postMessage({ cmd: 'STOP_CAMERA' }); } catch { /* */ }
+        closeOffscreenIfAny();
+      }
+    });
+
     port.onMessage.addListener((packet) => {
       // packet = { landmarks, blends }
-      console.log("Background: Landmarks and facial expressions received by background script.");
 
-      // send only to the currently-active tab
-      if (!activeTabId) return; // Nothing is focused
+      // Forward to calibration popup if it is waiting for landmarks
+      if (calibrationPort) {
+        calibrationPort.postMessage({ landmarks: packet.landmarks });
+      }
 
-      // try to get an existing port
-      let targetPort = contentScriptPorts.get(activeTabId);
-
+      // Forward to active content script tab
+      if (!activeTabId) return;
+      const targetPort = contentScriptPorts.get(activeTabId);
       for (const contentPort of contentScriptPorts.values()) {
         if (contentPort === targetPort) {
           contentPort.postMessage(packet);
-          continue;
+        } else {
+          contentPort.postMessage({ landmarks: packet.landmarks });
         }
-        contentPort.postMessage({ landmarks: packet.landmarks });
       }
     });
     port.onDisconnect.addListener(() => {
@@ -72,42 +97,61 @@ chrome.runtime.onConnect.addListener((port) => {
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.set({
     isTrackingActive: false,
-    calibrationCsv: null,
+    calibrationDone: false,
   });
   console.log('Extension installed. Initial state set.');
 });
 
-// 2. On Tab Update: The core logic for automatic injection
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url && (tab.url.startsWith('http') || tab.url.startsWith('file'))) {
-    const { isTrackingActive } = await chrome.storage.local.get('isTrackingActive');
-    if (isTrackingActive) {
-      console.log(`Tracking is active. Injecting content into tab ${tabId}`);
-      await injectContent(tabId);
-    }
+// 1b. On worker wake: if tracking was active, make sure the camera pipeline is
+// alive again. The offscreen document outlives the service worker and reconnects
+// its own port; we only need to recreate it if it was destroyed entirely.
+async function rearmTracking() {
+  const { isTrackingActive } = await chrome.storage.local.get('isTrackingActive');
+  if (!isTrackingActive) return;
+
+  if (await chrome.offscreen.hasDocument()) {
+    // Document is alive — it reconnects the 'offscreen' port itself.
+    return;
   }
+
+  console.log('Background: worker woke with tracking active but no offscreen document — recreating.');
+  const port = await getOffscreenPort();
+  port.postMessage({ cmd: 'START_CAMERA' });
+}
+
+chrome.runtime.onStartup.addListener(rearmTracking);
+// Also runs on every cold start of the worker (e.g. woken by an event).
+rearmTracking();
+
+// 2. On Tab Update: (re)start tracking when a tab finishes navigating.
+// The declarative boot.js already covers most navigations via ENSURE_TRACKING;
+// this is a backstop for cases where the message is missed.
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status !== 'complete') return;
+  if (!tab.url || (!tab.url.startsWith('http') && !tab.url.startsWith('file'))) return;
+
+  const { isTrackingActive, config } = await chrome.storage.local.get(['isTrackingActive', 'config']);
+  if (!isTrackingActive || !config) return;
+
+  await startTrackingInTab(tabId, config);
 });
 
-// 3. Active Tab Tracking: automatic injection on active tabs
+// 3. Active Tab Tracking: (re)start on tab activation
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   activeTabId = tabId;
-  const { isTrackingActive } = await chrome.storage.local.get('isTrackingActive');
-  if (isTrackingActive) {
-    console.log(`Tracking is active. Injecting content into active tab ${tabId}`);
-    const check = await ensureContent(tabId); // inject only once
-    if (check) {
-      const { config } = await chrome.storage.local.get('config');
-      await chrome.tabs.sendMessage(tabId, {
-        cmd: 'START_TRACKING',
-        config: config,
-      });
-    }
-  }
+  const { isTrackingActive, config } = await chrome.storage.local.get(['isTrackingActive', 'config']);
+  if (!isTrackingActive || !config) return;
+
+  let tab;
+  try { [tab] = await chrome.tabs.query({ active: true, currentWindow: true }); } catch { return; }
+  if (!tab?.url || (!tab.url.startsWith('http') && !tab.url.startsWith('file'))) return;
+
+  await startTrackingInTab(tabId, config);
 });
 
 chrome.windows.onFocusChanged.addListener((windowId) => {
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
-    activeTabId = null; // browser lost focus
+    activeTabId = null;
     return;
   }
   chrome.tabs.query({ active: true, windowId }, (tabs) => {
@@ -115,217 +159,183 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
   });
 });
 
+// Inject the full tracking pipeline into a tab (if absent) and start it.
+// Returns true if the tab is scriptable and was (re)started.
+const startingTabs = new Set(); // tabIds with an in-flight startTrackingInTab
+
+async function startTrackingInTab(tabId, config) {
+  if (startingTabs.has(tabId)) return true; // dedupe concurrent triggers
+  startingTabs.add(tabId);
+  try {
+    let injected;
+    try {
+      const res = await chrome.tabs.sendMessage(tabId, { cmd: 'PING' });
+      injected = !!res?.ok;
+    } catch {
+      injected = false;
+    }
+
+    if (!injected) {
+      const ok = await injectContent(tabId);
+      if (!ok) return false; // non-scriptable
+      // Give the freshly injected IIFEs a moment to register their listeners.
+      await new Promise((r) => setTimeout(r, 80));
+    }
+
+    try {
+      await chrome.tabs.sendMessage(tabId, { cmd: 'START_TRACKING', config });
+    } catch {
+      /* tab navigated again before we could send — a later signal will retry */
+    }
+    return true;
+  } finally {
+    startingTabs.delete(tabId);
+  }
+}
+
 async function handleSTART_TRACKING({ config }) {
-  // 1. Get a guaranteed connection to the offscreen port
-  const port = await getOffscreenPort();
-
-  // 2. Send the command to start the camera
-  port.postMessage({ cmd: 'START_CAMERA' });
-
-  // 3. Save state and inject content scripts
+  // Mark active BEFORE creating the offscreen document, so the "close it if
+  // nothing wants it" guard on offscreen connect sees the right state.
   await chrome.storage.local.set({ isTrackingActive: true });
 
+  const port = await getOffscreenPort();
+  port.postMessage({ cmd: 'START_CAMERA' });
+
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab) {
-    let check = null; // 0 = non-scriptable, 1 = first injection, 2 = already injected
-    try {
-      const res = await chrome.tabs.sendMessage(tab.id, { cmd: 'PING' });
-      if (res?.ok) check = 2; // already injected
-    } catch {
-      const injectable = await injectContent(tab.id);
-      check = injectable ? 1 : 0;
-    }
-    if (check === 2) {
-      await chrome.tabs.sendMessage(tab.id, {
-        cmd: 'START_TRACKING',
-        config: config,
-      });
-    } else if (check === 0) {
-      // If user clicks "Start Tracking" on a non-scriptable tab, open a new tab for the user
-      await createNewTab();
-    }
+
+  // Only inject into scriptable tabs (http/https/file)
+  if (!tab?.url || (!tab.url.startsWith('http') && !tab.url.startsWith('file'))) {
+    await chrome.tabs.create({ url: 'https://www.google.com', active: true });
+    return { ok: true, message: 'Tracking started.' };
+  }
+
+  activeTabId = tab.id;
+  const started = await startTrackingInTab(tab.id, config);
+  if (!started) {
+    await chrome.tabs.create({ url: 'https://www.google.com', active: true });
   }
   return { ok: true, message: 'Tracking started.' };
 }
 
 async function handleSTOP_TRACKING() {
-  // 1. Get the port (it should already exist) and send the stop command
+  // Flip state FIRST so any in-flight offscreen (re)connection closes itself.
+  await chrome.storage.local.set({ isTrackingActive: false });
+  await chrome.storage.local.remove('calibrating');
+
   const offscreenPort = getOffscreenPortRef();
-  if (offscreenPort) offscreenPort.postMessage({ cmd: 'STOP_CAMERA' });
+  if (offscreenPort) {
+    try { offscreenPort.postMessage({ cmd: 'STOP_CAMERA' }); } catch { /* dead port */ }
+  }
   await closeOffscreenIfAny();
 
-  // 2. Update state and tell the content script to clean up, stop the tracking process
-  await chrome.storage.local.set({ isTrackingActive: false });
-  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+  activeTabId = null;
+
+  // Only send STOP_TRACKING to scriptable tabs.
+  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*', 'file://*/*'] });
   for (const tab of tabs) {
     try {
       await chrome.tabs.sendMessage(tab.id, { cmd: 'STOP_TRACKING' });
-    } catch {
-      // This error is expected on pages where the content script is not injected.
-      // Likely non-scriptable (chrome:// etc.) – safe to ignore.
-    }
-  };
-
-  // 3. Remove tabstripStart keys from chrome.storage.local
-  if (keysToClear().length) await clearKeys();
+    } catch { /* tab has no listener or is non-scriptable, ignore */ }
+  }
 
   return { ok: true, message: 'Tracking stopped.' };
 }
 
-// Helper to start/stop tracking using your existing message handlers.
+async function handleSTART_CALIBRATION() {
+  await chrome.storage.local.set({ calibrating: true });
+  const port = await getOffscreenPort();
+  port.postMessage({ cmd: 'START_CAMERA' });
+  return { ok: true };
+}
+
+async function handleSTOP_CALIBRATION() {
+  await chrome.storage.local.remove('calibrating');
+  // Stop camera only if tracking is not also active
+  const { isTrackingActive } = await chrome.storage.local.get('isTrackingActive');
+  if (!isTrackingActive) {
+    const offscreenPort = getOffscreenPortRef();
+    if (offscreenPort) {
+      try { offscreenPort.postMessage({ cmd: 'STOP_CAMERA' }); } catch { /* dead port */ }
+    }
+    await closeOffscreenIfAny();
+  }
+  return { ok: true };
+}
+
 async function toggleTracking() {
-  const { isTrackingActive, config, calibrationCsvName, calibrationCsvContent } =
-    await chrome.storage.local.get(['isTrackingActive', 'config', 'calibrationCsvName', 'calibrationCsvContent']);
+  const { isTrackingActive, config, calibrationDone } =
+    await chrome.storage.local.get(['isTrackingActive', 'config', 'calibrationDone']);
 
   if (isTrackingActive) {
     await handleSTOP_TRACKING();
   } else {
     const { state } = await navigator.permissions.query({ name: 'camera' });
-
-    // Need setup? Take user to popup.
-    if (!config || !calibrationCsvName || !calibrationCsvContent || state !== 'granted') {
+    if (!config || !calibrationDone || state !== 'granted') {
       await chrome.action.openPopup();
       return;
     }
-    await handleSTART_TRACKING({ config: config });
+    await handleSTART_TRACKING({ config });
   }
 
-  // If the popup is currently open, tell it to close itself.
   try {
     await chrome.runtime.sendMessage({ cmd: 'CLOSE_POPUP_IF_OPEN' });
-  } catch {
-    // ignore: no listener (popup not open)
-  }
+  } catch { /* popup not open */ }
 }
 
-// Listen for keyboard shortcuts.
 chrome.commands.onCommand.addListener((command) => {
-  if (command === 'toggle-tracking') {
-    toggleTracking();
-  }
+  if (command === 'toggle-tracking') toggleTracking();
 });
 
-// 3. On Message: Handle all communication
+// --- MESSAGE HANDLER ---
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
-    // This is for messages from the popup and content scripts
     if (msg.cmd === 'START_TRACKING') {
-      const res = await handleSTART_TRACKING(msg);
-      sendResponse(res);
-    }
-    else if (msg.cmd === 'STOP_TRACKING') {
-      const res = await handleSTOP_TRACKING();
-      sendResponse(res);
-    }
-    else if (msg.cmd === 'EXTERNAL_SAVE_CALIBRATION') {
-      try {
-        const { filename, csv } = msg;
+      sendResponse(await handleSTART_TRACKING(msg));
 
-        // 1) Parse to the same config shape you store on manual upload
-        const config = await handleCalibrationUpload(csv);
-
-        if (!config) {
-          sendResponse({ ok: false, error: 'Invalid or unprocessable CSV' });
-          return;
-        }
-
-        // Stop tracking if currently active with new calibration file
-        const { isTrackingActive } = await chrome.storage.local.get('isTrackingActive');
-
-        if (isTrackingActive) {
-          await handleSTOP_TRACKING();
-        }
-
-        // 2) Persist exactly like manual upload
-        await chrome.storage.local.set({
-          isTrackingActive: false,
-          calibrationCsvContent: csv,
-          calibrationCsvName: filename || 'calibration.csv',
-          config,
-          // lastCalibrationSavedAt: Date.now(),
-          // calibrationSource: 'website'
-        });
-
-        // 3) Broadcast to open setup popup (if it’s open) so it refreshes UI
+    } else if (msg.cmd === 'ENSURE_TRACKING') {
+      // From boot.js on a fresh navigation / bfcache restore.
+      const tabId = sender.tab?.id;
+      const { isTrackingActive, config } =
+        await chrome.storage.local.get(['isTrackingActive', 'config']);
+      if (tabId != null && isTrackingActive && config) {
         try {
-          await chrome.runtime.sendMessage({ cmd: 'CALIBRATION_UPDATED' });
-        } catch { /* popup likely not open, ignore */ }
-
-        sendResponse({ ok: true });
-      } catch (err) {
-        console.error('EXTERNAL_SAVE_CALIBRATION failed:', err);
-        sendResponse({ ok: false, error: err?.message || 'Unknown error' });
+          const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (active?.id === tabId || activeTabId == null) activeTabId = tabId;
+        } catch { /* ignore */ }
+        await startTrackingInTab(tabId, config);
       }
-    }
-    else if (msg.cmd === 'UPDATE_SETTINGS') {
-      console.log('Updating Settings...');
+      sendResponse({ ok: true });
 
+    } else if (msg.cmd === 'STOP_TRACKING') {
+      sendResponse(await handleSTOP_TRACKING());
+
+    } else if (msg.cmd === 'START_CALIBRATION') {
+      sendResponse(await handleSTART_CALIBRATION());
+
+    } else if (msg.cmd === 'STOP_CALIBRATION') {
+      sendResponse(await handleSTOP_CALIBRATION());
+
+    } else if (msg.cmd === 'UPDATE_SETTINGS') {
+      console.log('Updating settings…');
       for (const setting in msg) {
-        if (setting === 'cmd') {
-          continue;
-        }
-        // 1. Persist for future tabs
-        await chrome.storage.local.set({
-          [setting]: msg[setting],
-        });
-
-        // 2. Broadcast via chrome.tabs.sendMessage
-        const tabs = await chrome.tabs.query({
-          url: ['http://*/*', 'https://*/*']
-        });
-
+        if (setting === 'cmd') continue;
+        await chrome.storage.local.set({ [setting]: msg[setting] });
+        const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
         for (const tab of tabs) {
           try {
-            await chrome.tabs.sendMessage(tab.id, {
-              cmd: 'UPDATE_SETTINGS',
-              [setting]: msg[setting],
-            });
-          } catch {
-            // Tab has no listener or is non-scriptable; ignore
-          }
+            await chrome.tabs.sendMessage(tab.id, { cmd: 'UPDATE_SETTINGS', [setting]: msg[setting] });
+          } catch { /* non-scriptable */ }
         }
       }
+      sendResponse({ ok: true });
 
-      return sendResponse({ ok: true, message: 'Settings updated.' });
-    }
-    else if (msg.cmd === 'CAMERA_RESULT') {
-      // 1. Dismiss the permission page first
+    } else if (msg.cmd === 'CAMERA_RESULT') {
       if (sender.tab?.id) await chrome.tabs.remove(sender.tab.id);
-
       const { state } = await navigator.permissions.query({ name: 'camera' });
-
       if (state !== 'granted') {
-        // 2. Remember the outcome
         await chrome.storage.local.set({ autoEnableCamera: state });
       }
-
-      // 3. Re-open the popup while the user-gesture is still valid
       await chrome.action.openPopup();
-    }
-    // --- message handlers for the tabstrip ---
-    else if (msg.cmd === 'TABSTRIP_QUERY') {
-      const res = await handleTABSTRIP_QUERY();
-      sendResponse(res);
-    }
-    else if (msg.cmd === 'TABSTRIP_NAV') {
-      const res = await handleTABSTRIP_NAV(msg);
-      sendResponse(res);
-    }
-    else if (msg.cmd === 'TABSTRIP_ACTIVATE') {
-      const res = await handleTABSTRIP_ACTIVATE(msg);
-      sendResponse(res);
-    }
-    else if (msg.cmd === 'TABSTRIP_NEW_TAB') {
-      const res = await handleTABSTRIP_NEW_TAB();
-      sendResponse(res);
-    }
-    else if (msg.cmd === 'TABSTRIP_CLOSE') {
-      const res = await handleTABSTRIP_CLOSE(msg);
-      sendResponse(res);
-    }
-    else if (msg.cmd === 'TABSTRIP_OPEN_URL') {
-      const res = await handleTABSTRIP_OPEN_URL(msg);
-      sendResponse(res);
     }
   })();
   return true;
